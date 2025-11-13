@@ -70,26 +70,6 @@ function startServer(whatsappClient) {
     });
   };
 
-  // Middleware para autenticação de páginas EJS (via cookie) - APENAS PARA DASHBOARD
-  // const authenticateCookie = (req, res, next) => {
-  //   const token = req.cookies.auth_token;
-  //   console.log('🔐 Verificando token (Cookie):', token ? 'Token presente' : 'Token ausente');
-
-  //   if (!token) {
-  //     console.log('❌ Token ausente para página, redirecionando para login');
-  //     return res.redirect('/admin/login');
-  //   }
-
-  //   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-  //     if (err) {
-  //       console.log('❌ Token inválido para página:', err.message);
-  //       return res.redirect('/admin/login');
-  //     }
-  //     req.user = user;
-  //     console.log('✅ Token válido para página, usuário:', user.userId);
-  //     next();
-  //   });
-  // };
 
   // ✅ MELHORIA: Estado global do WhatsApp
   let whatsappState = {
@@ -292,26 +272,6 @@ function startServer(whatsappClient) {
       res.status(500).json({ message: 'Erro ao atualizar configuração' });
     }
   });
-
-  // ✅ CORREÇÃO: Rotas de visualização - LOGIN SEM autenticação
-  // app.get('/', (req, res) => {
-  //   console.log('🏠 Redirecionando raiz para login...');
-  //   res.redirect('/admin/login');
-  // });
-
-  // // ✅ LOGIN: SEM authenticateCookie, COM redirectIfAuthenticated
-  // app.get('/admin/login', redirectIfAuthenticated, (req, res) => {
-  //   console.log('🔐 Servindo página de login...');
-  //   res.render('admin/login', { title: 'Login - ChatBot Platform' });
-  // });
-
-  // // ✅ DASHBOARD: COM authenticateCookie
-  // app.get('/admin/dashboard', authenticateCookie, (req, res) => {
-  //   console.log('📊 Servindo dashboard para usuário:', req.user.userId);
-  //   res.render('admin/dashboard', {
-  //     title: 'Dashboard - ChatBot Platform'
-  //   });
-  // });
 
   // ✅ MELHORIA: Função para emitir QR Code
   const generateAndEmitQr = async (io, qr) => {

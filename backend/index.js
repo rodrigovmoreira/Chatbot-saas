@@ -18,10 +18,6 @@ client.on('ready', () => {
   console.log('✅ Bot conectado ao WhatsApp com sucesso!');
 });
 
-client.on('qr', (qr) => {
-  console.log('📱 QR Code gerado - Aguardando escaneamento...');
-});
-
 client.on('authenticated', () => {
   console.log('✅ WhatsApp autenticado!');
 });

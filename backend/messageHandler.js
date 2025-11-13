@@ -5,7 +5,7 @@ const { generateAIResponse } = require('./services/ai');
 const BusinessConfig = require('./models/BusinessConfig');
 
 // Configurações
-const MAX_HISTORY = 5;
+const MAX_HISTORY = 10;
 const ERROR_MESSAGE = '⚠️ Ops! Tive um problema. Pode tentar novamente?';
 
 async function handleMessage(client, msg) {
@@ -86,16 +86,17 @@ async function handleMessage(client, msg) {
     }
 
     // ✅ CORREÇÃO: Processar comando do menu com mais logs
-    console.log('📋 Processando comando do menu...');
+    console.log('📋 Verificando se é comando do menu...');
     const menuResponse = await processMenuCommand(userMessage, businessConfig);
+
     if (menuResponse) {
-      console.log('✅ Comando do menu reconhecido, enviando resposta:', menuResponse.substring(0, 100) + '...');
+      console.log('✅ Comando do menu reconhecido, enviando resposta do menu');
       await client.sendMessage(msg.from, menuResponse);
       await saveMessage(msg.from, 'bot', menuResponse);
-      return;
+      return; // PARA AQUI - não chama IA
     }
 
-    console.log('🧠 Nenhum comando de menu, usando IA...');
+    console.log('❌ Não é comando de menu, usando IA como fallback...');
 
     // Se não for comando de menu, usar IA contextual
     let history = [];
@@ -142,23 +143,42 @@ async function handleMessage(client, msg) {
 // Mostrar menu principal
 async function showMainMenu(client, phone, businessConfig) {
   try {
-    console.log('📋 Mostrando menu principal para:', phone);
+    console.log('📋 Mostrando menu principal personalizado para:', phone);
 
     const menuOptions = businessConfig.menuOptions || [];
+    
     if (menuOptions.length === 0) {
-      console.log('⚠️  Nenhuma opção de menu configurada');
+      const defaultMenu = `🤖 *${businessConfig.businessName || 'Nosso Atendimento'}*
+
+Olá! Sou o assistente virtual da ${businessConfig.businessName}. 
+
+Como posso ajudar você hoje? Pode me perguntar diretamente ou digitar:
+
+*1* - Falar com atendente humano
+*2* - Horário de funcionamento
+*3* - Conhecer nossos produtos/serviços
+
+Ou simplesmente digite sua dúvida!`;
+      
+      await client.sendMessage(phone, defaultMenu);
+      await saveMessage(phone, 'bot', defaultMenu);
       return;
     }
 
-    const menuText = `🗂️ *Menu Principal*:\n\n` +
+    // Menu personalizado com as opções cadastradas
+    const menuText = `🤖 *${businessConfig.businessName || 'Menu Principal'}*
+
+${businessConfig.welcomeMessage || 'Como posso ajudar você hoje?'}
+
+*ESCOLHA UMA OPÇÃO:*\n\n` +
       menuOptions.map((opt, index) =>
-        `${index + 1}️⃣ *${opt.keyword}* - ${opt.description}`
+        `*${index + 1}️⃣* - *${opt.keyword}*: ${opt.description}`
       ).join('\n') +
-      `\n\nDigite o número ou palavra-chave da opção desejada.`;
+      `\n\n💡 *Dica:* Digite o *número* ou *palavra-chave* da opção desejada.`;
 
     await client.sendMessage(phone, menuText);
     await saveMessage(phone, 'bot', menuText);
-    console.log('✅ Menu principal enviado');
+    console.log('✅ Menu principal personalizado enviado');
   } catch (error) {
     console.error('💥 Erro ao mostrar menu principal:', error);
   }
@@ -172,19 +192,36 @@ async function processMenuCommand(message, businessConfig) {
 
     const menuOptions = businessConfig.menuOptions || [];
 
-    // Buscar opção por número ou palavra-chave
+    // ✅ MELHORIA: Busca mais inteligente - por número, palavra-chave EXATA ou sinônimos comuns
     const option = menuOptions.find((opt, index) => {
       const matchByNumber = lowerMessage === (index + 1).toString();
-      const matchByKeyword = opt.keyword && lowerMessage.includes(opt.keyword.toLowerCase());
-      return matchByNumber || matchByKeyword;
+      const matchByExactKeyword = opt.keyword && lowerMessage === opt.keyword.toLowerCase();
+      const matchByContains = opt.keyword && lowerMessage.includes(opt.keyword.toLowerCase());
+
+      // Sinônimos comuns para melhor UX
+      const synonyms = {
+        'horario': ['horário', 'funcionamento', 'hora', 'aberto', 'fechado', 'atendimento'],
+        'produtos': ['produto', 'catalogo', 'catálogo', 'serviços', 'servicos', 'o que tem'],
+        'preco': ['preço', 'valor', 'custo', 'quanto custa'],
+        'atendente': ['humano', 'pessoa', 'vendedor', 'corretor', 'consultor']
+      };
+
+      const hasSynonyms = synonyms[opt.keyword]?.some(synonym =>
+        lowerMessage.includes(synonym)
+      );
+
+      return matchByNumber || matchByExactKeyword || matchByContains || hasSynonyms;
     });
 
     if (option) {
       console.log('✅ Opção do menu encontrada:', option.keyword);
+
+      // ✅ MELHORIA: Formatação melhor da resposta
       if (option.requiresHuman) {
-        return `👨‍💼 ${option.response}\n\nUm de nossos vendedores entrará em contato em breve!`;
+        return `👨‍💼 ${option.response}\n\n*Um de nossos atendentes entrará em contato em breve!* ⏳`;
       }
-      return option.response;
+
+      return `✅ ${option.response}`;
     }
 
     console.log('❌ Nenhuma opção do menu correspondente');
@@ -199,21 +236,30 @@ async function processMenuCommand(message, businessConfig) {
 function createBusinessContext(history, businessConfig) {
   try {
     const businessInfo = `
-Empresa: ${businessConfig.businessName || 'Não configurado'}
-Segmento: ${businessConfig.businessType || 'Não especificado'}
-Horário: ${businessConfig.operatingHours?.opening || '09:00'} às ${businessConfig.operatingHours?.closing || '18:00'}
-    `.trim();
+*EMPRESA:* ${businessConfig.businessName || 'Não configurado'}
+*SEGMENTO:* ${businessConfig.businessType || 'Não especificado'}
+*HORÁRIO DE ATENDIMENTO:* ${businessConfig.operatingHours?.opening || '09:00'} às ${businessConfig.operatingHours?.closing || '18:00'}
+*MENSAGEM DE BOAS-VINDAS:* "${businessConfig.welcomeMessage || 'Olá! Como posso ajudar?'}"
+`.trim();
 
     const productsInfo = businessConfig.products && businessConfig.products.length > 0
-      ? `Produtos: ${businessConfig.products.map(p => p.name).join(', ')}`
-      : 'Produtos: Nenhum produto cadastrado';
+      ? `*PRODUTOS/SERVIÇOS:*\n${businessConfig.products.map(p => 
+          `- ${p.name}: R$ ${p.price || 'consultar'} | ${p.description || 'Sem descrição'}`
+        ).join('\n')}`
+      : '*PRODUTOS:* Nenhum produto cadastrado';
+
+    const menuInfo = businessConfig.menuOptions && businessConfig.menuOptions.length > 0
+      ? `*OPÇÕES DE MENU CADASTRADAS:*\n${businessConfig.menuOptions.map((opt, index) => 
+          `${index + 1}. ${opt.keyword} - ${opt.description}`
+        ).join('\n')}`
+      : '*MENU:* Nenhuma opção de menu configurada';
 
     const conversationHistory = history
       .reverse()
-      .map(m => `${m.role === 'user' ? 'Cliente' : 'Bot'}: ${m.content}`)
+      .map(m => `${m.role === 'user' ? '👤 Cliente' : '🤖 Bot'}: ${m.content}`)
       .join('\n');
 
-    return `Informações da Empresa:\n${businessInfo}\n${productsInfo}\n\nHistórico da Conversa:\n${conversationHistory || 'Nenhum histórico anterior'}`;
+    return `${businessInfo}\n\n${productsInfo}\n\n${menuInfo}\n\n*HISTÓRICO:*\n${conversationHistory || 'Nenhuma conversa anterior'}`;
   } catch (error) {
     console.error('💥 Erro ao criar contexto:', error);
     return 'Informações da empresa não disponíveis.';
@@ -223,39 +269,55 @@ Horário: ${businessConfig.operatingHours?.opening || '09:00'} às ${businessCon
 // Gerar resposta da IA contextualizada para o negócio
 async function generateBusinessAIResponse(message, context, businessConfig) {
   try {
-    console.log('🧠 Preparando prompt para IA...');
+    console.log('🧠 Preparando prompt para IA com contexto do negócio...');
+
+    // ✅ MELHORIA: Prompt dinâmico baseado NAS CONFIGURAÇÕES DO NEGÓCIO
+    const menuOptionsText = businessConfig.menuOptions && businessConfig.menuOptions.length > 0
+      ? `OPÇÕES DE ATENDIMENTO DISPONÍVEIS:\n${businessConfig.menuOptions.map((opt, index) =>
+        `*${index + 1}.* ${opt.keyword} - ${opt.description}`
+      ).join('\n')}`
+      : 'Nenhuma opção de menu configurada';
 
     const prompt = `
-Você é um atendente virtual da empresa "${businessConfig.businessName || 'nossa empresa'}", que atua no segmento de ${businessConfig.businessType || 'vários serviços'}.
+Você é o atendente virtual da empresa *"${businessConfig.businessName || 'nossa empresa'}"*.
 
-INSTRUÇÕES IMPORTANTES:
-- Seja prestativo e educado
-- Mantenha respostas curtas e objetivas (máximo 2-3 frases)
-- Use emojis moderadamente (1-2 por resposta)
-- Fale como se estivesse no WhatsApp
-- NÃO invente informações sobre produtos ou preços
-- Se não souber a resposta, diga que vai consultar e peça para falar com humano
-- Encaminhe para atendimento humano quando necessário
+SEU PAPEL:
+- Você é um funcionário da ${businessConfig.businessName}
+- Atua no segmento de ${businessConfig.businessType}
+- Seu tom de voz deve ser: ${businessConfig.businessType === 'restaurante' ? 'amigável e convidativo' :
+        businessConfig.businessType === 'imoveis' ? 'profissional e confiável' :
+          businessConfig.businessType === 'servicos' ? 'técnico e solucionador' : 'educado e prestativo'}
+
+INSTRUÇÕES CRÍTICAS:
+1. SEMPRE priorize as opções do menu abaixo
+2. Se o cliente perguntar sobre algo que existe no menu, direcione para a opção correspondente
+3. Use a mensagem de boas-vindas como referência: "${businessConfig.welcomeMessage}"
+4. NUNCA invente preços, produtos ou informações não cadastradas
+5. Se não souber, diga que vai consultar e ofereça opções do menu
+6. Encaminhe para humano quando perceber complexidade ou insatisfação
+
+${menuOptionsText}
 
 INFORMAÇÕES DA EMPRESA:
 ${context}
 
-PRODUTOS DISPONÍVEIS:
-${(businessConfig.products || []).map(p => `- ${p.name}: R$ ${p.price || 'consultar'} | ${p.description || 'Sem descrição'}`).join('\n') || 'Nenhum produto cadastrado'}
+HISTÓRICO RECENTE:
+${context.includes('Histórico da Conversa') ? context.split('Histórico da Conversa:')[1] : 'Primeiro contato'}
 
 MENSAGEM DO CLIENTE:
-${message}
+"${message}"
 
-SUA RESPOSTA (seja natural, direto e útil):`.trim();
+SUA RESPOSTA (seja natural, útil e direcione para o menu quando possível):
+`.trim();
 
-    console.log('📤 Enviando prompt para IA...');
+    console.log('📤 Enviando prompt personalizado para IA...');
     const response = await generateAIResponse(prompt);
 
     if (response && response.trim()) {
       return response.trim();
     } else {
       console.log('❌ IA retornou resposta vazia');
-      return "🤖 No momento não consigo responder. Pode entrar em contato com nosso atendente humano?";
+      return "🤖 No momento não consigo responder. Pode tentar uma das opções do menu ou falar com nosso atendente humano?";
     }
   } catch (error) {
     console.error('💥 Erro ao gerar resposta da IA:', error);
