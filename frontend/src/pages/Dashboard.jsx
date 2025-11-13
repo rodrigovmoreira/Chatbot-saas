@@ -4,7 +4,7 @@ import {
   Stat,  StatLabel,  StatNumber,  StatHelpText,  useToast,  Image,  Progress,  Badge,  Icon,  useColorModeValue,
   FormControl,  FormLabel,  Input,  Select,  Textarea,  Checkbox,  Modal,  ModalOverlay,  ModalContent,  ModalHeader,
   ModalFooter,  ModalBody,  ModalCloseButton,  useDisclosure,} from '@chakra-ui/react';
-import { CheckCircleIcon, WarningIcon, DownloadIcon, AddIcon, EditIcon, DeleteIcon } from '@chakra-ui/icons';
+import { CheckCircleIcon, WarningIcon, DownloadIcon, ChatIcon, AddIcon, EditIcon, DeleteIcon } from '@chakra-ui/icons';
 import { useApp } from '../context/AppContext';
 import { connectSocket, getSocket } from '../services/socket';
 import { businessAPI } from '../services/api';
@@ -284,14 +284,6 @@ const Dashboard = () => {
                       <Text fontSize="sm" textAlign="center" color="gray.600">
                         Escaneie este QR Code com seu WhatsApp
                       </Text>
-                      <Button 
-                        leftIcon={<DownloadIcon />} 
-                        colorScheme="brand" 
-                        size="sm"
-                        onClick={() => window.open(state.qrCode, '_blank')}
-                      >
-                        Baixar QR Code
-                      </Button>
                     </VStack>
                   )}
 
@@ -309,7 +301,7 @@ const Dashboard = () => {
                     <Button 
                       colorScheme="brand" 
                       onClick={requestQRCode}
-                      leftIcon={<DownloadIcon />}
+                      leftIcon={<ChatIcon />}
                     >
                       {state.qrCode ? 'Gerar Novo QR Code' : 'Conectar WhatsApp'}
                     </Button>
