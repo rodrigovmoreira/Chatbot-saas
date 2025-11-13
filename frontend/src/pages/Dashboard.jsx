@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Box,  Container,  Grid,  GridItem,  Card,  CardHeader,  CardBody,  Heading,  Text,  Button,  VStack,  HStack,
-  Stat,  StatLabel,  StatNumber,  StatHelpText,  useToast,  Image,  Progress,  Badge,  Icon,  useColorModeValue,
-  FormControl,  FormLabel,  Input,  Select,  Textarea,  Checkbox,  Modal,  ModalOverlay,  ModalContent,  ModalHeader,
-  ModalFooter,  ModalBody,  ModalCloseButton,  useDisclosure,} from '@chakra-ui/react';
-import { CheckCircleIcon, WarningIcon, DownloadIcon, ChatIcon, AddIcon, EditIcon, DeleteIcon } from '@chakra-ui/icons';
+  Box, Container, Grid, GridItem, Card, CardHeader, CardBody, Heading, Text, Button, VStack, HStack,
+  Stat, StatLabel, StatNumber, StatHelpText, useToast, Image, Progress, Badge, Icon, useColorModeValue,
+  FormControl, FormLabel, Input, Select, Textarea, Checkbox, Modal, ModalOverlay, ModalContent, ModalHeader,
+  ModalFooter, ModalBody, ModalCloseButton, useDisclosure,
+} from '@chakra-ui/react';
+import { CheckCircleIcon, WarningIcon, ChatIcon, AddIcon, EditIcon, DeleteIcon } from '@chakra-ui/icons';
 import { useApp } from '../context/AppContext';
 import { connectSocket, getSocket } from '../services/socket';
 import { businessAPI } from '../services/api';
@@ -14,7 +15,7 @@ const Dashboard = () => {
   const toast = useToast();
   const cardBg = useColorModeValue('white', 'gray.800');
   const { isOpen, onOpen, onClose } = useDisclosure();
-  
+
   // Estados para edição
   const [editingConfig, setEditingConfig] = useState(false);
   const [configForm, setConfigForm] = useState({
@@ -72,15 +73,15 @@ const Dashboard = () => {
 
       socketInstance.on('whatsapp_ready', (isReady) => {
         console.log('WhatsApp ready:', isReady);
-        dispatch({ 
-          type: 'SET_WHATSAPP_STATUS', 
-          payload: { 
-            isConnected: isReady, 
+        dispatch({
+          type: 'SET_WHATSAPP_STATUS',
+          payload: {
+            isConnected: isReady,
             isAuthenticated: isReady,
             connectionTime: isReady ? new Date() : null
-          } 
+          }
         });
-        
+
         if (isReady) {
           dispatch({ type: 'SET_QR_CODE', payload: null });
           toast({
@@ -165,7 +166,7 @@ const Dashboard = () => {
       requiresHuman: false
     });
     onClose();
-    
+
     toast({
       title: 'Opção adicionada!',
       status: 'success',
@@ -263,7 +264,7 @@ const Dashboard = () => {
                         </Text>
                       </HStack>
                     </Badge>
-                    
+
                     {state.whatsappStatus.connectionTime && (
                       <Text fontSize="sm" color="gray.600">
                         Conectado em: {new Date(state.whatsappStatus.connectionTime).toLocaleString()}
@@ -274,8 +275,8 @@ const Dashboard = () => {
                   {state.qrCode && (
                     <VStack spacing={3} p={4} border="2px dashed" borderColor="gray.200" borderRadius="lg">
                       <Heading size="sm">Conectar WhatsApp</Heading>
-                      <Image 
-                        src={state.qrCode} 
+                      <Image
+                        src={state.qrCode}
                         alt="QR Code para conectar WhatsApp"
                         maxW="200px"
                         borderRadius="md"
@@ -298,8 +299,8 @@ const Dashboard = () => {
                   )}
 
                   {!state.whatsappStatus.isConnected && (
-                    <Button 
-                      colorScheme="brand" 
+                    <Button
+                      colorScheme="brand"
                       onClick={requestQRCode}
                       leftIcon={<ChatIcon />}
                     >
@@ -322,18 +323,18 @@ const Dashboard = () => {
                   <VStack spacing={4} align="stretch">
                     <FormControl>
                       <FormLabel>Nome do Negócio</FormLabel>
-                      <Input 
+                      <Input
                         value={configForm.businessName}
-                        onChange={(e) => setConfigForm({...configForm, businessName: e.target.value})}
+                        onChange={(e) => setConfigForm({ ...configForm, businessName: e.target.value })}
                         placeholder="Nome da sua empresa"
                       />
                     </FormControl>
-                    
+
                     <FormControl>
                       <FormLabel>Segmento</FormLabel>
-                      <Select 
+                      <Select
                         value={configForm.businessType}
-                        onChange={(e) => setConfigForm({...configForm, businessType: e.target.value})}
+                        onChange={(e) => setConfigForm({ ...configForm, businessType: e.target.value })}
                       >
                         <option value="varejo">Varejo</option>
                         <option value="servicos">Serviços</option>
@@ -342,17 +343,17 @@ const Dashboard = () => {
                         <option value="outros">Outros</option>
                       </Select>
                     </FormControl>
-                    
+
                     <FormControl>
                       <FormLabel>Mensagem de Boas-Vindas</FormLabel>
-                      <Textarea 
+                      <Textarea
                         value={configForm.welcomeMessage}
-                        onChange={(e) => setConfigForm({...configForm, welcomeMessage: e.target.value})}
+                        onChange={(e) => setConfigForm({ ...configForm, welcomeMessage: e.target.value })}
                         placeholder="Digite a mensagem de boas-vindas para seus clientes..."
                         rows={3}
                       />
                     </FormControl>
-                    
+
                     <HStack>
                       <Button colorScheme="brand" onClick={handleSaveConfig}>
                         Salvar
@@ -368,24 +369,24 @@ const Dashboard = () => {
                       <Text fontWeight="bold" color="blue.800">Nome do Negócio</Text>
                       <Text color="blue.600">{state.businessConfig?.businessName || 'Não configurado'}</Text>
                     </Box>
-                    
+
                     <Box p={3} bg="purple.50" borderRadius="md">
                       <Text fontWeight="bold" color="purple.800">Segmento</Text>
                       <Text color="purple.600" textTransform="capitalize">
                         {state.businessConfig?.businessType || 'Não definido'}
                       </Text>
                     </Box>
-                    
+
                     <Box p={3} bg="green.50" borderRadius="md">
                       <Text fontWeight="bold" color="green.800">Mensagem de Boas-Vindas</Text>
                       <Text color="green.600" fontStyle="italic">
                         "{state.businessConfig?.welcomeMessage || 'Não configurada'}"
                       </Text>
                     </Box>
-                    
-                    <Button 
-                      colorScheme="brand" 
-                      variant="outline" 
+
+                    <Button
+                      colorScheme="brand"
+                      variant="outline"
                       onClick={() => setEditingConfig(true)}
                       leftIcon={<EditIcon />}
                     >
@@ -446,16 +447,16 @@ const Dashboard = () => {
                   )}
 
                   <HStack>
-                    <Button 
-                      colorScheme="brand" 
+                    <Button
+                      colorScheme="brand"
                       onClick={onOpen}
                       leftIcon={<AddIcon />}
                     >
                       Adicionar Opção
                     </Button>
                     {menuOptions.length > 0 && (
-                      <Button 
-                        colorScheme="green" 
+                      <Button
+                        colorScheme="green"
                         onClick={handleSaveMenu}
                       >
                         Salvar Menu
@@ -479,7 +480,7 @@ const Dashboard = () => {
               </Stat>
             </CardBody>
           </Card>
-          
+
           <Card bg={cardBg} boxShadow="md">
             <CardBody>
               <Stat>
@@ -489,7 +490,7 @@ const Dashboard = () => {
               </Stat>
             </CardBody>
           </Card>
-          
+
           <Card bg={cardBg} boxShadow="md">
             <CardBody>
               <Stat>
@@ -499,7 +500,7 @@ const Dashboard = () => {
               </Stat>
             </CardBody>
           </Card>
-          
+
           <Card bg={cardBg} boxShadow="md">
             <CardBody>
               <Stat>
@@ -522,36 +523,36 @@ const Dashboard = () => {
             <VStack spacing={4}>
               <FormControl isRequired>
                 <FormLabel>Palavra-chave</FormLabel>
-                <Input 
+                <Input
                   value={newMenuOption.keyword}
-                  onChange={(e) => setNewMenuOption({...newMenuOption, keyword: e.target.value})}
+                  onChange={(e) => setNewMenuOption({ ...newMenuOption, keyword: e.target.value })}
                   placeholder="Ex: produtos, horario, atendimento"
                 />
               </FormControl>
-              
+
               <FormControl isRequired>
                 <FormLabel>Descrição</FormLabel>
-                <Input 
+                <Input
                   value={newMenuOption.description}
-                  onChange={(e) => setNewMenuOption({...newMenuOption, description: e.target.value})}
+                  onChange={(e) => setNewMenuOption({ ...newMenuOption, description: e.target.value })}
                   placeholder="Ex: Ver nossos produtos, Horário de funcionamento"
                 />
               </FormControl>
-              
+
               <FormControl isRequired>
                 <FormLabel>Resposta</FormLabel>
-                <Textarea 
+                <Textarea
                   value={newMenuOption.response}
-                  onChange={(e) => setNewMenuOption({...newMenuOption, response: e.target.value})}
+                  onChange={(e) => setNewMenuOption({ ...newMenuOption, response: e.target.value })}
                   placeholder="Digite a resposta que o bot enviará quando esta opção for selecionada"
                   rows={4}
                 />
               </FormControl>
-              
+
               <FormControl>
-                <Checkbox 
+                <Checkbox
                   isChecked={newMenuOption.requiresHuman}
-                  onChange={(e) => setNewMenuOption({...newMenuOption, requiresHuman: e.target.checked})}
+                  onChange={(e) => setNewMenuOption({ ...newMenuOption, requiresHuman: e.target.checked })}
                 >
                   Encaminhar para atendente humano
                 </Checkbox>

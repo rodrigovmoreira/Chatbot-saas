@@ -26,7 +26,7 @@ function startServer(whatsappClient) {
   app.use(express.static(path.join(__dirname, 'public')));
   app.set('view engine', 'ejs');
   app.set('views', path.join(__dirname, 'views'));
-  app.use(cors({origin: 'http://localhost:3000', credentials: true}));
+  app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
 
   // Verificar se JWT_SECRET existe
   if (!process.env.JWT_SECRET) {
@@ -261,15 +261,36 @@ function startServer(whatsappClient) {
   app.put('/api/business-config', authenticateToken, async (req, res) => {
     try {
       console.log('📝 Atualizando configuração para usuário:', req.user.userId);
+
+      const updateData = {
+        ...req.body,
+        userId: req.user.userId, // Garantir que pertence ao usuário
+        updatedAt: new Date()
+      };
+
       const config = await BusinessConfig.findOneAndUpdate(
         { userId: req.user.userId },
-        { ...req.body, updatedAt: new Date() },
-        { new: true, upsert: true }
+        updateData,
+        {
+          new: true,
+          upsert: true,
+          runValidators: true
+        }
       );
+
+      console.log('✅ Configuração salva no MongoDB:', {
+        businessName: config.businessName,
+        menuOptionsCount: config.menuOptions?.length || 0,
+        productsCount: config.products?.length || 0
+      });
+
       res.json(config);
     } catch (error) {
       console.error('💥 ERRO ao atualizar configuração:', error);
-      res.status(500).json({ message: 'Erro ao atualizar configuração' });
+      res.status(500).json({
+        message: 'Erro ao atualizar configuração',
+        error: error.message
+      });
     }
   });
 

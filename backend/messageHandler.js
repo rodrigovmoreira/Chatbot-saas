@@ -1,5 +1,5 @@
 const { saveMessage, getLastMessages } = require('./services/message');
-const Session = require('./models/Session'); // ✅ CORREÇÃO: Import correto
+const Session = require('./models/Session');
 const { simulateTyping } = require('./utils/chatUtils');
 const { generateAIResponse } = require('./services/ai');
 const BusinessConfig = require('./models/BusinessConfig');
@@ -7,6 +7,36 @@ const BusinessConfig = require('./models/BusinessConfig');
 // Configurações
 const MAX_HISTORY = 10;
 const ERROR_MESSAGE = '⚠️ Ops! Tive um problema. Pode tentar novamente?';
+
+const whatsappUserMap = new Map();
+
+async function getUserBusinessConfig(phone) {
+  try {
+    // Primeiro tenta encontrar pelo mapeamento direto
+    const userId = whatsappUserMap.get(phone);
+
+    if (userId) {
+      console.log('🔍 Buscando configuração para usuário mapeado:', userId);
+      const config = await BusinessConfig.findOne({ userId }).populate('userId');
+      if (config) return config;
+    }
+
+    // Se não encontrou, busca a primeira configuração (fallback para single user)
+    console.log('🔍 Buscando primeira configuração disponível (fallback)');
+    const config = await BusinessConfig.findOne({}).populate('userId');
+
+    // Se encontrou, mapeia para futuras consultas
+    if (config && config.userId) {
+      whatsappUserMap.set(phone, config.userId._id);
+      console.log('✅ Mapeado telefone', phone, 'para usuário:', config.userId._id);
+    }
+
+    return config;
+  } catch (error) {
+    console.error('💥 Erro ao buscar configuração do usuário:', error);
+    return null;
+  }
+}
 
 async function handleMessage(client, msg) {
   // ✅ CORREÇÃO: Validação mais robusta
@@ -31,6 +61,7 @@ async function handleMessage(client, msg) {
 
     const chat = await msg.getChat();
     const userMessage = msg.body.trim();
+    const phone = msg.from;
 
     // Ignora mensagens vazias
     if (!userMessage) {
@@ -43,13 +74,21 @@ async function handleMessage(client, msg) {
     // ✅ CORREÇÃO: Buscar configuração de forma mais robusta
     let businessConfig;
     try {
-      businessConfig = await BusinessConfig.findOne({}).populate('userId');
+      businessConfig = await getUserBusinessConfig(phone);
+
       if (!businessConfig) {
         console.log('❌ Nenhuma configuração de negócio encontrada no banco');
         await client.sendMessage(msg.from, '🤖 Olá! No momento estou em configuração. Por favor, aguarde.');
         return;
       }
-      console.log('✅ Configuração do negócio encontrada:', businessConfig.businessName);
+
+      console.log('✅ Configuração do negócio encontrada:', {
+        business: businessConfig.businessName,
+        user: businessConfig.userId?._id || 'N/A',
+        menuOptions: businessConfig.menuOptions?.length || 0,
+        products: businessConfig.products?.length || 0
+      });
+
     } catch (error) {
       console.error('💥 Erro ao buscar configuração:', error);
       await client.sendMessage(msg.from, '🤖 Estou com problemas técnicos. Tente novamente em alguns instantes.');
@@ -146,7 +185,7 @@ async function showMainMenu(client, phone, businessConfig) {
     console.log('📋 Mostrando menu principal personalizado para:', phone);
 
     const menuOptions = businessConfig.menuOptions || [];
-    
+
     if (menuOptions.length === 0) {
       const defaultMenu = `🤖 *${businessConfig.businessName || 'Nosso Atendimento'}*
 
@@ -159,7 +198,7 @@ Como posso ajudar você hoje? Pode me perguntar diretamente ou digitar:
 *3* - Conhecer nossos produtos/serviços
 
 Ou simplesmente digite sua dúvida!`;
-      
+
       await client.sendMessage(phone, defaultMenu);
       await saveMessage(phone, 'bot', defaultMenu);
       return;
@@ -235,6 +274,10 @@ async function processMenuCommand(message, businessConfig) {
 // Criar contexto para IA com informações do negócio
 function createBusinessContext(history, businessConfig) {
   try {
+    if (!businessConfig) {
+      return 'Informações da empresa não disponíveis.';
+    }
+
     const businessInfo = `
 *EMPRESA:* ${businessConfig.businessName || 'Não configurado'}
 *SEGMENTO:* ${businessConfig.businessType || 'Não especificado'}
@@ -243,15 +286,15 @@ function createBusinessContext(history, businessConfig) {
 `.trim();
 
     const productsInfo = businessConfig.products && businessConfig.products.length > 0
-      ? `*PRODUTOS/SERVIÇOS:*\n${businessConfig.products.map(p => 
-          `- ${p.name}: R$ ${p.price || 'consultar'} | ${p.description || 'Sem descrição'}`
-        ).join('\n')}`
+      ? `*PRODUTOS/SERVIÇOS:*\n${businessConfig.products.map(p =>
+        `- ${p.name}: R$ ${p.price || 'consultar'} | ${p.description || 'Sem descrição'}`
+      ).join('\n')}`
       : '*PRODUTOS:* Nenhum produto cadastrado';
 
     const menuInfo = businessConfig.menuOptions && businessConfig.menuOptions.length > 0
-      ? `*OPÇÕES DE MENU CADASTRADAS:*\n${businessConfig.menuOptions.map((opt, index) => 
-          `${index + 1}. ${opt.keyword} - ${opt.description}`
-        ).join('\n')}`
+      ? `*OPÇÕES DE MENU CADASTRADAS:*\n${businessConfig.menuOptions.map((opt, index) =>
+        `${index + 1}. ${opt.keyword} - ${opt.description}`
+      ).join('\n')}`
       : '*MENU:* Nenhuma opção de menu configurada';
 
     const conversationHistory = history
