@@ -262,9 +262,31 @@ function startServer(whatsappClient) {
     try {
       console.log('📝 Atualizando configuração para usuário:', req.user.userId);
 
+      const {
+        businessName,
+        businessType,
+        welcomeMessage,
+        operatingHours,
+        awayMessage,
+        menuOptions,
+        products
+      } = req.body;
+
+      // Validação de dados de entrada
+      if (!businessName || !businessType) {
+        return res.status(400).json({ message: 'Nome e tipo de negócio são obrigatórios' });
+      }
+
+      // Construir objeto de atualização
       const updateData = {
-        ...req.body,
-        userId: req.user.userId, // Garantir que pertence ao usuário
+        businessName,
+        businessType,
+        welcomeMessage,
+        operatingHours,
+        awayMessage,
+        menuOptions,
+        products,
+        userId: req.user.userId,
         updatedAt: new Date()
       };
 

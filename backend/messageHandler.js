@@ -95,6 +95,14 @@ async function handleMessage(client, msg) {
       return;
     }
 
+    // Verificar horário de funcionamento
+    if (!isWithinOperatingHours(businessConfig)) {
+      console.log('🌙 Fora do horário de funcionamento, enviando mensagem de ausência.');
+      await client.sendMessage(msg.from, businessConfig.awayMessage);
+      await saveMessage(msg.from, 'bot', businessConfig.awayMessage);
+      return;
+    }
+
     // ✅ CORREÇÃO: Verificar se é novo cliente de forma mais precisa
     let isNewCustomer = false;
     try {
@@ -271,6 +279,25 @@ async function processMenuCommand(message, businessConfig) {
   }
 }
 
+// Verificar horário de funcionamento
+function isWithinOperatingHours(businessConfig) {
+  if (!businessConfig.operatingHours || !businessConfig.operatingHours.opening || !businessConfig.operatingHours.closing) {
+    return true; // Se não configurado, considera sempre aberto
+  }
+
+  const now = new Date();
+  const opening = new Date();
+  const closing = new Date();
+
+  const [openingHour, openingMinute] = businessConfig.operatingHours.opening.split(':');
+  opening.setHours(openingHour, openingMinute, 0);
+
+  const [closingHour, closingMinute] = businessConfig.operatingHours.closing.split(':');
+  closing.setHours(closingHour, closingMinute, 0);
+
+  return now >= opening && now <= closing;
+}
+
 // Criar contexto para IA com informações do negócio
 function createBusinessContext(history, businessConfig) {
   try {
@@ -289,7 +316,7 @@ function createBusinessContext(history, businessConfig) {
       ? `*PRODUTOS/SERVIÇOS:*\n${businessConfig.products.map(p =>
         `- ${p.name}: R$ ${p.price || 'consultar'} | ${p.description || 'Sem descrição'}`
       ).join('\n')}`
-      : '*PRODUTOS:* Nenhum produto cadastrado';
+      : '*PRODUTOS:* Nenhum produto cadastrado.';
 
     const menuInfo = businessConfig.menuOptions && businessConfig.menuOptions.length > 0
       ? `*OPÇÕES DE MENU CADASTRADAS:*\n${businessConfig.menuOptions.map((opt, index) =>
