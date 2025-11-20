@@ -15,13 +15,19 @@ const Dashboard = () => {
   const toast = useToast();
   const cardBg = useColorModeValue('white', 'gray.800');
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isProductModalOpen, onOpen: onProductModalOpen, onClose: onProductModalClose } = useDisclosure({
+    onClose: () => setEditingProductIndex(null)
+  });
 
   // Estados para edição
   const [editingConfig, setEditingConfig] = useState(false);
+  const [editingHours, setEditingHours] = useState(false);
   const [configForm, setConfigForm] = useState({
     businessName: '',
     businessType: '',
-    welcomeMessage: ''
+    welcomeMessage: '',
+    operatingHours: { opening: '09:00', closing: '18:00' },
+    awayMessage: ''
   });
   const [menuOptions, setMenuOptions] = useState([]);
   const [newMenuOption, setNewMenuOption] = useState({
@@ -30,6 +36,13 @@ const Dashboard = () => {
     response: '',
     requiresHuman: false
   });
+  const [products, setProducts] = useState([]);
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    price: '',
+    description: ''
+  });
+  const [editingProductIndex, setEditingProductIndex] = useState(null);
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -37,9 +50,12 @@ const Dashboard = () => {
       setConfigForm({
         businessName: state.businessConfig.businessName || '',
         businessType: state.businessConfig.businessType || '',
-        welcomeMessage: state.businessConfig.welcomeMessage || ''
+        welcomeMessage: state.businessConfig.welcomeMessage || '',
+        operatingHours: state.businessConfig.operatingHours || { opening: '09:00', closing: '18:00' },
+        awayMessage: state.businessConfig.awayMessage || ''
       });
       setMenuOptions(state.businessConfig.menuOptions || []);
+      setProducts(state.businessConfig.products || []);
     }
   }, [state.businessConfig]);
 
@@ -207,6 +223,69 @@ const Dashboard = () => {
     }
   };
 
+  // Adicionar ou editar produto
+  const handleAddProduct = () => {
+    if (!newProduct.name || !newProduct.price) {
+      toast({
+        title: 'Nome e preço do produto são obrigatórios',
+        status: 'warning',
+        duration: 3000,
+      });
+      return;
+    }
+
+    let updatedProducts;
+    if (editingProductIndex !== null) {
+      updatedProducts = [...products];
+      updatedProducts[editingProductIndex] = newProduct;
+      setEditingProductIndex(null);
+    } else {
+      updatedProducts = [...products, { ...newProduct }];
+    }
+
+    setProducts(updatedProducts);
+    setNewProduct({ name: '', price: '', description: '' });
+    onProductModalClose();
+    toast({
+      title: editingProductIndex !== null ? 'Produto atualizado!' : 'Produto adicionado!',
+      status: 'success',
+      duration: 2000,
+    });
+  };
+
+  // Remover produto
+  const handleRemoveProduct = (index) => {
+    const updatedProducts = products.filter((_, i) => i !== index);
+    setProducts(updatedProducts);
+    toast({
+      title: 'Produto removido',
+      status: 'info',
+      duration: 2000,
+    });
+  };
+
+  // Salvar catálogo de produtos
+  const handleSaveProducts = async () => {
+    try {
+      const response = await businessAPI.updateConfig({
+        ...state.businessConfig,
+        products: products
+      });
+      dispatch({ type: 'SET_BUSINESS_CONFIG', payload: response.data });
+      toast({
+        title: 'Catálogo de produtos salvo com sucesso!',
+        status: 'success',
+        duration: 3000,
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro ao salvar o catálogo de produtos',
+        status: 'error',
+        duration: 3000,
+      });
+    }
+  };
+
   if (!state.user) {
     return (
       <Box display="flex" alignItems="center" justifyContent="center" minH="100vh">
@@ -312,6 +391,75 @@ const Dashboard = () => {
             </Card>
           </GridItem>
 
+          {/* Operating Hours */}
+          <GridItem colSpan={{ base: 1, lg: 1 }} rowSpan={1}>
+            <Card bg={cardBg} height="100%" boxShadow="md">
+              <CardHeader pb={0}>
+                <Heading size="md">Horário de Funcionamento</Heading>
+              </CardHeader>
+              <CardBody>
+                {editingHours ? (
+                  <VStack spacing={4} align="stretch">
+                    <HStack>
+                      <FormControl>
+                        <FormLabel>Abertura</FormLabel>
+                        <Input
+                          type="time"
+                          value={configForm.operatingHours.opening}
+                          onChange={(e) => setConfigForm({ ...configForm, operatingHours: { ...configForm.operatingHours, opening: e.target.value } })}
+                        />
+                      </FormControl>
+                      <FormControl>
+                        <FormLabel>Fechamento</FormLabel>
+                        <Input
+                          type="time"
+                          value={configForm.operatingHours.closing}
+                          onChange={(e) => setConfigForm({ ...configForm, operatingHours: { ...configForm.operatingHours, closing: e.target.value } })}
+                        />
+                      </FormControl>
+                    </HStack>
+                    <FormControl>
+                      <FormLabel>Mensagem de Ausência</FormLabel>
+                      <Textarea
+                        value={configForm.awayMessage}
+                        onChange={(e) => setConfigForm({ ...configForm, awayMessage: e.target.value })}
+                        placeholder="Mensagem para clientes fora do horário de atendimento"
+                        rows={3}
+                      />
+                    </FormControl>
+                    <HStack>
+                      <Button colorScheme="brand" onClick={handleSaveConfig}>
+                        Salvar
+                      </Button>
+                      <Button variant="outline" onClick={() => setEditingHours(false)}>
+                        Cancelar
+                      </Button>
+                    </HStack>
+                  </VStack>
+                ) : (
+                  <VStack spacing={4} align="stretch">
+                    <Box p={3} bg="gray.100" borderRadius="md">
+                      <Text fontWeight="bold">Horário</Text>
+                      <Text>{configForm.operatingHours.opening} - {configForm.operatingHours.closing}</Text>
+                    </Box>
+                    <Box p={3} bg="gray.100" borderRadius="md">
+                      <Text fontWeight="bold">Mensagem de Ausência</Text>
+                      <Text fontStyle="italic">"{configForm.awayMessage || 'Não configurada'}"</Text>
+                    </Box>
+                    <Button
+                      colorScheme="brand"
+                      variant="outline"
+                      onClick={() => setEditingHours(true)}
+                      leftIcon={<EditIcon />}
+                    >
+                      Editar Horário
+                    </Button>
+                  </VStack>
+                )}
+              </CardBody>
+            </Card>
+          </GridItem>
+
           {/* Business Config */}
           <GridItem colSpan={{ base: 1, lg: 1 }} rowSpan={1}>
             <Card bg={cardBg} height="100%" boxShadow="md">
@@ -394,6 +542,85 @@ const Dashboard = () => {
                     </Button>
                   </VStack>
                 )}
+              </CardBody>
+            </Card>
+          </GridItem>
+
+          {/* Product Catalog */}
+          <GridItem colSpan={{ base: 1, lg: 2 }} rowSpan={1}>
+            <Card bg={cardBg} boxShadow="md">
+              <CardHeader pb={0}>
+                <Heading size="md">Catálogo de Produtos</Heading>
+              </CardHeader>
+              <CardBody>
+                <VStack spacing={4} align="stretch">
+                  <Text color="gray.600">
+                    Gerencie os produtos ou serviços que seu chatbot poderá oferecer.
+                  </Text>
+                  {products.length === 0 ? (
+                    <Box textAlign="center" py={8} color="gray.500">
+                      <Text>Nenhum produto cadastrado.</Text>
+                      <Text fontSize="sm">Clique em "Adicionar Produto" para começar.</Text>
+                    </Box>
+                  ) : (
+                    <VStack spacing={3} align="stretch" maxH="400px" overflowY="auto">
+                      {products.map((product, index) => (
+                        <Card key={index} variant="outline" p={4}>
+                          <HStack justify="space-between" align="start">
+                            <VStack align="start" spacing={2} flex={1}>
+                              <HStack>
+                                <Badge colorScheme="green">{product.name}</Badge>
+                                <Text fontWeight="bold">R$ {product.price}</Text>
+                              </HStack>
+                              <Text fontSize="sm" color="gray.600">
+                                {product.description}
+                              </Text>
+                            </VStack>
+                            <HStack>
+                              <Button
+                                colorScheme="blue"
+                                size="sm"
+                                onClick={() => {
+                                  setNewProduct(product);
+                                  setEditingProductIndex(index);
+                                  onProductModalOpen();
+                                }}
+                                leftIcon={<EditIcon />}
+                              >
+                                Editar
+                              </Button>
+                              <Button
+                                colorScheme="red"
+                                size="sm"
+                                onClick={() => handleRemoveProduct(index)}
+                                leftIcon={<DeleteIcon />}
+                              >
+                                Remover
+                              </Button>
+                            </HStack>
+                          </HStack>
+                        </Card>
+                      ))}
+                    </VStack>
+                  )}
+                  <HStack>
+                    <Button
+                      colorScheme="brand"
+                      onClick={onProductModalOpen}
+                      leftIcon={<AddIcon />}
+                    >
+                      Adicionar Produto
+                    </Button>
+                    {products.length > 0 && (
+                      <Button
+                        colorScheme="green"
+                        onClick={handleSaveProducts}
+                      >
+                        Salvar Catálogo
+                      </Button>
+                    )}
+                  </HStack>
+                </VStack>
               </CardBody>
             </Card>
           </GridItem>
@@ -512,6 +739,53 @@ const Dashboard = () => {
           </Card>
         </Grid>
       </Container>
+
+      {/* Modal para adicionar/editar produto */}
+      <Modal isOpen={isProductModalOpen} onClose={onProductModalClose} size="lg">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Adicionar/Editar Produto</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack spacing={4}>
+              <FormControl isRequired>
+                <FormLabel>Nome do Produto</FormLabel>
+                <Input
+                  value={newProduct.name}
+                  onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                  placeholder="Ex: Pizza, Corte de Cabelo"
+                />
+              </FormControl>
+              <FormControl isRequired>
+                <FormLabel>Preço</FormLabel>
+                <Input
+                  type="number"
+                  value={newProduct.price}
+                  onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+                  placeholder="Ex: 50.00"
+                />
+              </FormControl>
+              <FormControl>
+                <FormLabel>Descrição</FormLabel>
+                <Textarea
+                  value={newProduct.description}
+                  onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                  placeholder="Descrição do produto ou serviço"
+                  rows={3}
+                />
+              </FormControl>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="outline" mr={3} onClick={onProductModalClose}>
+              Cancelar
+            </Button>
+            <Button colorScheme="brand" onClick={handleAddProduct}>
+              Salvar Produto
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
       {/* Modal para adicionar opção de menu */}
       <Modal isOpen={isOpen} onClose={onClose} size="lg">
