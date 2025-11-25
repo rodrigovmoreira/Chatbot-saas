@@ -39,6 +39,12 @@ const businessConfigSchema = new mongoose.Schema({
   // Configurações de venda
   paymentMethods: [String],
   deliveryOptions: [String],
+
+  // Novo campo para o prompt da IA
+  prompt: {
+    type: String,
+    default: `Você é um assistente virtual. Responda às perguntas dos clientes de forma amigável e informativa.`
+  },
   
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
