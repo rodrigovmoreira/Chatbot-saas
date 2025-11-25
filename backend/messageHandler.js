@@ -341,47 +341,68 @@ async function generateBusinessAIResponse(message, context, businessConfig) {
   try {
     console.log('🧠 Preparando prompt para IA com contexto do negócio...');
 
-    // ✅ MELHORIA: Prompt dinâmico baseado NAS CONFIGURAÇÕES DO NEGÓCIO
-    const menuOptionsText = businessConfig.menuOptions && businessConfig.menuOptions.length > 0
-      ? `OPÇÕES DE ATENDIMENTO DISPONÍVEIS:\n${businessConfig.menuOptions.map((opt, index) =>
-        `*${index + 1}.* ${opt.keyword} - ${opt.description}`
-      ).join('\n')}`
-      : 'Nenhuma opção de menu configurada';
+    // Define o tom de voz com base no tipo de negócio
+    const toneOfVoice = {
+      'restaurante': 'amigável e convidativo',
+      'imoveis': 'profissional e confiável',
+      'servicos': 'técnico e solucionador',
+      'varejo': 'prestativo e vendedor',
+      'outros': 'educado e informativo'
+    }[businessConfig.businessType] || 'educado e prestativo';
 
-    const prompt = `
-Você é o atendente virtual da empresa *"${businessConfig.businessName || 'nossa empresa'}"*.
+    // Prepara as informações dinâmicas para o prompt
+    const menuOptionsText = businessConfig.menuOptions?.length > 0
+      ? businessConfig.menuOptions.map((opt, i) => `*${i + 1}*. ${opt.keyword}: ${opt.description}`).join('\n')
+      : 'Nenhuma opção de menu configurada.';
 
-SEU PAPEL:
-- Você é um funcionário da ${businessConfig.businessName}
-- Atua no segmento de ${businessConfig.businessType}
-- Seu tom de voz deve ser: ${businessConfig.businessType === 'restaurante' ? 'amigável e convidativo' :
-        businessConfig.businessType === 'imoveis' ? 'profissional e confiável' :
-          businessConfig.businessType === 'servicos' ? 'técnico e solucionador' : 'educado e prestativo'}
+    const historyText = context.includes('*HISTÓRICO:*')
+      ? context.split('*HISTÓRICO:*')[1].trim()
+      : 'Nenhuma conversa anterior.';
 
-INSTRUÇÕES CRÍTICAS:
-1. SEMPRE priorize as opções do menu abaixo
-2. Se o cliente perguntar sobre algo que existe no menu, direcione para a opção correspondente
-3. Use a mensagem de boas-vindas como referência: "${businessConfig.welcomeMessage}"
-4. NUNCA invente preços, produtos ou informações não cadastradas
-5. Se não souber, diga que vai consultar e ofereça opções do menu
-6. Encaminhe para humano quando perceber complexidade ou insatisfação
+    // Pega o prompt do banco de dados (com o novo campo)
+    const basePrompt = businessConfig.prompt || `
+Você é um assistente virtual da empresa "{{businessName}}".
 
-${menuOptionsText}
+**Seu Papel:**
+- Atue como um funcionário especialista no segmento de "{{businessType}}".
+- Adote um tom de voz que seja {{toneOfVoice}}.
+- Sua missão é ajudar os clientes de forma eficiente, usando as informações fornecidas e seguindo as regras abaixo.
 
-INFORMAÇÕES DA EMPRESA:
-${context}
+**Instruções Críticas:**
+1. **Priorize o Menu:** Sempre que a pergunta do cliente puder ser respondida por uma das opções do menu, direcione-o para lá.
+2. **Use as Informações da Empresa:** Baseie TODAS as suas respostas nas "INFORMAÇÕES DA EMPRESA" fornecidas.
+3. **Não Invente:** NUNCA forneça informações que não estão na sua base de conhecimento (produtos, preços, políticas, etc.). Se não souber a resposta, seja honesto e ofereça ajuda alternativa, como falar com um atendente.
+4. **Encaminhe para Atendimento Humano:** Se o cliente demonstrar insatisfação, pedir para falar com uma pessoa, ou se o problema for muito complexo para você, encaminhe-o para o atendimento humano.
+5. **Seja Conciso e Claro:** Responda de forma direta e fácil de entender.
 
-HISTÓRICO RECENTE:
-${context.includes('Histórico da Conversa') ? context.split('Histórico da Conversa:')[1] : 'Primeiro contato'}
+**Opções de Atendimento (Menu):**
+{{menuOptions}}
 
-MENSAGEM DO CLIENTE:
-"${message}"
+**Informações da Empresa:**
+{{context}}
 
-SUA RESPOSTA (seja natural, útil e direcione para o menu quando possível):
-`.trim();
+**Histórico Recente da Conversa:**
+{{history}}
 
-    console.log('📤 Enviando prompt personalizado para IA...');
-    const response = await generateAIResponse(prompt);
+**Mensagem Atual do Cliente:**
+"{{message}}"
+
+**Sua Resposta (seja natural, prestativo e siga TODAS as regras):**
+`;
+
+    // Substitui os placeholders pelos valores reais
+    const finalPrompt = basePrompt
+      .replace('{{businessName}}', businessConfig.businessName || 'nossa empresa')
+      .replace('{{businessType}}', businessConfig.businessType || 'geral')
+      .replace('{{toneOfVoice}}', toneOfVoice)
+      .replace('{{welcomeMessage}}', businessConfig.welcomeMessage || 'Olá!')
+      .replace('{{menuOptions}}', menuOptionsText)
+      .replace('{{context}}', context)
+      .replace('{{history}}', historyText)
+      .replace('{{message}}', message);
+
+    console.log('📤 Enviando prompt final para IA...');
+    const response = await generateAIResponse(finalPrompt);
 
     if (response && response.trim()) {
       return response.trim();
