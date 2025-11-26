@@ -1,398 +1,246 @@
 const { saveMessage, getLastMessages } = require('./services/message');
-const Session = require('./models/Session');
-const { simulateTyping } = require('./utils/chatUtils');
 const { generateAIResponse } = require('./services/ai');
+const { sendWhatsAppMessage } = require('./services/twilioService');
 const BusinessConfig = require('./models/BusinessConfig');
 
 // Configurações
 const MAX_HISTORY = 10;
-const ERROR_MESSAGE = '⚠️ Ops! Tive um problema. Pode tentar novamente?';
 
-const whatsappUserMap = new Map();
+// ==========================================
+// 🛠️ FUNÇÕES AUXILIARES
+// ==========================================
 
-async function getUserBusinessConfig(phone) {
+/**
+ * Remove o prefixo 'whatsapp:' para salvar no banco de dados limpo
+ * Ex: 'whatsapp:+551199999999' -> '+551199999999'
+ */
+const normalizePhone = (twilioPhone) => {
+  return twilioPhone ? twilioPhone.replace('whatsapp:', '') : '';
+};
+
+/**
+ * Busca a configuração da empresa.
+ * No futuro, isso pode buscar baseado no número de destino (To) para Multi-Tenant.
+ */
+async function getUserBusinessConfig(botNumber) {
   try {
-    // Primeiro tenta encontrar pelo mapeamento direto
-    const userId = whatsappUserMap.get(phone);
-
-    if (userId) {
-      console.log('🔍 Buscando configuração para usuário mapeado:', userId);
-      const config = await BusinessConfig.findOne({ userId }).populate('userId');
-      if (config) return config;
-    }
-
-    // Se não encontrou, busca a primeira configuração (fallback para single user)
-    console.log('🔍 Buscando primeira configuração disponível (fallback)');
+    // Tenta pegar a primeira configuração disponível (Fallback para Single Tenant/Sandbox)
+    // Se você tiver múltiplos clientes no futuro, aqui você filtraria pelo 'botNumber'
     const config = await BusinessConfig.findOne({}).populate('userId');
-
-    // Se encontrou, mapeia para futuras consultas
-    if (config && config.userId) {
-      whatsappUserMap.set(phone, config.userId._id);
-      console.log('✅ Mapeado telefone', phone, 'para usuário:', config.userId._id);
+    
+    if (config) {
+      // console.log(`🏢 Configuração carregada: ${config.businessName}`);
+      return config;
     }
-
-    return config;
+    return null;
   } catch (error) {
-    console.error('💥 Erro ao buscar configuração do usuário:', error);
+    console.error('💥 Erro ao buscar configuração:', error);
     return null;
   }
 }
 
-async function handleMessage(client, msg) {
-  // ✅ CORREÇÃO: Validação mais robusta
-  if (!msg || !msg.from || !msg.body) {
-    console.log('❌ Mensagem inválida ignorada');
-    return;
+/**
+ * Verifica se está dentro do horário de funcionamento
+ */
+function isWithinOperatingHours(businessConfig) {
+  if (!businessConfig.operatingHours || !businessConfig.operatingHours.opening || !businessConfig.operatingHours.closing) {
+    return true; // Se não configurado, assume 24h
   }
 
-  if (msg.from.includes('status') || msg.from.includes('broadcast')) {
-    console.log('❌ Mensagem de status/broadcast ignorada');
-    return;
-  }
+  // Ajuste de Fuso Horário (Brasil -3)
+  // O servidor pode estar em UTC, então forçamos o ajuste se necessário
+  const now = new Date();
+  // Se o servidor estiver em UTC e quisermos horário de SP:
+  // now.setHours(now.getHours() - 3); 
 
-  // ✅ CORREÇÃO: Ignorar mensagens de grupos
-  if (msg.from.includes('@g.us')) {
-    console.log('❌ Mensagem de grupo ignorada:', msg.from);
-    return;
-  }
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const currentTimeVal = currentHour * 60 + currentMinute;
+
+  const [openH, openM] = businessConfig.operatingHours.opening.split(':').map(Number);
+  const [closeH, closeM] = businessConfig.operatingHours.closing.split(':').map(Number);
+  
+  const openTimeVal = openH * 60 + openM;
+  const closeTimeVal = closeH * 60 + closeM;
+
+  return currentTimeVal >= openTimeVal && currentTimeVal <= closeTimeVal;
+}
+
+// ==========================================
+// 🚀 HANDLER PRINCIPAL (WEBHOOK TWILIO)
+// ==========================================
+
+async function handleTwilioMessage(twilioData) {
+  const { Body, From, To, ProfileName } = twilioData;
+
+  // 1. Validação Básica
+  if (!Body || !From) return;
+
+  const userPhone = normalizePhone(From); // Formato para o Banco (+55...)
+  const userMessage = Body.trim();
+
+  // Log discreto para não poluir
+  console.log(`📩 Msg de ${ProfileName || userPhone}: "${userMessage.substring(0, 50)}..."`);
 
   try {
-    console.log('📩 Mensagem recebida de:', msg.from.replace('@c.us', ''), 'Conteúdo:', msg.body);
+    // 2. Carregar Configuração do Negócio
+    const businessConfig = await getUserBusinessConfig(To);
 
-    const chat = await msg.getChat();
-    const userMessage = msg.body.trim();
-    const phone = msg.from;
-
-    // Ignora mensagens vazias
-    if (!userMessage) {
-      console.log('❌ Mensagem vazia ignorada');
+    if (!businessConfig) {
+      console.log('⚠️ Nenhuma configuração encontrada. Bot inativo.');
+      // Opcional: Avisar o admin ou responder mensagem genérica
       return;
     }
 
-    console.log('🔍 Buscando configuração do negócio...');
-
-    // ✅ CORREÇÃO: Buscar configuração de forma mais robusta
-    let businessConfig;
-    try {
-      businessConfig = await getUserBusinessConfig(phone);
-
-      if (!businessConfig) {
-        console.log('❌ Nenhuma configuração de negócio encontrada no banco');
-        await client.sendMessage(msg.from, '🤖 Olá! No momento estou em configuração. Por favor, aguarde.');
-        return;
-      }
-
-      console.log('✅ Configuração do negócio encontrada:', {
-        business: businessConfig.businessName,
-        user: businessConfig.userId?._id || 'N/A',
-        menuOptions: businessConfig.menuOptions?.length || 0,
-        products: businessConfig.products?.length || 0
-      });
-
-    } catch (error) {
-      console.error('💥 Erro ao buscar configuração:', error);
-      await client.sendMessage(msg.from, '🤖 Estou com problemas técnicos. Tente novamente em alguns instantes.');
-      return;
-    }
-
-    // Verificar horário de funcionamento
+    // 3. Verificar Horário (Se fechado, responde e para)
     if (!isWithinOperatingHours(businessConfig)) {
-      console.log('🌙 Fora do horário de funcionamento, enviando mensagem de ausência.');
-      await client.sendMessage(msg.from, businessConfig.awayMessage);
-      await saveMessage(msg.from, 'bot', businessConfig.awayMessage);
+      console.log('🌙 Fora do horário. Enviando msg de ausência.');
+      await sendWhatsAppMessage(From, businessConfig.awayMessage);
+      // Não salvamos mensagem de ausência como interação de bot para não quebrar fluxo
       return;
     }
 
-    // ✅ CORREÇÃO: Verificar se é novo cliente de forma mais precisa
-    let isNewCustomer = false;
-    try {
-      const messageCount = await getLastMessages(msg.from, 1);
-      isNewCustomer = messageCount.length === 0;
-      console.log('👤 É novo cliente?:', isNewCustomer);
-    } catch (error) {
-      console.error('💥 Erro ao verificar histórico:', error);
-      // Continua como se fosse novo cliente em caso de erro
-      isNewCustomer = true;
-    }
+    // 4. Salvar mensagem do Usuário no Banco
+    // (Importante salvar ANTES de processar para garantir ordem no histórico)
+    await saveMessage(userPhone, 'user', userMessage);
 
-    // ✅ CORREÇÃO: Salvar mensagem do usuário PRIMEIRO
-    try {
-      await saveMessage(msg.from, 'user', userMessage);
-      console.log('💾 Mensagem do usuário salva');
-    } catch (error) {
-      console.error('💥 Erro ao salvar mensagem do usuário:', error);
-    }
-
-    // Mensagem de boas-vindas para novos clientes
-    if (isNewCustomer) {
-      console.log('🎉 Enviando mensagem de boas-vindas para novo cliente');
-      await client.sendMessage(msg.from, businessConfig.welcomeMessage);
-      await showMainMenu(client, msg.from, businessConfig);
-      await saveMessage(msg.from, 'bot', businessConfig.welcomeMessage);
-      return;
-    }
-
-    // ✅ CORREÇÃO: Processar comando do menu com mais logs
-    console.log('📋 Verificando se é comando do menu...');
+    // 5. Verificar Menu (Lógica Determinística - Rápida)
     const menuResponse = await processMenuCommand(userMessage, businessConfig);
-
+    
     if (menuResponse) {
-      console.log('✅ Comando do menu reconhecido, enviando resposta do menu');
-      await client.sendMessage(msg.from, menuResponse);
-      await saveMessage(msg.from, 'bot', menuResponse);
-      return; // PARA AQUI - não chama IA
+      console.log('✅ Comando de menu detectado.');
+      await sendWhatsAppMessage(From, menuResponse);
+      await saveMessage(userPhone, 'bot', menuResponse);
+      return; // Encerra aqui, economiza token de IA
     }
 
-    console.log('❌ Não é comando de menu, usando IA como fallback...');
-
-    // Se não for comando de menu, usar IA contextual
-    let history = [];
-    try {
-      history = await getLastMessages(msg.from, MAX_HISTORY);
-      console.log('📚 Histórico carregado:', history.length, 'mensagens');
-    } catch (error) {
-      console.error('💥 Erro ao carregar histórico:', error);
-    }
-
+    // 6. Inteligência Artificial (Fallback Contextual)
+    // Se não for comando exato, deixa a IA responder
+    
+    // Carregar histórico recente
+    const history = await getLastMessages(userPhone, MAX_HISTORY);
+    
+    // Montar contexto
     const context = createBusinessContext(history, businessConfig);
-
-    console.log('🔄 Gerando resposta da IA...');
+    
+    // Gerar resposta
     const aiResponse = await generateBusinessAIResponse(userMessage, context, businessConfig);
 
     if (aiResponse) {
-      console.log('✅ Resposta da IA gerada:', aiResponse.substring(0, 100) + '...');
-
-      // ✅ CORREÇÃO: Simular digitação antes de enviar
-      try {
-        await simulateTyping(chat);
-      } catch (error) {
-        console.log('⚠️  Não foi possível simular digitação, continuando...');
-      }
-
-      await client.sendMessage(msg.from, aiResponse);
-      await saveMessage(msg.from, 'bot', aiResponse);
+      await sendWhatsAppMessage(From, aiResponse);
+      await saveMessage(userPhone, 'bot', aiResponse);
     } else {
-      console.log('❌ IA não retornou resposta, enviando mensagem padrão');
-      await client.sendMessage(msg.from, "🤖 Não consegui entender. Pode reformular sua pergunta?");
-      await saveMessage(msg.from, 'bot', "🤖 Não consegui entender. Pode reformular sua pergunta?");
+      // Fallback finalíssimo
+      await sendWhatsAppMessage(From, "🤖 Desculpe, não entendi. Pode tentar escolher uma opção do menu?");
     }
 
   } catch (error) {
-    console.error('💥 Erro crítico no handleMessage:', error);
+    console.error('💥 Erro crítico no handleTwilioMessage:', error);
+    // Tenta enviar mensagem de erro amigável se possível
     try {
-      await client.sendMessage(msg.from, ERROR_MESSAGE);
-    } catch (sendError) {
-      console.error('💥 Falha ao enviar mensagem de erro:', sendError);
-    }
+      await sendWhatsAppMessage(From, "⚠️ Tive um pequeno problema técnico. Tente novamente em instantes.");
+    } catch (e) { /* Ignora erro de envio de erro */ }
   }
 }
 
-// Mostrar menu principal
-async function showMainMenu(client, phone, businessConfig) {
-  try {
-    console.log('📋 Mostrando menu principal personalizado para:', phone);
+// ==========================================
+// 🧠 LÓGICA DE NEGÓCIO E IA
+// ==========================================
 
-    const menuOptions = businessConfig.menuOptions || [];
-
-    if (menuOptions.length === 0) {
-      const defaultMenu = `🤖 *${businessConfig.businessName || 'Nosso Atendimento'}*
-
-Olá! Sou o assistente virtual da ${businessConfig.businessName}. 
-
-Como posso ajudar você hoje? Pode me perguntar diretamente ou digitar:
-
-*1* - Falar com atendente humano
-*2* - Horário de funcionamento
-*3* - Conhecer nossos produtos/serviços
-
-Ou simplesmente digite sua dúvida!`;
-
-      await client.sendMessage(phone, defaultMenu);
-      await saveMessage(phone, 'bot', defaultMenu);
-      return;
-    }
-
-    // Menu personalizado com as opções cadastradas
-    const menuText = `🤖 *${businessConfig.businessName || 'Menu Principal'}*
-
-${businessConfig.welcomeMessage || 'Como posso ajudar você hoje?'}
-
-*ESCOLHA UMA OPÇÃO:*\n\n` +
-      menuOptions.map((opt, index) =>
-        `*${index + 1}️⃣* - *${opt.keyword}*: ${opt.description}`
-      ).join('\n') +
-      `\n\n💡 *Dica:* Digite o *número* ou *palavra-chave* da opção desejada.`;
-
-    await client.sendMessage(phone, menuText);
-    await saveMessage(phone, 'bot', menuText);
-    console.log('✅ Menu principal personalizado enviado');
-  } catch (error) {
-    console.error('💥 Erro ao mostrar menu principal:', error);
-  }
-}
-
-// Processar comandos do menu
 async function processMenuCommand(message, businessConfig) {
   try {
     const lowerMessage = message.toLowerCase().trim();
-    console.log('🔍 Procurando comando no menu:', lowerMessage);
-
     const menuOptions = businessConfig.menuOptions || [];
 
-    // ✅ MELHORIA: Busca mais inteligente - por número, palavra-chave EXATA ou sinônimos comuns
+    // Busca inteligente (Número, Palavra-chave ou Sinônimos)
     const option = menuOptions.find((opt, index) => {
+      // 1. Número exato (ex: "1")
       const matchByNumber = lowerMessage === (index + 1).toString();
-      const matchByExactKeyword = opt.keyword && lowerMessage === opt.keyword.toLowerCase();
-      const matchByContains = opt.keyword && lowerMessage.includes(opt.keyword.toLowerCase());
-
-      // Sinônimos comuns para melhor UX
-      const synonyms = {
-        'horario': ['horário', 'funcionamento', 'hora', 'aberto', 'fechado', 'atendimento'],
-        'produtos': ['produto', 'catalogo', 'catálogo', 'serviços', 'servicos', 'o que tem'],
-        'preco': ['preço', 'valor', 'custo', 'quanto custa'],
-        'atendente': ['humano', 'pessoa', 'vendedor', 'corretor', 'consultor']
-      };
-
-      const hasSynonyms = synonyms[opt.keyword]?.some(synonym =>
-        lowerMessage.includes(synonym)
+      
+      // 2. Palavra-chave exata ou contida (ex: "pix")
+      const matchByKeyword = opt.keyword && (
+        lowerMessage === opt.keyword.toLowerCase() || 
+        lowerMessage.includes(opt.keyword.toLowerCase())
       );
 
-      return matchByNumber || matchByExactKeyword || matchByContains || hasSynonyms;
+      // 3. Sinônimos Comuns (Hardcoded para melhorar UX)
+      const synonyms = {
+        'horario': ['horário', 'funcionamento', 'hora', 'aberto', 'fechado'],
+        'produtos': ['produto', 'catalogo', 'catálogo', 'serviço', 'serviços', 'preço', 'valor'],
+        'atendente': ['humano', 'pessoa', 'falar com gente', 'suporte'],
+        'pix': ['pagamento', 'pagar', 'conta', 'transferencia']
+      };
+
+      let matchBySynonym = false;
+      if (opt.keyword && synonyms[opt.keyword]) {
+        matchBySynonym = synonyms[opt.keyword].some(s => lowerMessage.includes(s));
+      }
+
+      return matchByNumber || matchByKeyword || matchBySynonym;
     });
 
     if (option) {
-      console.log('✅ Opção do menu encontrada:', option.keyword);
-
-      // ✅ MELHORIA: Formatação melhor da resposta
+      let response = option.response;
       if (option.requiresHuman) {
-        return `👨‍💼 ${option.response}\n\n*Um de nossos atendentes entrará em contato em breve!* ⏳`;
+        response = `👨‍💼 ${response}\n\n*Um atendente foi notificado e falará com você em breve.*`;
       }
-
-      return `✅ ${option.response}`;
+      return response;
     }
-
-    console.log('❌ Nenhuma opção do menu correspondente');
     return null;
   } catch (error) {
-    console.error('💥 Erro ao processar comando do menu:', error);
+    console.error('Erro ao processar menu:', error);
     return null;
   }
 }
 
-// Verificar horário de funcionamento
-function isWithinOperatingHours(businessConfig) {
-  if (!businessConfig.operatingHours || !businessConfig.operatingHours.opening || !businessConfig.operatingHours.closing) {
-    return true; // Se não configurado, considera sempre aberto
-  }
-
-  const now = new Date();
-  const opening = new Date();
-  const closing = new Date();
-
-  const [openingHour, openingMinute] = businessConfig.operatingHours.opening.split(':');
-  opening.setHours(openingHour, openingMinute, 0);
-
-  const [closingHour, closingMinute] = businessConfig.operatingHours.closing.split(':');
-  closing.setHours(closingHour, closingMinute, 0);
-
-  return now >= opening && now <= closing;
-}
-
-// Criar contexto para IA com informações do negócio
 function createBusinessContext(history, businessConfig) {
-  try {
-    if (!businessConfig) {
-      return 'Informações da empresa não disponíveis.';
-    }
-
-    const businessInfo = `
-*EMPRESA:* ${businessConfig.businessName || 'Não configurado'}
-*SEGMENTO:* ${businessConfig.businessType || 'Não especificado'}
-*HORÁRIO DE ATENDIMENTO:* ${businessConfig.operatingHours?.opening || '09:00'} às ${businessConfig.operatingHours?.closing || '18:00'}
-*MENSAGEM DE BOAS-VINDAS:* "${businessConfig.welcomeMessage || 'Olá! Como posso ajudar?'}"
+  const businessInfo = `
+*EMPRESA:* ${businessConfig.businessName || 'Empresa'}
+*SEGMENTO:* ${businessConfig.businessType || 'Geral'}
+*HORÁRIO:* ${businessConfig.operatingHours?.opening} às ${businessConfig.operatingHours?.closing}
+*BOAS-VINDAS:* "${businessConfig.welcomeMessage}"
 `.trim();
 
-    const productsInfo = businessConfig.products && businessConfig.products.length > 0
-      ? `*PRODUTOS/SERVIÇOS:*\n${businessConfig.products.map(p =>
-        `- ${p.name}: R$ ${p.price || 'consultar'} | ${p.description || 'Sem descrição'}`
-      ).join('\n')}`
-      : '*PRODUTOS:* Nenhum produto cadastrado.';
+  // Formata produtos para a IA entender preços
+  const productsInfo = businessConfig.products && businessConfig.products.length > 0
+    ? `*CATÁLOGO (Use estes preços):*\n${businessConfig.products.map(p => `- ${p.name}: R$ ${p.price} (${p.description || ''})`).join('\n')}`
+    : 'Nenhum produto cadastrado.';
 
-    const menuInfo = businessConfig.menuOptions && businessConfig.menuOptions.length > 0
-      ? `*OPÇÕES DE MENU CADASTRADAS:*\n${businessConfig.menuOptions.map((opt, index) =>
-        `${index + 1}. ${opt.keyword} - ${opt.description}`
-      ).join('\n')}`
-      : '*MENU:* Nenhuma opção de menu configurada';
+  const menuInfo = businessConfig.menuOptions && businessConfig.menuOptions.length > 0
+    ? `*MENU DO SISTEMA:*\n${businessConfig.menuOptions.map((opt, i) => `${i+1}. ${opt.keyword} - ${opt.description}`).join('\n')}`
+    : '';
 
-    const conversationHistory = history
-      .reverse()
-      .map(m => `${m.role === 'user' ? '👤 Cliente' : '🤖 Bot'}: ${m.content}`)
-      .join('\n');
+  // Formata histórico
+  const conversationHistory = history
+    .reverse()
+    .map(m => `${m.role === 'user' ? 'Cliente' : 'Bot'}: ${m.content}`)
+    .join('\n');
 
-    return `${businessInfo}\n\n${productsInfo}\n\n${menuInfo}\n\n*HISTÓRICO:*\n${conversationHistory || 'Nenhuma conversa anterior'}`;
-  } catch (error) {
-    console.error('💥 Erro ao criar contexto:', error);
-    return 'Informações da empresa não disponíveis.';
-  }
+  return `${businessInfo}\n\n${productsInfo}\n\n${menuInfo}\n\n*HISTÓRICO RECENTE:*\n${conversationHistory}`;
 }
 
-// Gerar resposta da IA contextualizada para o negócio
 async function generateBusinessAIResponse(message, context, businessConfig) {
-  try {
-    console.log('🧠 Preparando prompt para IA com contexto do negócio...');
+  // Montagem do Prompt System (Instruções para a IA)
+  const prompt = `
+Você é o assistente virtual da ${businessConfig.businessName}.
+Seu tom deve ser: ${businessConfig.businessType === 'advocacia' ? 'formal' : 'amigável, prestativo e informal'}.
 
-    // ✅ MELHORIA: Prompt dinâmico baseado NAS CONFIGURAÇÕES DO NEGÓCIO
-    const menuOptionsText = businessConfig.menuOptions && businessConfig.menuOptions.length > 0
-      ? `OPÇÕES DE ATENDIMENTO DISPONÍVEIS:\n${businessConfig.menuOptions.map((opt, index) =>
-        `*${index + 1}.* ${opt.keyword} - ${opt.description}`
-      ).join('\n')}`
-      : 'Nenhuma opção de menu configurada';
+REGRAS:
+1. Responda de forma curta (máximo 3 frases), como no WhatsApp.
+2. Se perguntarem preço, use APENAS o Catálogo acima. Se não estiver lá, diga que não sabe.
+3. Se o assunto for algo do MENU, sugira a opção do menu.
+4. Jamais invente dados da empresa.
+5. Use emojis moderadamente.
 
-    const prompt = `
-Você é o atendente virtual da empresa *"${businessConfig.businessName || 'nossa empresa'}"*.
-
-SEU PAPEL:
-- Você é um funcionário da ${businessConfig.businessName}
-- Atua no segmento de ${businessConfig.businessType}
-- Seu tom de voz deve ser: ${businessConfig.businessType === 'restaurante' ? 'amigável e convidativo' :
-        businessConfig.businessType === 'imoveis' ? 'profissional e confiável' :
-          businessConfig.businessType === 'servicos' ? 'técnico e solucionador' : 'educado e prestativo'}
-
-INSTRUÇÕES CRÍTICAS:
-1. SEMPRE priorize as opções do menu abaixo
-2. Se o cliente perguntar sobre algo que existe no menu, direcione para a opção correspondente
-3. Use a mensagem de boas-vindas como referência: "${businessConfig.welcomeMessage}"
-4. NUNCA invente preços, produtos ou informações não cadastradas
-5. Se não souber, diga que vai consultar e ofereça opções do menu
-6. Encaminhe para humano quando perceber complexidade ou insatisfação
-
-${menuOptionsText}
-
-INFORMAÇÕES DA EMPRESA:
+DADOS DA EMPRESA E CONTEXTO:
 ${context}
 
-HISTÓRICO RECENTE:
-${context.includes('Histórico da Conversa') ? context.split('Histórico da Conversa:')[1] : 'Primeiro contato'}
-
-MENSAGEM DO CLIENTE:
-"${message}"
-
-SUA RESPOSTA (seja natural, útil e direcione para o menu quando possível):
+CLIENTE: "${message}"
+RESPOSTA:
 `.trim();
 
-    console.log('📤 Enviando prompt personalizado para IA...');
-    const response = await generateAIResponse(prompt);
-
-    if (response && response.trim()) {
-      return response.trim();
-    } else {
-      console.log('❌ IA retornou resposta vazia');
-      return "🤖 No momento não consigo responder. Pode tentar uma das opções do menu ou falar com nosso atendente humano?";
-    }
-  } catch (error) {
-    console.error('💥 Erro ao gerar resposta da IA:', error);
-    return "🤖 Estou com dificuldades técnicas. Pode tentar novamente ou falar com nosso atendente humano?";
-  }
+  // Chama o serviço de IA (ai.js)
+  return await generateAIResponse(prompt); 
 }
 
-module.exports = { handleMessage };
+module.exports = { handleTwilioMessage };

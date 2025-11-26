@@ -23,10 +23,7 @@
     "mongoose": "^8.14.0",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
-    "qrcode": "^1.5.4",
-    "qrcode-terminal": "^0.12.0",
-    "socket.io": "^4.8.1",
-    "whatsapp-web.js": "^1.34.2"
+    "twilio": "^5.10.6"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"

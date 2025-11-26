@@ -1,27 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import {
   Box, Container, Grid, GridItem, Card, CardHeader, CardBody, Heading, Text, Button, VStack, HStack,
-  Stat, StatLabel, StatNumber, StatHelpText, useToast, Image, Progress, Badge, Icon, useColorModeValue,
+  Stat, StatLabel, StatNumber, StatHelpText, useToast, Badge, Icon, useColorModeValue,
   FormControl, FormLabel, Input, Select, Textarea, Checkbox, Modal, ModalOverlay, ModalContent, ModalHeader,
-  ModalFooter, ModalBody, ModalCloseButton, useDisclosure,
+  ModalFooter, ModalBody, ModalCloseButton, useDisclosure, Divider, Code, Alert, AlertIcon
 } from '@chakra-ui/react';
-import { CheckCircleIcon, WarningIcon, ChatIcon, AddIcon, EditIcon, DeleteIcon } from '@chakra-ui/icons';
+import { CheckCircleIcon, AddIcon, EditIcon, DeleteIcon, SettingsIcon, InfoIcon } from '@chakra-ui/icons';
 import { useApp } from '../context/AppContext';
-import { connectSocket, getSocket } from '../services/socket';
 import { businessAPI } from '../services/api';
 
 const Dashboard = () => {
   const { state, dispatch } = useApp();
   const toast = useToast();
   const cardBg = useColorModeValue('white', 'gray.800');
+  
+  // Modais
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isProductModalOpen, onOpen: onProductModalOpen, onClose: onProductModalClose } = useDisclosure({
     onClose: () => setEditingProductIndex(null)
   });
 
-  // Estados para edição
+  // Estados de Edição (UI)
   const [editingConfig, setEditingConfig] = useState(false);
   const [editingHours, setEditingHours] = useState(false);
+  
+  // Formulário de Configuração Geral
   const [configForm, setConfigForm] = useState({
     businessName: '',
     businessType: '',
@@ -29,27 +32,22 @@ const Dashboard = () => {
     operatingHours: { opening: '09:00', closing: '18:00' },
     awayMessage: ''
   });
+
+  // Listas (Sincronizadas com o Contexto)
   const [menuOptions, setMenuOptions] = useState([]);
-  const [newMenuOption, setNewMenuOption] = useState({
-    keyword: '',
-    description: '',
-    response: '',
-    requiresHuman: false
-  });
   const [products, setProducts] = useState([]);
-  const [newProduct, setNewProduct] = useState({
-    name: '',
-    price: '',
-    description: ''
-  });
+  
+  // Itens Temporários (Novos/Edição)
+  const [newMenuOption, setNewMenuOption] = useState({ keyword: '', description: '', response: '', requiresHuman: false });
+  const [newProduct, setNewProduct] = useState({ name: '', price: '', description: '' });
   const [editingProductIndex, setEditingProductIndex] = useState(null);
 
-  // Carregar dados iniciais
+  // Sincronizar estado global com formulário local
   useEffect(() => {
     if (state.businessConfig) {
       setConfigForm({
         businessName: state.businessConfig.businessName || '',
-        businessType: state.businessConfig.businessType || '',
+        businessType: state.businessConfig.businessType || 'outros',
         welcomeMessage: state.businessConfig.welcomeMessage || '',
         operatingHours: state.businessConfig.operatingHours || { opening: '09:00', closing: '18:00' },
         awayMessage: state.businessConfig.awayMessage || ''
@@ -59,787 +57,332 @@ const Dashboard = () => {
     }
   }, [state.businessConfig]);
 
-  // Socket connection
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      const socketInstance = connectSocket(token);
+  // --- Ações de API ---
 
-      socketInstance.on('qr', (qrImageUrl) => {
-        console.log('QR Code recebido no frontend');
-        dispatch({ type: 'SET_QR_CODE', payload: qrImageUrl });
-        toast({
-          title: 'QR Code Gerado!',
-          description: 'Escaneie com seu WhatsApp',
-          status: 'info',
-          duration: 5000,
-          isClosable: true,
-        });
-      });
-
-      socketInstance.on('status', (message) => {
-        console.log('Status:', message);
-        toast({
-          title: 'Status WhatsApp',
-          description: message,
-          status: 'info',
-          duration: 3000,
-        });
-      });
-
-      socketInstance.on('whatsapp_ready', (isReady) => {
-        console.log('WhatsApp ready:', isReady);
-        dispatch({
-          type: 'SET_WHATSAPP_STATUS',
-          payload: {
-            isConnected: isReady,
-            isAuthenticated: isReady,
-            connectionTime: isReady ? new Date() : null
-          }
-        });
-
-        if (isReady) {
-          dispatch({ type: 'SET_QR_CODE', payload: null });
-          toast({
-            title: 'WhatsApp Conectado!',
-            description: 'Bot pronto para receber mensagens',
-            status: 'success',
-            duration: 5000,
-            isClosable: true,
-          });
-        }
-      });
-
-      return () => {
-        socketInstance.disconnect();
-      };
-    }
-  }, [dispatch, toast]);
-
-  // Solicitar QR Code
-  const requestQRCode = () => {
-    const socket = getSocket();
-    if (socket) {
-      socket.emit('request_qr');
-      toast({
-        title: 'Solicitando QR Code...',
-        status: 'info',
-        duration: 2000,
-      });
-    }
-  };
-
-  // Logout
   const handleLogout = async () => {
-    try {
-      await businessAPI.logout();
-    } catch (error) {
-      console.error('Erro no logout:', error);
-    } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-    }
+    try { await businessAPI.logout(); } catch (e) { console.error(e); }
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
   };
 
-  // Salvar configurações do negócio
   const handleSaveConfig = async () => {
     try {
-      const response = await businessAPI.updateConfig(configForm);
+      // Salva tudo de uma vez (Config + Listas atuais)
+      const payload = { ...configForm, menuOptions, products };
+      const response = await businessAPI.updateConfig(payload);
+      
       dispatch({ type: 'SET_BUSINESS_CONFIG', payload: response.data });
       setEditingConfig(false);
-      toast({
-        title: 'Configurações salvas!',
-        status: 'success',
-        duration: 3000,
-      });
+      setEditingHours(false);
+      
+      toast({ title: 'Configurações salvas!', status: 'success', duration: 3000 });
     } catch (error) {
-      toast({
-        title: 'Erro ao salvar configurações',
-        status: 'error',
-        duration: 3000,
-      });
+      toast({ title: 'Erro ao salvar', description: error.message, status: 'error', duration: 3000 });
     }
   };
 
-  // Adicionar opção de menu
-  const handleAddMenuOption = () => {
-    if (!newMenuOption.keyword || !newMenuOption.description || !newMenuOption.response) {
-      toast({
-        title: 'Preencha todos os campos',
-        status: 'warning',
-        duration: 3000,
-      });
-      return;
-    }
-
-    const updatedOptions = [...menuOptions, { ...newMenuOption }];
-    setMenuOptions(updatedOptions);
-    setNewMenuOption({
-      keyword: '',
-      description: '',
-      response: '',
-      requiresHuman: false
-    });
-    onClose();
-
-    toast({
-      title: 'Opção adicionada!',
-      status: 'success',
-      duration: 2000,
-    });
-  };
-
-  // Remover opção de menu
-  const handleRemoveMenuOption = (index) => {
-    const updatedOptions = menuOptions.filter((_, i) => i !== index);
-    setMenuOptions(updatedOptions);
-    toast({
-      title: 'Opção removida',
-      status: 'info',
-      duration: 2000,
-    });
-  };
-
-  // Salvar menu completo
   const handleSaveMenu = async () => {
     try {
-      const response = await businessAPI.updateConfig({
-        ...state.businessConfig,
-        menuOptions: menuOptions
-      });
+      const payload = { ...state.businessConfig, ...configForm, menuOptions };
+      const response = await businessAPI.updateConfig(payload);
       dispatch({ type: 'SET_BUSINESS_CONFIG', payload: response.data });
-      toast({
-        title: 'Menu salvo com sucesso!',
-        status: 'success',
-        duration: 3000,
-      });
+      toast({ title: 'Menu atualizado!', status: 'success', duration: 3000 });
     } catch (error) {
-      toast({
-        title: 'Erro ao salvar menu',
-        status: 'error',
-        duration: 3000,
-      });
+      toast({ title: 'Erro ao salvar menu', status: 'error', duration: 3000 });
     }
   };
 
-  // Adicionar ou editar produto
-  const handleAddProduct = () => {
-    if (!newProduct.name || !newProduct.price) {
-      toast({
-        title: 'Nome e preço do produto são obrigatórios',
-        status: 'warning',
-        duration: 3000,
-      });
-      return;
-    }
-
-    let updatedProducts;
-    if (editingProductIndex !== null) {
-      updatedProducts = [...products];
-      updatedProducts[editingProductIndex] = newProduct;
-      setEditingProductIndex(null);
-    } else {
-      updatedProducts = [...products, { ...newProduct }];
-    }
-
-    setProducts(updatedProducts);
-    setNewProduct({ name: '', price: '', description: '' });
-    onProductModalClose();
-    toast({
-      title: editingProductIndex !== null ? 'Produto atualizado!' : 'Produto adicionado!',
-      status: 'success',
-      duration: 2000,
-    });
-  };
-
-  // Remover produto
-  const handleRemoveProduct = (index) => {
-    const updatedProducts = products.filter((_, i) => i !== index);
-    setProducts(updatedProducts);
-    toast({
-      title: 'Produto removido',
-      status: 'info',
-      duration: 2000,
-    });
-  };
-
-  // Salvar catálogo de produtos
   const handleSaveProducts = async () => {
     try {
-      const response = await businessAPI.updateConfig({
-        ...state.businessConfig,
-        products: products
-      });
+      const payload = { ...state.businessConfig, ...configForm, products };
+      const response = await businessAPI.updateConfig(payload);
       dispatch({ type: 'SET_BUSINESS_CONFIG', payload: response.data });
-      toast({
-        title: 'Catálogo de produtos salvo com sucesso!',
-        status: 'success',
-        duration: 3000,
-      });
+      toast({ title: 'Catálogo atualizado!', status: 'success', duration: 3000 });
     } catch (error) {
-      toast({
-        title: 'Erro ao salvar o catálogo de produtos',
-        status: 'error',
-        duration: 3000,
-      });
+      toast({ title: 'Erro ao salvar produtos', status: 'error', duration: 3000 });
     }
   };
 
-  if (!state.user) {
-    return (
-      <Box display="flex" alignItems="center" justifyContent="center" minH="100vh">
-        <Progress size="lg" isIndeterminate colorScheme="brand" w="300px" />
-      </Box>
-    );
-  }
+  // --- Manipuladores de Lista ---
+
+  const handleAddMenuOption = () => {
+    if (!newMenuOption.keyword || !newMenuOption.response) {
+        toast({ title: 'Preencha palavra-chave e resposta', status: 'warning' });
+        return;
+    }
+    setMenuOptions([...menuOptions, newMenuOption]);
+    setNewMenuOption({ keyword: '', description: '', response: '', requiresHuman: false });
+    onClose();
+  };
+
+  const handleRemoveMenuOption = (idx) => {
+    setMenuOptions(menuOptions.filter((_, i) => i !== idx));
+  };
+
+  const handleAddProduct = () => {
+    if (!newProduct.name || !newProduct.price) {
+        toast({ title: 'Preencha nome e preço', status: 'warning' });
+        return;
+    }
+    if (editingProductIndex !== null) {
+      const updated = [...products];
+      updated[editingProductIndex] = newProduct;
+      setProducts(updated);
+      setEditingProductIndex(null);
+    } else {
+      setProducts([...products, newProduct]);
+    }
+    setNewProduct({ name: '', price: '', description: '' });
+    onProductModalClose();
+  };
+
+  const handleRemoveProduct = (idx) => {
+    setProducts(products.filter((_, i) => i !== idx));
+  };
+
+  // --- Renderização ---
 
   return (
     <Box minH="100vh" bg="gray.50" p={4}>
       <Container maxW="1400px">
         {/* Header */}
-        <Card bg={cardBg} mb={6} boxShadow="md">
+        <Card bg={cardBg} mb={6} boxShadow="sm" borderTop="4px solid" borderColor="brand.500">
           <CardBody>
             <HStack justify="space-between" align="center">
               <VStack align="start" spacing={1}>
-                <Heading size="lg">
-                  Dashboard - <Text as="span" color="brand.500">{state.businessConfig?.businessName || 'Meu Negócio'}</Text>
-                </Heading>
-                <Text color="gray.600">Olá, {state.user.name}!</Text>
+                <Heading size="lg">Painel de Controle</Heading>
+                <Text color="gray.600">Gerenciando: <Text as="span" fontWeight="bold" color="brand.600">{state.businessConfig?.businessName || 'Carregando...'}</Text></Text>
               </VStack>
-              <Button colorScheme="red" onClick={handleLogout}>
-                Sair
-              </Button>
+              <Button colorScheme="red" variant="outline" size="sm" onClick={handleLogout}>Sair</Button>
             </HStack>
           </CardBody>
         </Card>
 
-        {/* Main Grid */}
-        <Grid
-          templateColumns={{ base: '1fr', lg: '1fr 1fr' }}
-          templateRows="auto auto auto"
-          gap={6}
-          mb={6}
-        >
-          {/* WhatsApp Status */}
-          <GridItem colSpan={{ base: 1, lg: 1 }} rowSpan={1}>
-            <Card bg={cardBg} height="100%" boxShadow="md">
-              <CardHeader pb={0}>
-                <Heading size="md">Status WhatsApp</Heading>
+        <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={6} mb={6}>
+          
+          {/* Card 1: Status do Sistema (Twilio) */}
+          <GridItem colSpan={1}>
+            <Card bg={cardBg} height="100%" boxShadow="sm">
+              <CardHeader pb={2}>
+                <HStack>
+                  <Icon as={CheckCircleIcon} color="green.500" boxSize={5} />
+                  <Heading size="md">Sistema Conectado</Heading>
+                </HStack>
               </CardHeader>
               <CardBody>
-                <VStack spacing={4} align="stretch">
-                  <HStack justify="space-between">
-                    <Badge
-                      colorScheme={state.whatsappStatus.isConnected ? 'green' : 'red'}
-                      fontSize="md"
-                      p={2}
-                      borderRadius="md"
-                    >
-                      <HStack>
-                        <Icon as={state.whatsappStatus.isConnected ? CheckCircleIcon : WarningIcon} />
-                        <Text>
-                          {state.whatsappStatus.isConnected ? 'Conectado' : 'Desconectado'}
-                        </Text>
-                      </HStack>
-                    </Badge>
-
-                    {state.whatsappStatus.connectionTime && (
-                      <Text fontSize="sm" color="gray.600">
-                        Conectado em: {new Date(state.whatsappStatus.connectionTime).toLocaleString()}
-                      </Text>
-                    )}
+                <VStack align="start" spacing={4}>
+                  <Alert status="success" variant="subtle" borderRadius="md" py={2}>
+                    <AlertIcon />
+                    <Text fontSize="sm">Servidor Webhook ativo e aguardando mensagens.</Text>
+                  </Alert>
+                  
+                  <Box bg="blue.50" p={4} borderRadius="md" width="100%" borderLeft="4px solid" borderColor="blue.400">
+                    <Heading size="sm" mb={2} color="blue.700">Modo Sandbox (Teste):</Heading>
+                    <Text fontSize="sm" mb={2}>Envie uma mensagem no WhatsApp para o número da Sandbox do Twilio com o código de união:</Text>
+                    <Code p={2} borderRadius="md" colorScheme="blue" children="join seu-codigo-twilio" w="100%" textAlign="center" mb={2} />
+                    <Text fontSize="xs" color="gray.500">
+                      * Consulte o código exato ("join ...") no seu Console do Twilio em Messaging {'>'} Try it out.
+                    </Text>
+                  </Box>
+                  
+                  <HStack spacing={4} pt={2}>
+                     <Badge colorScheme="purple">Twilio API</Badge>
+                     <Badge colorScheme="orange">DeepSeek AI</Badge>
                   </HStack>
-
-                  {state.qrCode && (
-                    <VStack spacing={3} p={4} border="2px dashed" borderColor="gray.200" borderRadius="lg">
-                      <Heading size="sm">Conectar WhatsApp</Heading>
-                      <Image
-                        src={state.qrCode}
-                        alt="QR Code para conectar WhatsApp"
-                        maxW="200px"
-                        borderRadius="md"
-                        boxShadow="lg"
-                      />
-                      <Text fontSize="sm" textAlign="center" color="gray.600">
-                        Escaneie este QR Code com seu WhatsApp
-                      </Text>
-                    </VStack>
-                  )}
-
-                  {state.whatsappStatus.isConnected && (
-                    <VStack spacing={2} p={4} bg="green.50" borderRadius="lg" border="1px solid" borderColor="green.200">
-                      <CheckCircleIcon boxSize={8} color="green.500" />
-                      <Heading size="md" color="green.600">WhatsApp Conectado!</Heading>
-                      <Text textAlign="center" color="green.700">
-                        O bot está pronto para receber mensagens dos seus clientes
-                      </Text>
-                    </VStack>
-                  )}
-
-                  {!state.whatsappStatus.isConnected && (
-                    <Button
-                      colorScheme="brand"
-                      onClick={requestQRCode}
-                      leftIcon={<ChatIcon />}
-                    >
-                      {state.qrCode ? 'Gerar Novo QR Code' : 'Conectar WhatsApp'}
-                    </Button>
-                  )}
                 </VStack>
               </CardBody>
             </Card>
           </GridItem>
 
-          {/* Operating Hours */}
-          <GridItem colSpan={{ base: 1, lg: 1 }} rowSpan={1}>
-            <Card bg={cardBg} height="100%" boxShadow="md">
-              <CardHeader pb={0}>
-                <Heading size="md">Horário de Funcionamento</Heading>
+          {/* Card 2: Horários e Configuração Básica */}
+          <GridItem colSpan={1}>
+            <Card bg={cardBg} height="100%" boxShadow="sm">
+              <CardHeader pb={2}>
+                <HStack justify="space-between">
+                    <Heading size="md">Configurações Gerais</Heading>
+                    {!editingHours && <Button size="sm" leftIcon={<EditIcon />} onClick={() => setEditingHours(true)}>Editar</Button>}
+                </HStack>
               </CardHeader>
               <CardBody>
                 {editingHours ? (
-                  <VStack spacing={4} align="stretch">
-                    <HStack>
+                  <VStack spacing={3}>
+                     <FormControl>
+                        <FormLabel fontSize="sm">Nome da Empresa</FormLabel>
+                        <Input size="sm" value={configForm.businessName} onChange={e => setConfigForm({...configForm, businessName: e.target.value})} />
+                     </FormControl>
+                    <HStack width="100%">
                       <FormControl>
-                        <FormLabel>Abertura</FormLabel>
-                        <Input
-                          type="time"
-                          value={configForm.operatingHours.opening}
-                          onChange={(e) => setConfigForm({ ...configForm, operatingHours: { ...configForm.operatingHours, opening: e.target.value } })}
-                        />
+                        <FormLabel fontSize="sm">Abre</FormLabel>
+                        <Input size="sm" type="time" value={configForm.operatingHours.opening} onChange={e => setConfigForm({...configForm, operatingHours: {...configForm.operatingHours, opening: e.target.value}})} />
                       </FormControl>
                       <FormControl>
-                        <FormLabel>Fechamento</FormLabel>
-                        <Input
-                          type="time"
-                          value={configForm.operatingHours.closing}
-                          onChange={(e) => setConfigForm({ ...configForm, operatingHours: { ...configForm.operatingHours, closing: e.target.value } })}
-                        />
+                        <FormLabel fontSize="sm">Fecha</FormLabel>
+                        <Input size="sm" type="time" value={configForm.operatingHours.closing} onChange={e => setConfigForm({...configForm, operatingHours: {...configForm.operatingHours, closing: e.target.value}})} />
                       </FormControl>
                     </HStack>
                     <FormControl>
-                      <FormLabel>Mensagem de Ausência</FormLabel>
-                      <Textarea
-                        value={configForm.awayMessage}
-                        onChange={(e) => setConfigForm({ ...configForm, awayMessage: e.target.value })}
-                        placeholder="Mensagem para clientes fora do horário de atendimento"
-                        rows={3}
-                      />
+                        <FormLabel fontSize="sm">Msg. Ausência</FormLabel>
+                        <Textarea size="sm" value={configForm.awayMessage} onChange={e => setConfigForm({...configForm, awayMessage: e.target.value})} rows={2} />
                     </FormControl>
-                    <HStack>
-                      <Button colorScheme="brand" onClick={handleSaveConfig}>
-                        Salvar
-                      </Button>
-                      <Button variant="outline" onClick={() => setEditingHours(false)}>
-                        Cancelar
-                      </Button>
+                    <HStack width="100%" justify="flex-end">
+                        <Button size="sm" variant="ghost" onClick={() => setEditingHours(false)}>Cancelar</Button>
+                        <Button size="sm" colorScheme="brand" onClick={handleSaveConfig}>Salvar</Button>
                     </HStack>
                   </VStack>
                 ) : (
-                  <VStack spacing={4} align="stretch">
-                    <Box p={3} bg="gray.100" borderRadius="md">
-                      <Text fontWeight="bold">Horário</Text>
-                      <Text>{configForm.operatingHours.opening} - {configForm.operatingHours.closing}</Text>
-                    </Box>
-                    <Box p={3} bg="gray.100" borderRadius="md">
-                      <Text fontWeight="bold">Mensagem de Ausência</Text>
-                      <Text fontStyle="italic">"{configForm.awayMessage || 'Não configurada'}"</Text>
-                    </Box>
-                    <Button
-                      colorScheme="brand"
-                      variant="outline"
-                      onClick={() => setEditingHours(true)}
-                      leftIcon={<EditIcon />}
-                    >
-                      Editar Horário
-                    </Button>
+                  <VStack align="start" spacing={3}>
+                    <Text fontSize="sm">🕒 <b>Horário:</b> {configForm.operatingHours.opening} às {configForm.operatingHours.closing}</Text>
+                    <Text fontSize="sm">🌙 <b>Ausência:</b> "{configForm.awayMessage}"</Text>
+                    <Divider />
+                    <Text fontSize="sm">🏢 <b>Empresa:</b> {configForm.businessName}</Text>
+                    <Text fontSize="sm">👋 <b>Boas-vindas:</b> "{configForm.welcomeMessage}"</Text>
                   </VStack>
                 )}
               </CardBody>
             </Card>
           </GridItem>
 
-          {/* Business Config */}
-          <GridItem colSpan={{ base: 1, lg: 1 }} rowSpan={1}>
-            <Card bg={cardBg} height="100%" boxShadow="md">
-              <CardHeader pb={0}>
-                <Heading size="md">Configurações do Negócio</Heading>
+          {/* Card 3: Menu de Opções (Chatbot) */}
+          <GridItem colSpan={{ base: 1, lg: 2 }}>
+            <Card bg={cardBg} boxShadow="sm">
+              <CardHeader pb={2}>
+                <HStack justify="space-between">
+                    <Heading size="md">Menu de Respostas Rápidas</Heading>
+                    <Button size="sm" leftIcon={<AddIcon />} colorScheme="brand" onClick={onOpen}>Adicionar Opção</Button>
+                </HStack>
               </CardHeader>
               <CardBody>
-                {editingConfig ? (
-                  <VStack spacing={4} align="stretch">
-                    <FormControl>
-                      <FormLabel>Nome do Negócio</FormLabel>
-                      <Input
-                        value={configForm.businessName}
-                        onChange={(e) => setConfigForm({ ...configForm, businessName: e.target.value })}
-                        placeholder="Nome da sua empresa"
-                      />
-                    </FormControl>
-
-                    <FormControl>
-                      <FormLabel>Segmento</FormLabel>
-                      <Select
-                        value={configForm.businessType}
-                        onChange={(e) => setConfigForm({ ...configForm, businessType: e.target.value })}
-                      >
-                        <option value="varejo">Varejo</option>
-                        <option value="servicos">Serviços</option>
-                        <option value="restaurante">Restaurante</option>
-                        <option value="imoveis">Imóveis</option>
-                        <option value="outros">Outros</option>
-                      </Select>
-                    </FormControl>
-
-                    <FormControl>
-                      <FormLabel>Mensagem de Boas-Vindas</FormLabel>
-                      <Textarea
-                        value={configForm.welcomeMessage}
-                        onChange={(e) => setConfigForm({ ...configForm, welcomeMessage: e.target.value })}
-                        placeholder="Digite a mensagem de boas-vindas para seus clientes..."
-                        rows={3}
-                      />
-                    </FormControl>
-
-                    <HStack>
-                      <Button colorScheme="brand" onClick={handleSaveConfig}>
-                        Salvar
-                      </Button>
-                      <Button variant="outline" onClick={() => setEditingConfig(false)}>
-                        Cancelar
-                      </Button>
-                    </HStack>
-                  </VStack>
-                ) : (
-                  <VStack spacing={4} align="stretch">
-                    <Box p={3} bg="blue.50" borderRadius="md">
-                      <Text fontWeight="bold" color="blue.800">Nome do Negócio</Text>
-                      <Text color="blue.600">{state.businessConfig?.businessName || 'Não configurado'}</Text>
+                <Text fontSize="sm" color="gray.500" mb={4}>
+                    Se o cliente digitar estas palavras-chave, o bot responderá imediatamente (sem gastar IA).
+                </Text>
+                
+                <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={4}>
+                    {menuOptions.map((opt, idx) => (
+                      <Card key={idx} variant="outline" size="sm" borderColor="gray.200">
+                        <CardBody p={3}>
+                          <HStack justify="space-between" mb={2}>
+                            <Badge colorScheme="purple" fontSize="0.8em">{idx + 1}. {opt.keyword}</Badge>
+                            <Icon as={DeleteIcon} color="red.300" cursor="pointer" onClick={() => handleRemoveMenuOption(idx)} boxSize={3} />
+                          </HStack>
+                          <Text fontWeight="bold" fontSize="xs" color="gray.700" mb={1}>{opt.description}</Text>
+                          <Text fontSize="xs" color="gray.500" noOfLines={2}>{opt.response}</Text>
+                          {opt.requiresHuman && <Badge mt={2} colorScheme="orange" fontSize="0.6em">Humano</Badge>}
+                        </CardBody>
+                      </Card>
+                    ))}
+                </Grid>
+                
+                {menuOptions.length > 0 && (
+                    <Box mt={4} textAlign="right">
+                         <Button size="sm" colorScheme="green" variant="ghost" onClick={handleSaveMenu}>Salvar Alterações do Menu</Button>
                     </Box>
-
-                    <Box p={3} bg="purple.50" borderRadius="md">
-                      <Text fontWeight="bold" color="purple.800">Segmento</Text>
-                      <Text color="purple.600" textTransform="capitalize">
-                        {state.businessConfig?.businessType || 'Não definido'}
-                      </Text>
-                    </Box>
-
-                    <Box p={3} bg="green.50" borderRadius="md">
-                      <Text fontWeight="bold" color="green.800">Mensagem de Boas-Vindas</Text>
-                      <Text color="green.600" fontStyle="italic">
-                        "{state.businessConfig?.welcomeMessage || 'Não configurada'}"
-                      </Text>
-                    </Box>
-
-                    <Button
-                      colorScheme="brand"
-                      variant="outline"
-                      onClick={() => setEditingConfig(true)}
-                      leftIcon={<EditIcon />}
-                    >
-                      Editar Configurações
-                    </Button>
-                  </VStack>
                 )}
               </CardBody>
             </Card>
           </GridItem>
 
-          {/* Product Catalog */}
-          <GridItem colSpan={{ base: 1, lg: 2 }} rowSpan={1}>
-            <Card bg={cardBg} boxShadow="md">
-              <CardHeader pb={0}>
-                <Heading size="md">Catálogo de Produtos</Heading>
-              </CardHeader>
-              <CardBody>
-                <VStack spacing={4} align="stretch">
-                  <Text color="gray.600">
-                    Gerencie os produtos ou serviços que seu chatbot poderá oferecer.
-                  </Text>
-                  {products.length === 0 ? (
-                    <Box textAlign="center" py={8} color="gray.500">
-                      <Text>Nenhum produto cadastrado.</Text>
-                      <Text fontSize="sm">Clique em "Adicionar Produto" para começar.</Text>
-                    </Box>
-                  ) : (
-                    <VStack spacing={3} align="stretch" maxH="400px" overflowY="auto">
-                      {products.map((product, index) => (
-                        <Card key={index} variant="outline" p={4}>
-                          <HStack justify="space-between" align="start">
-                            <VStack align="start" spacing={2} flex={1}>
-                              <HStack>
-                                <Badge colorScheme="green">{product.name}</Badge>
-                                <Text fontWeight="bold">R$ {product.price}</Text>
-                              </HStack>
-                              <Text fontSize="sm" color="gray.600">
-                                {product.description}
-                              </Text>
-                            </VStack>
-                            <HStack>
-                              <Button
-                                colorScheme="blue"
-                                size="sm"
-                                onClick={() => {
-                                  setNewProduct(product);
-                                  setEditingProductIndex(index);
-                                  onProductModalOpen();
-                                }}
-                                leftIcon={<EditIcon />}
-                              >
-                                Editar
-                              </Button>
-                              <Button
-                                colorScheme="red"
-                                size="sm"
-                                onClick={() => handleRemoveProduct(index)}
-                                leftIcon={<DeleteIcon />}
-                              >
-                                Remover
-                              </Button>
+          {/* Card 4: Catálogo de Produtos */}
+          <GridItem colSpan={{ base: 1, lg: 2 }}>
+            <Card bg={cardBg} boxShadow="sm">
+                <CardHeader pb={2}>
+                    <HStack justify="space-between">
+                        <Heading size="md">Catálogo de Produtos & Serviços</Heading>
+                        <Button size="sm" leftIcon={<AddIcon />} variant="outline" onClick={() => { setEditingProductIndex(null); setNewProduct({name:'', price:'', description:''}); onProductModalOpen(); }}>Novo Produto</Button>
+                    </HStack>
+                </CardHeader>
+                <CardBody>
+                    <Text fontSize="sm" color="gray.500" mb={4}>
+                        A Inteligência Artificial consultará esta lista para responder perguntas sobre preços.
+                    </Text>
+                    <VStack align="stretch" spacing={2}>
+                        {products.length === 0 && <Text fontStyle="italic" color="gray.400" fontSize="sm">Nenhum produto cadastrado.</Text>}
+                        
+                        {products.map((prod, idx) => (
+                            <HStack key={idx} p={3} borderWidth="1px" borderRadius="md" justify="space-between" bg="white">
+                                <VStack align="start" spacing={0}>
+                                    <HStack>
+                                        <Text fontWeight="bold" fontSize="sm">{prod.name}</Text>
+                                        <Badge colorScheme="green" fontSize="0.8em">R$ {prod.price}</Badge>
+                                    </HStack>
+                                    <Text fontSize="xs" color="gray.600">{prod.description}</Text>
+                                </VStack>
+                                <HStack>
+                                    <Button size="xs" variant="ghost" onClick={() => { setNewProduct(prod); setEditingProductIndex(idx); onProductModalOpen(); }}><EditIcon /></Button>
+                                    <Button size="xs" colorScheme="red" variant="ghost" onClick={() => handleRemoveProduct(idx)}><DeleteIcon /></Button>
+                                </HStack>
                             </HStack>
-                          </HStack>
-                        </Card>
-                      ))}
+                        ))}
+                        
+                        {products.length > 0 && (
+                            <Box mt={2} textAlign="right">
+                                <Button size="sm" colorScheme="green" variant="ghost" onClick={handleSaveProducts}>Salvar Alterações do Catálogo</Button>
+                            </Box>
+                        )}
                     </VStack>
-                  )}
-                  <HStack>
-                    <Button
-                      colorScheme="brand"
-                      onClick={onProductModalOpen}
-                      leftIcon={<AddIcon />}
-                    >
-                      Adicionar Produto
-                    </Button>
-                    {products.length > 0 && (
-                      <Button
-                        colorScheme="green"
-                        onClick={handleSaveProducts}
-                      >
-                        Salvar Catálogo
-                      </Button>
-                    )}
-                  </HStack>
-                </VStack>
-              </CardBody>
+                </CardBody>
             </Card>
           </GridItem>
-
-          {/* Menu de Atendimento */}
-          <GridItem colSpan={{ base: 1, lg: 2 }} rowSpan={1}>
-            <Card bg={cardBg} boxShadow="md">
-              <CardHeader pb={0}>
-                <Heading size="md">Menu de Atendimento</Heading>
-              </CardHeader>
-              <CardBody>
-                <VStack spacing={4} align="stretch">
-                  <Text color="gray.600">
-                    Configure as opções de menu que seus clientes verão no WhatsApp
-                  </Text>
-
-                  {menuOptions.length === 0 ? (
-                    <Box textAlign="center" py={8} color="gray.500">
-                      <Text>Nenhuma opção de menu configurada</Text>
-                      <Text fontSize="sm">Clique em "Adicionar Opção" para começar</Text>
-                    </Box>
-                  ) : (
-                    <VStack spacing={3} align="stretch" maxH="400px" overflowY="auto">
-                      {menuOptions.map((option, index) => (
-                        <Card key={index} variant="outline" p={4}>
-                          <HStack justify="space-between" align="start">
-                            <VStack align="start" spacing={2} flex={1}>
-                              <HStack>
-                                <Badge colorScheme="brand">{option.keyword}</Badge>
-                                {option.requiresHuman && (
-                                  <Badge colorScheme="orange">Atendimento Humano</Badge>
-                                )}
-                              </HStack>
-                              <Text fontWeight="medium">{option.description}</Text>
-                              <Text fontSize="sm" color="gray.600">
-                                {option.response}
-                              </Text>
-                            </VStack>
-                            <Button
-                              colorScheme="red"
-                              size="sm"
-                              onClick={() => handleRemoveMenuOption(index)}
-                              leftIcon={<DeleteIcon />}
-                            >
-                              Remover
-                            </Button>
-                          </HStack>
-                        </Card>
-                      ))}
-                    </VStack>
-                  )}
-
-                  <HStack>
-                    <Button
-                      colorScheme="brand"
-                      onClick={onOpen}
-                      leftIcon={<AddIcon />}
-                    >
-                      Adicionar Opção
-                    </Button>
-                    {menuOptions.length > 0 && (
-                      <Button
-                        colorScheme="green"
-                        onClick={handleSaveMenu}
-                      >
-                        Salvar Menu
-                      </Button>
-                    )}
-                  </HStack>
-                </VStack>
-              </CardBody>
-            </Card>
-          </GridItem>
-        </Grid>
-
-        {/* Statistics */}
-        <Grid templateColumns={{ base: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }} gap={6}>
-          <Card bg={cardBg} boxShadow="md">
-            <CardBody>
-              <Stat>
-                <StatLabel>Conversas Hoje</StatLabel>
-                <StatNumber>0</StatNumber>
-                <StatHelpText>↗︎ 0% desde ontem</StatHelpText>
-              </Stat>
-            </CardBody>
-          </Card>
-
-          <Card bg={cardBg} boxShadow="md">
-            <CardBody>
-              <Stat>
-                <StatLabel>Clientes Atendidos</StatLabel>
-                <StatNumber>0</StatNumber>
-                <StatHelpText>Total de clientes</StatHelpText>
-              </Stat>
-            </CardBody>
-          </Card>
-
-          <Card bg={cardBg} boxShadow="md">
-            <CardBody>
-              <Stat>
-                <StatLabel>Mensagens Hoje</StatLabel>
-                <StatNumber>0</StatNumber>
-                <StatHelpText>↘︎ 0% desde ontem</StatHelpText>
-              </Stat>
-            </CardBody>
-          </Card>
-
-          <Card bg={cardBg} boxShadow="md">
-            <CardBody>
-              <Stat>
-                <StatLabel>Taxa de Resposta</StatLabel>
-                <StatNumber>0%</StatNumber>
-                <StatHelpText>Eficiência do bot</StatHelpText>
-              </Stat>
-            </CardBody>
-          </Card>
         </Grid>
       </Container>
 
-      {/* Modal para adicionar/editar produto */}
-      <Modal isOpen={isProductModalOpen} onClose={onProductModalClose} size="lg">
+      {/* --- MODAIS --- */}
+
+      {/* Modal Menu */}
+      <Modal isOpen={isOpen} onClose={onClose} isCentered>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Adicionar/Editar Produto</ModalHeader>
+          <ModalHeader>Nova Opção de Menu</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <VStack spacing={4}>
+            <VStack spacing={3}>
               <FormControl isRequired>
-                <FormLabel>Nome do Produto</FormLabel>
-                <Input
-                  value={newProduct.name}
-                  onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                  placeholder="Ex: Pizza, Corte de Cabelo"
-                />
+                  <FormLabel>Palavra-chave</FormLabel>
+                  <Input placeholder="Ex: pix" value={newMenuOption.keyword} onChange={e => setNewMenuOption({...newMenuOption, keyword: e.target.value})} />
               </FormControl>
               <FormControl isRequired>
-                <FormLabel>Preço</FormLabel>
-                <Input
-                  type="number"
-                  value={newProduct.price}
-                  onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
-                  placeholder="Ex: 50.00"
-                />
+                  <FormLabel>Descrição no Menu</FormLabel>
+                  <Input placeholder="Ex: Chave Pix para pagamento" value={newMenuOption.description} onChange={e => setNewMenuOption({...newMenuOption, description: e.target.value})} />
               </FormControl>
-              <FormControl>
-                <FormLabel>Descrição</FormLabel>
-                <Textarea
-                  value={newProduct.description}
-                  onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                  placeholder="Descrição do produto ou serviço"
-                  rows={3}
-                />
+              <FormControl isRequired>
+                  <FormLabel>Resposta do Robô</FormLabel>
+                  <Textarea placeholder="O texto que será enviado ao cliente..." value={newMenuOption.response} onChange={e => setNewMenuOption({...newMenuOption, response: e.target.value})} />
               </FormControl>
+              <Checkbox isChecked={newMenuOption.requiresHuman} onChange={e => setNewMenuOption({...newMenuOption, requiresHuman: e.target.checked})}>Encaminhar para Humano</Checkbox>
             </VStack>
           </ModalBody>
           <ModalFooter>
-            <Button variant="outline" mr={3} onClick={onProductModalClose}>
-              Cancelar
-            </Button>
-            <Button colorScheme="brand" onClick={handleAddProduct}>
-              Salvar Produto
-            </Button>
+              <Button variant="ghost" mr={3} onClick={onClose}>Cancelar</Button>
+              <Button colorScheme="brand" onClick={handleAddMenuOption}>Adicionar</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
 
-      {/* Modal para adicionar opção de menu */}
-      <Modal isOpen={isOpen} onClose={onClose} size="lg">
+      {/* Modal Produto */}
+      <Modal isOpen={isProductModalOpen} onClose={onProductModalClose} isCentered>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Adicionar Opção de Menu</ModalHeader>
+          <ModalHeader>{editingProductIndex !== null ? 'Editar' : 'Novo'} Produto</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <VStack spacing={4}>
+            <VStack spacing={3}>
               <FormControl isRequired>
-                <FormLabel>Palavra-chave</FormLabel>
-                <Input
-                  value={newMenuOption.keyword}
-                  onChange={(e) => setNewMenuOption({ ...newMenuOption, keyword: e.target.value })}
-                  placeholder="Ex: produtos, horario, atendimento"
-                />
+                  <FormLabel>Nome</FormLabel>
+                  <Input value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
               </FormControl>
-
               <FormControl isRequired>
-                <FormLabel>Descrição</FormLabel>
-                <Input
-                  value={newMenuOption.description}
-                  onChange={(e) => setNewMenuOption({ ...newMenuOption, description: e.target.value })}
-                  placeholder="Ex: Ver nossos produtos, Horário de funcionamento"
-                />
+                  <FormLabel>Preço (R$)</FormLabel>
+                  <Input type="number" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
               </FormControl>
-
-              <FormControl isRequired>
-                <FormLabel>Resposta</FormLabel>
-                <Textarea
-                  value={newMenuOption.response}
-                  onChange={(e) => setNewMenuOption({ ...newMenuOption, response: e.target.value })}
-                  placeholder="Digite a resposta que o bot enviará quando esta opção for selecionada"
-                  rows={4}
-                />
-              </FormControl>
-
               <FormControl>
-                <Checkbox
-                  isChecked={newMenuOption.requiresHuman}
-                  onChange={(e) => setNewMenuOption({ ...newMenuOption, requiresHuman: e.target.checked })}
-                >
-                  Encaminhar para atendente humano
-                </Checkbox>
+                  <FormLabel>Detalhes</FormLabel>
+                  <Textarea placeholder="Ingredientes, tamanho..." value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} />
               </FormControl>
             </VStack>
           </ModalBody>
           <ModalFooter>
-            <Button variant="outline" mr={3} onClick={onClose}>
-              Cancelar
-            </Button>
-            <Button colorScheme="brand" onClick={handleAddMenuOption}>
-              Adicionar
-            </Button>
+              <Button variant="ghost" mr={3} onClick={onProductModalClose}>Cancelar</Button>
+              <Button colorScheme="brand" onClick={handleAddProduct}>Salvar</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
