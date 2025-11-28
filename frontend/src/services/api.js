@@ -1,7 +1,6 @@
 import axios from 'axios';
 
 // Se estiver rodando localmente, mantém localhost.
-// O Ngrok é configurado SOMENTE no painel do Twilio, o React fala direto com o Node local.
 const API_BASE = 'http://localhost:3001';
 
 const api = axios.create({

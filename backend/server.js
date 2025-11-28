@@ -5,8 +5,9 @@ const path = require('path');
 const http = require('http');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
-const SystemUser = require('./models/SystemUser');
-const BusinessConfig = require('./models/BusinessConfig');
+require('./models/SystemUser');
+require('./models/Contact'); // <--- Essa linha resolve o erro MissingSchemaError
+require('./models/BusinessConfig');
 
 // Importaremos a nova função de tratamento de mensagens
 const { handleTwilioMessage } = require('./messageHandler');
