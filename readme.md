@@ -39,3 +39,14 @@ Antes de rodar, você precisa ter:
 Na pasta raiz do projeto, execute o comando que instala tudo (Backend e Frontend):
 ```bash
 npm run install:all
+``` 
+
+## 🤝 Como Contribuir
+- Faça um fork do projeto
+- Crie sua branch (git checkout -b feature/nova-feature)
+- Commit suas mudanças (git commit -m 'Adiciona nova feature')
+- Push para a branch (git push origin feature/nova-feature)
+- Abra um Pull Request
+
+## 
+Desenvolvido com ❤️ por Rodrigo Vasconcelos Moreira
