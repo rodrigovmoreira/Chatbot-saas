@@ -1,77 +1,41 @@
-# 🤖 Chatbot WhatsApp - Rodrigo Moreira
+# 🤖 Chatbot SaaS (MVP Tatuador) - Twilio Version
 
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B-green?logo=node.js)](https://nodejs.org/)
-[![whatsapp-web.js](https://img.shields.io/badge/whatsapp--web.js-1.31-blue)](https://wwebjs.dev/)
-[![License](https://img.shields.io/badge/License-MIT-yellow)](https://opensource.org/licenses/MIT)
+[![Twilio](https://img.shields.io/badge/Twilio-API-red?logo=twilio)](https://www.twilio.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-green?logo=mongodb)](https://www.mongodb.com/)
+[![DeepSeek](https://img.shields.io/badge/AI-DeepSeek-blue)](https://deepseek.com/)
 
-Um chatbot inteligente para WhatsApp desenvolvido em Node.js, com integração de IA generativa para respostas contextualizadas e armazenamento de histórico de conversas.
-## ✨ Funcionalidades Principais
+Um SaaS de atendimento automatizado para WhatsApp focado no nicho de Tatuagem (MVP). Utiliza a API oficial do Twilio para comunicação e IA Generativa (DeepSeek) para atuar como um "Vendedor Especialista", realizando triagem e tirando dúvidas de clientes.
 
-- **Respostas Inteligentes** 🧠 - Integração com API de IA (DeepSeek) para respostas naturais e contextualizadas
-- **Histórico de Conversas** 💾 - Armazenamento de mensagens no MongoDB para manter contexto
-- **Controle de Sessão** 🧩 - Gerenciamento de estado por usuário
-- **UX Aprimorada** ✍️ - Efeitos de digitação simulada para melhor experiência
-- **Segurança** 🔒 - Validação de mensagens e tratamento de erros robusto
+---
 
-## 🛠️ Tecnologias Utilizadas
+## 🏗️ Arquitetura do Projeto
 
-- **Backend**: Node.js
-- **WhatsApp**: whatsapp-web.js (v1.31)
-- **Banco de Dados**: MongoDB (via Mongoose)
-- **IA**: DeepSeek API
-- **Outras Libs**:
-  - Axios - Requisições HTTP
-  - dotenv - Gerenciamento de variáveis de ambiente
-  - qrcode-terminal - Autenticação via QR Code
+O projeto funciona em arquitetura **Monorepo** (Frontend e Backend na mesma pasta raiz):
 
-## 📦 Instalação
+- **Backend (Porta 3001):** Node.js + Express. Gerencia o Webhook do Twilio, conecta com a IA e Banco de Dados.
+- **Frontend (Porta 3000):** React + Chakra UI. Painel administrativo (Dashboard) para visualização de status.
+- **Túnel (Ngrok):** Expõe o backend local para a nuvem do Twilio.
 
-1. Clone o repositório:
+---
+
+## ✅ Pré-requisitos (Checklist de Setup)
+
+Antes de rodar, você precisa ter:
+
+1.  **Node.js** instalado.
+2.  **Conta no MongoDB Atlas:** Cluster criado e string de conexão (`mongodb+srv://...`).
+3.  **Conta no Twilio:**
+    - Account SID e Auth Token.
+    - Número da Sandbox configurado (Ex: `whatsapp:+14155238886`).
+4.  **Chave de API DeepSeek:** Para o cérebro da IA.
+5.  **Ngrok:** Instalado para criar o túnel de conexão.
+
+---
+
+## 🚀 Instalação e Configuração
+
+### 1. Instalar Dependências
+Na pasta raiz do projeto, execute o comando que instala tudo (Backend e Frontend):
 ```bash
-git clone https://github.com/rodrigovmoreira/Chatbot-saas.git
-cd chatbot-whatsapp
-```
-2. Instale as dependências:
-```bash
-npm install
-```
-
-3. Configure o ambiente:
-
-- Crie um arquivo .env baseado no .env.example
-- Adicione suas credenciais:
-```bash
-MONGO_URI=sua_string_de_conexao_mongodb
-JWT_SECRET=coloque-uma-senha-forte-aqui-para-ter-maior-proteção-de-dados
-DEEPSEEK_API_KEY=sua_chave_api
-DEEPSEEK_API_URL=https://api.deepseek.com/v1
-DEEPSEEK_MODEL=deepseek-chat
-```
-
-4. Inicie o bot:
-```bash
-npm start
-```
-
-5. Escaneie o QR Code com seu WhatsApp
-
-## 🌟 Destaques Técnicos
-- Contexto de Conversa: Armazena as últimas 5 mensagens para respostas contextualizadas
-- Tipagem de Mensagens: Separa mensagens de usuário e bot no banco de dados
-- Tratamento de Erros: Respostas alternativas quando a IA não está disponível
-- Performance: Monitoramento do tempo de resposta da IA
-
-📌 Roadmap
-- ✅ Conexão básica com WhatsApp
-- ✅ Integração com IA (DeepSeek)
-- ✅ Armazenamento com MongoDB
-
-## 🤝 Como Contribuir
-- Faça um fork do projeto
-- Crie sua branch (git checkout -b feature/nova-feature)
-- Commit suas mudanças (git commit -m 'Adiciona nova feature')
-- Push para a branch (git push origin feature/nova-feature)
-- Abra um Pull Request
-
-## 
-Desenvolvido com ❤️ por Rodrigo Vasconcelos Moreira
+npm run install:all

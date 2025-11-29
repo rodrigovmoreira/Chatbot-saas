@@ -180,7 +180,7 @@ const Dashboard = () => {
                   <Box bg="blue.50" p={4} borderRadius="md" width="100%" borderLeft="4px solid" borderColor="blue.400">
                     <Heading size="sm" mb={2} color="blue.700">Modo Sandbox (Teste):</Heading>
                     <Text fontSize="sm" mb={2}>Envie uma mensagem no WhatsApp para o número da Sandbox do Twilio com o código de união:</Text>
-                    <Code p={2} borderRadius="md" colorScheme="blue" children="join seu-codigo-twilio" w="100%" textAlign="center" mb={2} />
+                    <Code p={2} borderRadius="md" colorScheme="blue" children="join word-steel" w="100%" textAlign="center" mb={2} />
                     <Text fontSize="xs" color="gray.500">
                       * Consulte o código exato ("join ...") no seu Console do Twilio em Messaging {'>'} Try it out.
                     </Text>
