@@ -4,8 +4,8 @@
   "description": "Chatbot para WhatsApp com integração de IA",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "dependencies": {
     "axios": "^1.8.4",
