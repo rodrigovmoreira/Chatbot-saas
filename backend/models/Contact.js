@@ -4,7 +4,7 @@ const contactSchema = new mongoose.Schema({
   phone: {
     type: String,
     required: true,
-    unique: true // Isso cria o índice único no phone
+    unique: true // Já cria o índice necessário automaticamente
   },
   name: {
     type: String,
@@ -25,7 +25,6 @@ const contactSchema = new mongoose.Schema({
   tags: [{
     type: String
   }],
-  // Referência opcional ao usuário do sistema (se for um vendedor/atendente)
   assignedTo: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'SystemUser',
@@ -41,12 +40,10 @@ const contactSchema = new mongoose.Schema({
   }
 });
 
-// Índices para performance
-contactSchema.index({ phone: 1 });
+// REMOVIDO: contactSchema.index({ phone: 1 }); <-- Isso causava o aviso duplicado
 contactSchema.index({ lastInteraction: -1 });
 contactSchema.index({ assignedTo: 1 });
 
-// Atualizar updatedAt antes de salvar
 contactSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
   next();

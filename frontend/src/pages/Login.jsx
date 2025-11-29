@@ -59,13 +59,23 @@ const Login = () => {
       password: formData.get('password')
     };
 
-    try {
+try {
       const response = await authAPI.login(data);
+      console.log("Login sucesso:", response); // Log para debug
       handleAuthSuccess(response);
     } catch (error) {
-      setError(error.response?.data?.message || 'Erro ao fazer login');
-    } finally {
-      setLoading(false);
+      console.error("Erro Login:", error); // Log detalhado
+      // Se o backend não devolver mensagem, mostra erro genérico
+      const msg = error.response?.data?.message || 'Erro de conexão com o servidor';
+      setError(msg);
+      
+      toast({
+        title: 'Erro no Login',
+        description: msg,
+        status: 'error',
+        duration: 4000,
+        isClosable: true,
+      });
     }
   };
 
