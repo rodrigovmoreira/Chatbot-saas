@@ -41,6 +41,28 @@ Na pasta raiz do projeto, execute o comando que instala tudo (Backend e Frontend
 npm run install:all
 ``` 
 
+## .env - Pasta backend
+```bash
+MONGO_URI=sua_string_conexao_mongo
+JWT_SECRET=sua_senha_secreta_jwt
+
+# Inteligência Artificial
+DEEPSEEK_API_KEY=sua_chave_deepseek
+DEEPSEEK_API_URL=[https://api.deepseek.com/chat/completions](https://api.deepseek.com/chat/completions)
+DEEPSEEK_MODEL=deepseek-chat
+
+# Twilio (WhatsApp)
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
+``` 
+
+## .env - Pasta frontend
+```bash
+REACT_APP_API_URL=http://localhotst:3000
+REACT_APP_WS_URL=http://localhost:3000
+``` 
+
 ## 🤝 Como Contribuir
 - Faça um fork do projeto
 - Crie sua branch (git checkout -b feature/nova-feature)
