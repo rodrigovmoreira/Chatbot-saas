@@ -5,7 +5,8 @@ const path = require('path');
 const http = require('http');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
-const connectDB = require('./services/database'); 
+const connectDB = require('./services/database');
+const { startScheduler } = require('./services/scheduler');
 
 // 1. Carregar Schemas (Evita MissingSchemaError)
 require('./models/SystemUser');
@@ -19,15 +20,15 @@ const { handleTwilioMessage } = require('./messageHandler');
 
 const app = express();
 const server = http.createServer(app);
-const PORT = process.env.PORT || 3001; 
+const PORT = process.env.PORT || 3001;
 
 // Middlewares
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); 
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-app.use(cors({ 
-  origin: 'http://localhost:3000', 
+app.use(cors({
+  origin: 'http://localhost:3000',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
@@ -47,7 +48,7 @@ const authenticateToken = (req, res, next) => {
 
 app.post('/api/webhook', async (req, res) => {
   try {
-    res.status(200).send('<Response></Response>'); 
+    res.status(200).send('<Response></Response>');
     if (req.body.Body) {
       await handleTwilioMessage(req.body);
     }
@@ -60,7 +61,7 @@ app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     console.log(`Tentativa de login para: ${email}`);
-    
+
     // Agora 'SystemUser' existe porque definimos a const lá em cima
     const user = await SystemUser.findOne({ email }).select('+password');
 
@@ -90,12 +91,12 @@ app.post('/api/register', async (req, res) => {
     if (await SystemUser.findOne({ email })) return res.status(400).json({ message: 'Email existe' });
 
     const user = await SystemUser.create({ name, email, password, company: company || 'Meu Negócio' });
-    
+
     await BusinessConfig.create({
-        userId: user._id,
-        businessName: company || 'Novo Negócio',
-        businessType: 'servicos',
-        systemPrompt: "Você é um assistente virtual..."
+      userId: user._id,
+      businessName: company || 'Novo Negócio',
+      businessType: 'servicos',
+      systemPrompt: "Você é um assistente virtual..."
     });
 
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -142,16 +143,19 @@ app.put('/api/business-config', authenticateToken, async (req, res) => {
 
 // Inicialização
 async function start() {
-    try {
-        await connectDB();
-        server.listen(PORT, () => {
-            console.log(`\n🚀 SERVIDOR ONLINE NA PORTA ${PORT}`);
-            console.log(`📡 Aguardando mensagens...`);
-        });
-    } catch (error) {
-        console.error('💥 Erro fatal:', error);
-        process.exit(1);
-    }
+  try {
+    await connectDB();
+
+    startScheduler();
+
+    server.listen(PORT, () => {
+      console.log(`\n🚀 SERVIDOR ONLINE NA PORTA ${PORT}`);
+      console.log(`📡 Aguardando mensagens...`);
+    });
+  } catch (error) {
+    console.error('💥 Erro fatal:', error);
+    process.exit(1);
+  }
 }
 
 start();

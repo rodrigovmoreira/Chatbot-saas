@@ -42,21 +42,28 @@ const Message = mongoose.model('ChatMessage', messageSchema);
 
 async function saveMessage(phone, role, content, messageType = 'text') {
   try {
-    // Primeiro, encontrar ou criar o contato
+    // Encontrar ou criar contato
     let contact = await mongoose.model('Contact').findOne({ phone });
     if (!contact) {
-      contact = await mongoose.model('Contact').create({ 
-        phone,
-        totalMessages: 1
-      });
-    } else {
-      contact.totalMessages += 1;
-      contact.lastInteraction = new Date();
-      await contact.save();
+      contact = await mongoose.model('Contact').create({ phone, totalMessages: 0 });
     }
 
-    // Salvar a mensagem com referência ao contato
-    await Message.create({ 
+    // === ATUALIZAÇÃO PARA MODO ATIVO ===
+    contact.totalMessages += 1;
+    contact.lastInteraction = new Date();
+    contact.lastSender = role; // 'user' ou 'bot'
+    
+    // Se o USUÁRIO mandou mensagem, resetamos o flag de follow-up
+    // para que, se ele sumir de novo, o bot possa cobrar novamente no futuro.
+    if (role === 'user') {
+        contact.followUpSent = false;
+    }
+    
+    await contact.save();
+    // ===================================
+
+    // Salvar a mensagem no histórico
+    await mongoose.model('ChatMessage').create({ 
       contactId: contact._id,
       phone, 
       role, 
@@ -64,7 +71,6 @@ async function saveMessage(phone, role, content, messageType = 'text') {
       messageType
     });
     
-    console.log('💾 Mensagem salva para contato:', phone);
   } catch (error) {
     console.error('💥 Erro ao salvar mensagem:', error);
   }
