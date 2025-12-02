@@ -31,8 +31,8 @@ Regras:
   // === Configurações de Horário ===
   operatingHours: {
     active: { type: Boolean, default: true }, // Master switch: false = bot desligado
-    opening: { type: String, default: '09:00' },
-    closing: { type: String, default: '20:00' },
+    opening: { type: String, default: '00:01' },
+    closing: { type: String, default: '23:59' },
     timezone: { type: String, default: 'America/Sao_Paulo' }
   },
   
