@@ -73,7 +73,7 @@ REACT_APP_WS_URL=http://localhost:3000
 
 ## ▶️ Como Rodar o Projeto (Passo a Passo)
 
-Para que o WhatsApp funcione localmente, precisamos de 3 terminais abertos.
+Para que o WhatsApp funcione localmente, precisamos de 2 terminais abertos.
 
 Passo 1: Subir o Túnel (Terminal 1)
 Expõe a porta do backend para a internet.
