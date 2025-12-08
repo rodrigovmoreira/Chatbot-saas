@@ -3,12 +3,12 @@ const mongoose = require('mongoose');
 const contactSchema = new mongoose.Schema({
   phone: { type: String, required: true, unique: true },
   name: { type: String, default: null },
-  
+
   isBusiness: { type: Boolean, default: false },
-  
+
   lastSender: { type: String, enum: ['user', 'bot'], default: 'user' }, // Quem falou por último?
-  followUpSent: { type: Boolean, default: false },
-  
+  followUpStage: { type: Number, default: 0 },
+
   lastInteraction: { type: Date, default: Date.now },
   totalMessages: { type: Number, default: 0 },
 

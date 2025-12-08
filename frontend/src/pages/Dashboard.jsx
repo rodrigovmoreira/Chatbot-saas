@@ -29,7 +29,7 @@ const Dashboard = () => {
     businessName: '',
     businessType: '',
     welcomeMessage: '',
-    operatingHours: { opening: '09:00', closing: '18:00' },
+    operatingHours: { opening: '00:01', closing: '23:59' },
     awayMessage: ''
   });
 
@@ -49,7 +49,7 @@ const Dashboard = () => {
         businessName: state.businessConfig.businessName || '',
         businessType: state.businessConfig.businessType || 'outros',
         welcomeMessage: state.businessConfig.welcomeMessage || '',
-        operatingHours: state.businessConfig.operatingHours || { opening: '09:00', closing: '18:00' },
+        operatingHours: state.businessConfig.operatingHours || { opening: '00:01', closing: '23:59' },
         awayMessage: state.businessConfig.awayMessage || ''
       });
       setMenuOptions(state.businessConfig.menuOptions || []);

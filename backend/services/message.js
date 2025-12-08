@@ -43,24 +43,30 @@ const Message = mongoose.model('ChatMessage', messageSchema);
 async function saveMessage(phone, role, content, messageType = 'text') {
   try {
     // Encontrar ou criar contato
+    // Nota: Certifique-se que o Schema do 'Contact' já foi atualizado com 'followUpStage'
     let contact = await mongoose.model('Contact').findOne({ phone });
+    
     if (!contact) {
-      contact = await mongoose.model('Contact').create({ phone, totalMessages: 0 });
+      contact = await mongoose.model('Contact').create({ 
+        phone, 
+        totalMessages: 0,
+        followUpStage: 0 // Inicia zerado para novos contatos
+      });
     }
 
-    // === ATUALIZAÇÃO PARA MODO ATIVO ===
+    // === ATUALIZAÇÃO PARA MODO ATIVO (FUNIL DE VENDAS) ===
     contact.totalMessages += 1;
     contact.lastInteraction = new Date();
     contact.lastSender = role; // 'user' ou 'bot'
     
-    // Se o USUÁRIO mandou mensagem, resetamos o flag de follow-up
-    // para que, se ele sumir de novo, o bot possa cobrar novamente no futuro.
-    if (role === 'user') {
-        contact.followUpSent = false;
-    }
+    // RESET DO AGENDADOR:
+    // Qualquer nova mensagem salva aqui (seja do usuário ou uma resposta normal do bot)
+    // deve reiniciar o contador do funil para o estágio 0.
+    // O Scheduler irá gerenciar os incrementos (1, 2, 3) manualmente quando ele rodar.
+    contact.followUpStage = 0;
     
     await contact.save();
-    // ===================================
+    // =====================================================
 
     // Salvar a mensagem no histórico
     await mongoose.model('ChatMessage').create({ 
