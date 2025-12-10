@@ -1,5 +1,7 @@
 const cron = require('node-cron');
 const Contact = require('../models/Contact');
+const BusinessConfig = require('../models/BusinessConfig');
+const { sendUnifiedMessage } = require('./responseService');
 const { sendWhatsAppMessage } = require('./twilioService');
 const { saveMessage } = require('./message');
 
@@ -34,11 +36,14 @@ function startScheduler() {
       // 1. BUSCA: Contatos onde o BOT falou por último e ainda não completaram todos os estágios
       // Nota: Não filtramos por tempo aqui no DB para simplificar a query, 
       // pois cada estágio tem um tempo diferente. Filtramos o tempo no JavaScript.
+      const config = await BusinessConfig.findOne({});
+      const provider = config ? config.whatsappProvider : 'wwebjs';
+
       const activeContacts = await Contact.find({
         lastSender: 'bot',
         followUpStage: { $lt: FOLLOW_UP_STEPS.length }, // Ainda tem etapas para cumprir
         // Opcional: Trava de segurança para não pegar conversas de meses atrás
-        lastInteraction: { $gt: new Date(now.getTime() - 48 * 60 * 60000) } 
+        lastInteraction: { $gt: new Date(now.getTime() - 48 * 60 * 60000) }
       });
 
       if (activeContacts.length > 0) {
@@ -60,17 +65,13 @@ function startScheduler() {
         if (now >= timeToTrigger) {
           console.log(`🎣 Disparando Estágio ${nextStepConfig.stage} para: ${contact.phone}`);
 
-          // 1. Envia mensagem
-          await sendWhatsAppMessage(contact.phone, nextStepConfig.message);
+          await sendUnifiedMessage(contact.phone, nextStepConfig.message, provider);
 
-          // 2. Salva no histórico
-          // IMPORTANTE: Isso vai atualizar o 'lastInteraction' para AGORA.
-          // Isso é bom, pois o delay do Estágio 2 começará a contar a partir de AGORA.
           await saveMessage(contact.phone, 'bot', nextStepConfig.message);
 
           // 3. Incrementa o estágio
           contact.followUpStage += 1;
-          
+
           // O saveMessage já deve ter atualizado o lastInteraction, 
           // mas precisamos salvar o novo followUpStage.
           await contact.save();

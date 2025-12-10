@@ -2,25 +2,41 @@ require('dotenv').config();
 const cors = require('cors');
 const express = require('express');
 const path = require('path');
-const http = require('http');
+const http = require('http'); // Necessário para o Socket.io
+const { Server } = require("socket.io"); // <--- NOVO: Import do Socket.io
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
 const connectDB = require('./services/database');
 const { startScheduler } = require('./services/scheduler');
 
-// 1. Carregar Schemas (Evita MissingSchemaError)
+// --- NOVOS IMPORTS DA ARQUITETURA HÍBRIDA ---
+const { adaptTwilioMessage } = require('./services/providerAdapter'); // Adaptador
+const { handleIncomingMessage } = require('./messageHandler'); // Handler Genérico
+const { initializeWWebJS } = require('./services/wwebjsService'); // Serviço do WWebJS
+
+// 1. Carregar Schemas
 require('./models/SystemUser');
 require('./models/Contact');
 require('./models/BusinessConfig');
 
-// 2. Importar Models para uso nas Rotas (Evita ReferenceError)
+// 2. Importar Models
 const SystemUser = require('./models/SystemUser');
 const BusinessConfig = require('./models/BusinessConfig');
-const { handleTwilioMessage } = require('./messageHandler');
+// OBS: removemos o 'handleTwilioMessage' antigo aqui, pois usaremos o handleIncomingMessage
 
 const app = express();
-const server = http.createServer(app);
+const server = http.createServer(app); // Cria o server HTTP manualmente
 const PORT = process.env.PORT || 3001;
+
+// --- CONFIGURAÇÃO DO SOCKET.IO (NOVO) ---
+// Isso permite enviar o QR Code do backend para o frontend em tempo real
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:3000", // URL do seu React
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
 
 // Middlewares
 app.use(express.json());
@@ -33,6 +49,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
 
+// Middleware de Autenticação (MANTIDO IGUAL)
 const authenticateToken = (req, res, next) => {
   const token = req.cookies.auth_token || req.headers['authorization']?.split(' ')[1];
   if (!token) return res.status(401).json({ message: 'Token necessário' });
@@ -44,25 +61,38 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
+// --- SOCKET.IO EVENTOS (NOVO) ---
+io.on('connection', (socket) => {
+  console.log('🔌 Cliente React conectado ao Socket:', socket.id);
+  
+  socket.on('disconnect', () => {
+    console.log('🔌 Cliente desconectado:', socket.id);
+  });
+});
+
 // --- ROTAS ---
 
+// 1. Webhook Twilio (ATUALIZADO PARA O NOVO ADAPTER)
 app.post('/api/webhook', async (req, res) => {
   try {
     res.status(200).send('<Response></Response>');
-    if (req.body.Body) {
-      await handleTwilioMessage(req.body);
+    
+    // Se vier mensagem, adaptamos e passamos para o handler único
+    if (req.body.Body || req.body.NumMedia) {
+      const normalizedMsg = adaptTwilioMessage(req.body);
+      await handleIncomingMessage(normalizedMsg);
     }
   } catch (error) {
-    console.error('💥 Erro Webhook:', error);
+    console.error('💥 Erro Webhook Twilio:', error);
   }
 });
 
+// 2. Rotas de Auth (MANTIDAS IGUAIS)
 app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body;
     console.log(`Tentativa de login para: ${email}`);
 
-    // Agora 'SystemUser' existe porque definimos a const lá em cima
     const user = await SystemUser.findOne({ email }).select('+password');
 
     if (!user || !(await user.correctPassword(password))) {
@@ -95,7 +125,8 @@ app.post('/api/register', async (req, res) => {
     await BusinessConfig.create({
       userId: user._id,
       businessName: company || 'Novo Negócio',
-      businessType: 'servicos',
+      // businessType removido pois não estava no schema enviado anteriormente, 
+      // mas se estiver no seu schema, pode manter.
       systemPrompt: "Você é um assistente virtual..."
     });
 
@@ -113,9 +144,10 @@ app.post('/api/logout', (req, res) => {
   res.json({ message: 'Logout realizado' });
 });
 
-// Rotas Dashboard
+// 3. Rotas Dashboard (MANTIDAS IGUAIS)
 app.get('/api/whatsapp-status', authenticateToken, (req, res) => {
-  res.json({ isConnected: true, mode: 'Twilio Cloud', status: 'active' });
+  // Futuramente podemos integrar isso com o status real do WWebJS
+  res.json({ isConnected: true, mode: 'Híbrido', status: 'active' });
 });
 
 app.get('/api/business-config', authenticateToken, async (req, res) => {
@@ -141,16 +173,20 @@ app.put('/api/business-config', authenticateToken, async (req, res) => {
   }
 });
 
-// Inicialização
+// --- INICIALIZAÇÃO ---
 async function start() {
   try {
     await connectDB();
 
     startScheduler();
 
+    // INICIA O MOTOR DO WHATSAPP WEB E PASSA O SOCKET.IO
+    initializeWWebJS(io); 
+
+    // Importante: Usar server.listen em vez de app.listen para o Socket funcionar
     server.listen(PORT, () => {
-      console.log(`\n🚀 SERVIDOR ONLINE NA PORTA ${PORT}`);
-      console.log(`📡 Aguardando mensagens...`);
+      console.log(`\n🚀 SERVIDOR HÍBRIDO ONLINE NA PORTA ${PORT}`);
+      console.log(`📡 Aguardando mensagens (Twilio + WWebJS)...`);
     });
   } catch (error) {
     console.error('💥 Erro fatal:', error);
