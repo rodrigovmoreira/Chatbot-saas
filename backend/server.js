@@ -1,13 +1,13 @@
-require('dotenv').config();
-const cors = require('cors');
-const express = require('express');
-const path = require('path');
-const http = require('http'); // Necessário para o Socket.io
-const { Server } = require("socket.io"); // <--- NOVO: Import do Socket.io
-const jwt = require('jsonwebtoken');
-const cookieParser = require('cookie-parser');
-const connectDB = require('./services/database');
-const { startScheduler } = require('./services/scheduler');
+require('dotenv').config(); // Carrega variáveis de ambiente do .env
+const cors = require('cors'); // Importa o CORS
+const express = require('express'); // Importa o Express
+const path = require('path'); // Necessário para servir arquivos estáticos
+const http = require('http'); // Importa o módulo HTTP nativo
+const { Server } = require("socket.io"); // Importa o Socket.IO
+const jwt = require('jsonwebtoken'); // Importa o JWT para autenticação
+const cookieParser = require('cookie-parser'); // Importa o cookie-parser
+const connectDB = require('./services/database'); // Serviço de conexão com o banco
+const { startScheduler } = require('./services/scheduler'); // Serviço de agendamento de tarefas
 
 // --- NOVOS IMPORTS DA ARQUITETURA HÍBRIDA ---
 const { adaptTwilioMessage } = require('./services/providerAdapter'); // Adaptador

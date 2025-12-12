@@ -4,7 +4,7 @@ const { analyzeImage } = require('./services/visionService');
 const { sendUnifiedMessage } = require('./services/responseService'); // <-- VAMOS MUDAR ISSO DEPOIS PARA O ADAPTER DE SAÍDA
 const BusinessConfig = require('./models/BusinessConfig');
 
-const MAX_HISTORY = 15;
+const MAX_HISTORY = 30;
 
 async function getMVPConfig() {
   // (Mantenha igual ao original)
