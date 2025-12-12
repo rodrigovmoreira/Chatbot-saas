@@ -4,7 +4,7 @@ const axios = require('axios');
 // Inicializa o Gemini
 const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY);
 
-// Baixa a imagem do Twilio e converte para Base64
+// Baixa a imagem do Twilio e converte para Base64 //
 async function downloadImage(mediaUrl) {
     try {
         const response = await axios({
