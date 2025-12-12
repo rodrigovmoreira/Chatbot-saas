@@ -1,24 +1,24 @@
 const mongoose = require('mongoose');
 
 const businessConfigSchema = new mongoose.Schema({
-  userId: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'SystemUser', 
-    required: true 
-  },
-  
-  businessName: { 
-    type: String, 
-    required: true,
-    default: 'Estúdio Tattoo'
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'SystemUser',
+    required: true
   },
 
+  businessName: { type: String, required: true, default: 'Estúdio Tattoo' },
+
+  whatsappProvider: {
+    type: String,
+    enum: ['twilio', 'wwebjs'],
+    default: 'wwebjs' // Vamos deixar wwebjs como padrão agora
+  },
   // === O CÉREBRO DO BOT (Edite via MongoDB Compass) ===
   // Aqui ficará toda a personalidade e regras (A "Bíblia" do Atendimento).
   // Isso substitui a necessidade de menus complexos hardcoded.
-  systemPrompt: { 
-    type: String, 
-    default: `
+  systemPrompt: {
+    type: String, default: `
 Você é o assistente virtual do Estúdio.
 Objetivo: Agendar avaliações e tirar dúvidas básicas.
 Tom de voz: Profissional, mas descontraído (pode usar emojis).
@@ -35,13 +35,13 @@ Regras:
     closing: { type: String, default: '23:59' },
     timezone: { type: String, default: 'America/Sao_Paulo' }
   },
-  
+
   // Mensagem automática enviada fora do expediente
-  awayMessage: { 
-    type: String, 
-    default: 'Olá! O estúdio está fechado agora. Deixe sua mensagem que respondemos assim que abrirmos!' 
+  awayMessage: {
+    type: String,
+    default: 'Olá! O estúdio está fechado agora. Deixe sua mensagem que respondemos assim que abrirmos!'
   },
-  
+
   // === Catálogo Simplificado (Opcional) ===
   // Útil para listar estilos que o tatuador faz ou não faz
   services: [{

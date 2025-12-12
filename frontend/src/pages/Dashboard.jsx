@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react'; //
 import {
   Box, Container, Grid, GridItem, Card, CardHeader, CardBody, Heading, Text, Button, VStack, HStack,
-  Stat, StatLabel, StatNumber, StatHelpText, useToast, Badge, Icon, useColorModeValue,
-  FormControl, FormLabel, Input, Select, Textarea, Checkbox, Modal, ModalOverlay, ModalContent, ModalHeader,
-  ModalFooter, ModalBody, ModalCloseButton, useDisclosure, Divider, Code, Alert, AlertIcon
+  useToast, Badge, Icon, useColorModeValue, FormControl, FormLabel, Input, Textarea, Checkbox,
+  Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
+  useDisclosure, Divider, Alert, AlertIcon, Spinner, Center // <--- Spinner adicionado aqui
 } from '@chakra-ui/react';
-import { CheckCircleIcon, AddIcon, EditIcon, DeleteIcon, SettingsIcon, InfoIcon } from '@chakra-ui/icons';
+import { CheckCircleIcon, WarningTwoIcon, AddIcon, EditIcon, DeleteIcon } from '@chakra-ui/icons';
 import { useApp } from '../context/AppContext';
 import { businessAPI } from '../services/api';
 
@@ -13,7 +14,7 @@ const Dashboard = () => {
   const { state, dispatch } = useApp();
   const toast = useToast();
   const cardBg = useColorModeValue('white', 'gray.800');
-  
+
   // Modais
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isProductModalOpen, onOpen: onProductModalOpen, onClose: onProductModalClose } = useDisclosure({
@@ -23,7 +24,7 @@ const Dashboard = () => {
   // Estados de Edição (UI)
   const [editingConfig, setEditingConfig] = useState(false);
   const [editingHours, setEditingHours] = useState(false);
-  
+
   // Formulário de Configuração Geral
   const [configForm, setConfigForm] = useState({
     businessName: '',
@@ -36,7 +37,7 @@ const Dashboard = () => {
   // Listas (Sincronizadas com o Contexto)
   const [menuOptions, setMenuOptions] = useState([]);
   const [products, setProducts] = useState([]);
-  
+
   // Itens Temporários (Novos/Edição)
   const [newMenuOption, setNewMenuOption] = useState({ keyword: '', description: '', response: '', requiresHuman: false });
   const [newProduct, setNewProduct] = useState({ name: '', price: '', description: '' });
@@ -71,11 +72,11 @@ const Dashboard = () => {
       // Salva tudo de uma vez (Config + Listas atuais)
       const payload = { ...configForm, menuOptions, products };
       const response = await businessAPI.updateConfig(payload);
-      
+
       dispatch({ type: 'SET_BUSINESS_CONFIG', payload: response.data });
       setEditingConfig(false);
       setEditingHours(false);
-      
+
       toast({ title: 'Configurações salvas!', status: 'success', duration: 3000 });
     } catch (error) {
       toast({ title: 'Erro ao salvar', description: error.message, status: 'error', duration: 3000 });
@@ -108,8 +109,8 @@ const Dashboard = () => {
 
   const handleAddMenuOption = () => {
     if (!newMenuOption.keyword || !newMenuOption.response) {
-        toast({ title: 'Preencha palavra-chave e resposta', status: 'warning' });
-        return;
+      toast({ title: 'Preencha palavra-chave e resposta', status: 'warning' });
+      return;
     }
     setMenuOptions([...menuOptions, newMenuOption]);
     setNewMenuOption({ keyword: '', description: '', response: '', requiresHuman: false });
@@ -122,8 +123,8 @@ const Dashboard = () => {
 
   const handleAddProduct = () => {
     if (!newProduct.name || !newProduct.price) {
-        toast({ title: 'Preencha nome e preço', status: 'warning' });
-        return;
+      toast({ title: 'Preencha nome e preço', status: 'warning' });
+      return;
     }
     if (editingProductIndex !== null) {
       const updated = [...products];
@@ -160,36 +161,79 @@ const Dashboard = () => {
         </Card>
 
         <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={6} mb={6}>
-          
+
           {/* Card 1: Status do Sistema (Twilio) */}
           <GridItem colSpan={1}>
             <Card bg={cardBg} height="100%" boxShadow="sm">
               <CardHeader pb={2}>
                 <HStack>
-                  <Icon as={CheckCircleIcon} color="green.500" boxSize={5} />
-                  <Heading size="md">Sistema Conectado</Heading>
+                  {state.whatsappStatus.isConnected ? (
+                    <Icon as={CheckCircleIcon} color="green.500" boxSize={5} />
+                  ) : (
+                    <Icon as={WarningTwoIcon} color="orange.500" boxSize={5} />
+                  )}
+                  <Heading size="md">
+                    {state.whatsappStatus.isConnected ? 'Sistema Online' : 'Conexão Necessária'}
+                  </Heading>
                 </HStack>
               </CardHeader>
               <CardBody>
-                <VStack align="start" spacing={4}>
-                  <Alert status="success" variant="subtle" borderRadius="md" py={2}>
-                    <AlertIcon />
-                    <Text fontSize="sm">Servidor Webhook ativo e aguardando mensagens.</Text>
-                  </Alert>
-                  
-                  <Box bg="blue.50" p={4} borderRadius="md" width="100%" borderLeft="4px solid" borderColor="blue.400">
-                    <Heading size="sm" mb={2} color="blue.700">Modo Sandbox (Teste):</Heading>
-                    <Text fontSize="sm" mb={2}>Envie uma mensagem no WhatsApp para o número da Sandbox do Twilio com o código de união:</Text>
-                    <Code p={2} borderRadius="md" colorScheme="blue" children="join word-steel" w="100%" textAlign="center" mb={2} />
-                    <Text fontSize="xs" color="gray.500">
-                      * Consulte o código exato ("join ...") no seu Console do Twilio em Messaging {'>'} Try it out.
-                    </Text>
-                  </Box>
-                  
-                  <HStack spacing={4} pt={2}>
-                     <Badge colorScheme="purple">Twilio API</Badge>
-                     <Badge colorScheme="orange">DeepSeek AI</Badge>
+                <VStack spacing={4} align="center" justify="center" h="100%">
+
+                  {/* CASO 1: CONECTADO */}
+                  {state.whatsappStatus.isConnected && (
+                    <VStack spacing={3} w="100%">
+                      <Alert status="success" variant="subtle" borderRadius="md">
+                        <AlertIcon />
+                        <Box>
+                          <Text fontWeight="bold">WhatsApp Vinculado!</Text>
+                          <Text fontSize="sm">O bot está respondendo automaticamente.</Text>
+                        </Box>
+                      </Alert>
+
+                      <Button
+                        size="sm"
+                        colorScheme="red"
+                        variant="outline"
+                        w="full"
+                        onClick={async () => {
+                          if (window.confirm('Tem certeza que deseja desconectar o WhatsApp? O bot vai parar.')) {
+                            await businessAPI.logoutWhatsApp();
+                            toast({ title: 'Desconectando...', status: 'info' });
+                          }
+                        }}
+                      >
+                        Desconectar WhatsApp
+                      </Button>
+                    </VStack>
+                  )}
+
+                  {/* CASO 2: MOSTRAR QR CODE */}
+                  {!state.whatsappStatus.isConnected && state.whatsappStatus.qrCode && (
+                    <Box textAlign="center" p={4} bg="white" borderRadius="lg" boxShadow="md">
+                      <Text mb={3} fontWeight="bold" color="gray.600">Escaneie para Conectar:</Text>
+                      <Box p={2} border="2px solid" borderColor="gray.100" borderRadius="md" display="inline-block">
+                        <QRCodeSVG value={state.whatsappStatus.qrCode} size={200} />
+                      </Box>
+                      <Text mt={2} fontSize="xs" color="gray.400">Abra o WhatsApp {'>'} Aparelhos Conectados</Text>
+                    </Box>
+                  )}
+
+                  {/* CASO 3: CARREGANDO / SEM QR CODE AINDA */}
+                  {!state.whatsappStatus.isConnected && !state.whatsappStatus.qrCode && (
+                    <VStack py={6}>
+                      <Spinner size="xl" color="brand.500" thickness="4px" />
+                      <Text color="gray.500" fontSize="sm">Iniciando motor do WhatsApp...</Text>
+                      <Text fontSize="xs" color="gray.400">(Aguarde o QR Code aparecer)</Text>
+                    </VStack>
+                  )}
+
+                  <HStack spacing={2} pt={2}>
+                    <Badge colorScheme={state.whatsappStatus.isConnected ? "green" : "red"}>
+                      Status: {state.whatsappStatus.mode || 'Verificando'}
+                    </Badge>
                   </HStack>
+
                 </VStack>
               </CardBody>
             </Card>
@@ -200,34 +244,34 @@ const Dashboard = () => {
             <Card bg={cardBg} height="100%" boxShadow="sm">
               <CardHeader pb={2}>
                 <HStack justify="space-between">
-                    <Heading size="md">Configurações Gerais</Heading>
-                    {!editingHours && <Button size="sm" leftIcon={<EditIcon />} onClick={() => setEditingHours(true)}>Editar</Button>}
+                  <Heading size="md">Configurações Gerais</Heading>
+                  {!editingHours && <Button size="sm" leftIcon={<EditIcon />} onClick={() => setEditingHours(true)}>Editar</Button>}
                 </HStack>
               </CardHeader>
               <CardBody>
                 {editingHours ? (
                   <VStack spacing={3}>
-                     <FormControl>
-                        <FormLabel fontSize="sm">Nome da Empresa</FormLabel>
-                        <Input size="sm" value={configForm.businessName} onChange={e => setConfigForm({...configForm, businessName: e.target.value})} />
-                     </FormControl>
+                    <FormControl>
+                      <FormLabel fontSize="sm">Nome da Empresa</FormLabel>
+                      <Input size="sm" value={configForm.businessName} onChange={e => setConfigForm({ ...configForm, businessName: e.target.value })} />
+                    </FormControl>
                     <HStack width="100%">
                       <FormControl>
                         <FormLabel fontSize="sm">Abre</FormLabel>
-                        <Input size="sm" type="time" value={configForm.operatingHours.opening} onChange={e => setConfigForm({...configForm, operatingHours: {...configForm.operatingHours, opening: e.target.value}})} />
+                        <Input size="sm" type="time" value={configForm.operatingHours.opening} onChange={e => setConfigForm({ ...configForm, operatingHours: { ...configForm.operatingHours, opening: e.target.value } })} />
                       </FormControl>
                       <FormControl>
                         <FormLabel fontSize="sm">Fecha</FormLabel>
-                        <Input size="sm" type="time" value={configForm.operatingHours.closing} onChange={e => setConfigForm({...configForm, operatingHours: {...configForm.operatingHours, closing: e.target.value}})} />
+                        <Input size="sm" type="time" value={configForm.operatingHours.closing} onChange={e => setConfigForm({ ...configForm, operatingHours: { ...configForm.operatingHours, closing: e.target.value } })} />
                       </FormControl>
                     </HStack>
                     <FormControl>
-                        <FormLabel fontSize="sm">Msg. Ausência</FormLabel>
-                        <Textarea size="sm" value={configForm.awayMessage} onChange={e => setConfigForm({...configForm, awayMessage: e.target.value})} rows={2} />
+                      <FormLabel fontSize="sm">Msg. Ausência</FormLabel>
+                      <Textarea size="sm" value={configForm.awayMessage} onChange={e => setConfigForm({ ...configForm, awayMessage: e.target.value })} rows={2} />
                     </FormControl>
                     <HStack width="100%" justify="flex-end">
-                        <Button size="sm" variant="ghost" onClick={() => setEditingHours(false)}>Cancelar</Button>
-                        <Button size="sm" colorScheme="brand" onClick={handleSaveConfig}>Salvar</Button>
+                      <Button size="sm" variant="ghost" onClick={() => setEditingHours(false)}>Cancelar</Button>
+                      <Button size="sm" colorScheme="brand" onClick={handleSaveConfig}>Salvar</Button>
                     </HStack>
                   </VStack>
                 ) : (
@@ -248,35 +292,35 @@ const Dashboard = () => {
             <Card bg={cardBg} boxShadow="sm">
               <CardHeader pb={2}>
                 <HStack justify="space-between">
-                    <Heading size="md">Menu de Respostas Rápidas</Heading>
-                    <Button size="sm" leftIcon={<AddIcon />} colorScheme="brand" onClick={onOpen}>Adicionar Opção</Button>
+                  <Heading size="md">Menu de Respostas Rápidas</Heading>
+                  <Button size="sm" leftIcon={<AddIcon />} colorScheme="brand" onClick={onOpen}>Adicionar Opção</Button>
                 </HStack>
               </CardHeader>
               <CardBody>
                 <Text fontSize="sm" color="gray.500" mb={4}>
-                    Se o cliente digitar estas palavras-chave, o bot responderá imediatamente (sem gastar IA).
+                  Se o cliente digitar estas palavras-chave, o bot responderá imediatamente (sem gastar IA).
                 </Text>
-                
+
                 <Grid templateColumns={{ base: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }} gap={4}>
-                    {menuOptions.map((opt, idx) => (
-                      <Card key={idx} variant="outline" size="sm" borderColor="gray.200">
-                        <CardBody p={3}>
-                          <HStack justify="space-between" mb={2}>
-                            <Badge colorScheme="purple" fontSize="0.8em">{idx + 1}. {opt.keyword}</Badge>
-                            <Icon as={DeleteIcon} color="red.300" cursor="pointer" onClick={() => handleRemoveMenuOption(idx)} boxSize={3} />
-                          </HStack>
-                          <Text fontWeight="bold" fontSize="xs" color="gray.700" mb={1}>{opt.description}</Text>
-                          <Text fontSize="xs" color="gray.500" noOfLines={2}>{opt.response}</Text>
-                          {opt.requiresHuman && <Badge mt={2} colorScheme="orange" fontSize="0.6em">Humano</Badge>}
-                        </CardBody>
-                      </Card>
-                    ))}
+                  {menuOptions.map((opt, idx) => (
+                    <Card key={idx} variant="outline" size="sm" borderColor="gray.200">
+                      <CardBody p={3}>
+                        <HStack justify="space-between" mb={2}>
+                          <Badge colorScheme="purple" fontSize="0.8em">{idx + 1}. {opt.keyword}</Badge>
+                          <Icon as={DeleteIcon} color="red.300" cursor="pointer" onClick={() => handleRemoveMenuOption(idx)} boxSize={3} />
+                        </HStack>
+                        <Text fontWeight="bold" fontSize="xs" color="gray.700" mb={1}>{opt.description}</Text>
+                        <Text fontSize="xs" color="gray.500" noOfLines={2}>{opt.response}</Text>
+                        {opt.requiresHuman && <Badge mt={2} colorScheme="orange" fontSize="0.6em">Humano</Badge>}
+                      </CardBody>
+                    </Card>
+                  ))}
                 </Grid>
-                
+
                 {menuOptions.length > 0 && (
-                    <Box mt={4} textAlign="right">
-                         <Button size="sm" colorScheme="green" variant="ghost" onClick={handleSaveMenu}>Salvar Alterações do Menu</Button>
-                    </Box>
+                  <Box mt={4} textAlign="right">
+                    <Button size="sm" colorScheme="green" variant="ghost" onClick={handleSaveMenu}>Salvar Alterações do Menu</Button>
+                  </Box>
                 )}
               </CardBody>
             </Card>
@@ -285,42 +329,42 @@ const Dashboard = () => {
           {/* Card 4: Catálogo de Produtos */}
           <GridItem colSpan={{ base: 1, lg: 2 }}>
             <Card bg={cardBg} boxShadow="sm">
-                <CardHeader pb={2}>
-                    <HStack justify="space-between">
-                        <Heading size="md">Catálogo de Produtos & Serviços</Heading>
-                        <Button size="sm" leftIcon={<AddIcon />} variant="outline" onClick={() => { setEditingProductIndex(null); setNewProduct({name:'', price:'', description:''}); onProductModalOpen(); }}>Novo Produto</Button>
+              <CardHeader pb={2}>
+                <HStack justify="space-between">
+                  <Heading size="md">Catálogo de Produtos & Serviços</Heading>
+                  <Button size="sm" leftIcon={<AddIcon />} variant="outline" onClick={() => { setEditingProductIndex(null); setNewProduct({ name: '', price: '', description: '' }); onProductModalOpen(); }}>Novo Produto</Button>
+                </HStack>
+              </CardHeader>
+              <CardBody>
+                <Text fontSize="sm" color="gray.500" mb={4}>
+                  A Inteligência Artificial consultará esta lista para responder perguntas sobre preços.
+                </Text>
+                <VStack align="stretch" spacing={2}>
+                  {products.length === 0 && <Text fontStyle="italic" color="gray.400" fontSize="sm">Nenhum produto cadastrado.</Text>}
+
+                  {products.map((prod, idx) => (
+                    <HStack key={idx} p={3} borderWidth="1px" borderRadius="md" justify="space-between" bg="white">
+                      <VStack align="start" spacing={0}>
+                        <HStack>
+                          <Text fontWeight="bold" fontSize="sm">{prod.name}</Text>
+                          <Badge colorScheme="green" fontSize="0.8em">R$ {prod.price}</Badge>
+                        </HStack>
+                        <Text fontSize="xs" color="gray.600">{prod.description}</Text>
+                      </VStack>
+                      <HStack>
+                        <Button size="xs" variant="ghost" onClick={() => { setNewProduct(prod); setEditingProductIndex(idx); onProductModalOpen(); }}><EditIcon /></Button>
+                        <Button size="xs" colorScheme="red" variant="ghost" onClick={() => handleRemoveProduct(idx)}><DeleteIcon /></Button>
+                      </HStack>
                     </HStack>
-                </CardHeader>
-                <CardBody>
-                    <Text fontSize="sm" color="gray.500" mb={4}>
-                        A Inteligência Artificial consultará esta lista para responder perguntas sobre preços.
-                    </Text>
-                    <VStack align="stretch" spacing={2}>
-                        {products.length === 0 && <Text fontStyle="italic" color="gray.400" fontSize="sm">Nenhum produto cadastrado.</Text>}
-                        
-                        {products.map((prod, idx) => (
-                            <HStack key={idx} p={3} borderWidth="1px" borderRadius="md" justify="space-between" bg="white">
-                                <VStack align="start" spacing={0}>
-                                    <HStack>
-                                        <Text fontWeight="bold" fontSize="sm">{prod.name}</Text>
-                                        <Badge colorScheme="green" fontSize="0.8em">R$ {prod.price}</Badge>
-                                    </HStack>
-                                    <Text fontSize="xs" color="gray.600">{prod.description}</Text>
-                                </VStack>
-                                <HStack>
-                                    <Button size="xs" variant="ghost" onClick={() => { setNewProduct(prod); setEditingProductIndex(idx); onProductModalOpen(); }}><EditIcon /></Button>
-                                    <Button size="xs" colorScheme="red" variant="ghost" onClick={() => handleRemoveProduct(idx)}><DeleteIcon /></Button>
-                                </HStack>
-                            </HStack>
-                        ))}
-                        
-                        {products.length > 0 && (
-                            <Box mt={2} textAlign="right">
-                                <Button size="sm" colorScheme="green" variant="ghost" onClick={handleSaveProducts}>Salvar Alterações do Catálogo</Button>
-                            </Box>
-                        )}
-                    </VStack>
-                </CardBody>
+                  ))}
+
+                  {products.length > 0 && (
+                    <Box mt={2} textAlign="right">
+                      <Button size="sm" colorScheme="green" variant="ghost" onClick={handleSaveProducts}>Salvar Alterações do Catálogo</Button>
+                    </Box>
+                  )}
+                </VStack>
+              </CardBody>
             </Card>
           </GridItem>
         </Grid>
@@ -337,23 +381,23 @@ const Dashboard = () => {
           <ModalBody>
             <VStack spacing={3}>
               <FormControl isRequired>
-                  <FormLabel>Palavra-chave</FormLabel>
-                  <Input placeholder="Ex: pix" value={newMenuOption.keyword} onChange={e => setNewMenuOption({...newMenuOption, keyword: e.target.value})} />
+                <FormLabel>Palavra-chave</FormLabel>
+                <Input placeholder="Ex: pix" value={newMenuOption.keyword} onChange={e => setNewMenuOption({ ...newMenuOption, keyword: e.target.value })} />
               </FormControl>
               <FormControl isRequired>
-                  <FormLabel>Descrição no Menu</FormLabel>
-                  <Input placeholder="Ex: Chave Pix para pagamento" value={newMenuOption.description} onChange={e => setNewMenuOption({...newMenuOption, description: e.target.value})} />
+                <FormLabel>Descrição no Menu</FormLabel>
+                <Input placeholder="Ex: Chave Pix para pagamento" value={newMenuOption.description} onChange={e => setNewMenuOption({ ...newMenuOption, description: e.target.value })} />
               </FormControl>
               <FormControl isRequired>
-                  <FormLabel>Resposta do Robô</FormLabel>
-                  <Textarea placeholder="O texto que será enviado ao cliente..." value={newMenuOption.response} onChange={e => setNewMenuOption({...newMenuOption, response: e.target.value})} />
+                <FormLabel>Resposta do Robô</FormLabel>
+                <Textarea placeholder="O texto que será enviado ao cliente..." value={newMenuOption.response} onChange={e => setNewMenuOption({ ...newMenuOption, response: e.target.value })} />
               </FormControl>
-              <Checkbox isChecked={newMenuOption.requiresHuman} onChange={e => setNewMenuOption({...newMenuOption, requiresHuman: e.target.checked})}>Encaminhar para Humano</Checkbox>
+              <Checkbox isChecked={newMenuOption.requiresHuman} onChange={e => setNewMenuOption({ ...newMenuOption, requiresHuman: e.target.checked })}>Encaminhar para Humano</Checkbox>
             </VStack>
           </ModalBody>
           <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={onClose}>Cancelar</Button>
-              <Button colorScheme="brand" onClick={handleAddMenuOption}>Adicionar</Button>
+            <Button variant="ghost" mr={3} onClick={onClose}>Cancelar</Button>
+            <Button colorScheme="brand" onClick={handleAddMenuOption}>Adicionar</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
@@ -367,22 +411,22 @@ const Dashboard = () => {
           <ModalBody>
             <VStack spacing={3}>
               <FormControl isRequired>
-                  <FormLabel>Nome</FormLabel>
-                  <Input value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
+                <FormLabel>Nome</FormLabel>
+                <Input value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} />
               </FormControl>
               <FormControl isRequired>
-                  <FormLabel>Preço (R$)</FormLabel>
-                  <Input type="number" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
+                <FormLabel>Preço (R$)</FormLabel>
+                <Input type="number" value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: e.target.value })} />
               </FormControl>
               <FormControl>
-                  <FormLabel>Detalhes</FormLabel>
-                  <Textarea placeholder="Ingredientes, tamanho..." value={newProduct.description} onChange={e => setNewProduct({...newProduct, description: e.target.value})} />
+                <FormLabel>Detalhes</FormLabel>
+                <Textarea placeholder="Ingredientes, tamanho..." value={newProduct.description} onChange={e => setNewProduct({ ...newProduct, description: e.target.value })} />
               </FormControl>
             </VStack>
           </ModalBody>
           <ModalFooter>
-              <Button variant="ghost" mr={3} onClick={onProductModalClose}>Cancelar</Button>
-              <Button colorScheme="brand" onClick={handleAddProduct}>Salvar</Button>
+            <Button variant="ghost" mr={3} onClick={onProductModalClose}>Cancelar</Button>
+            <Button colorScheme="brand" onClick={handleAddProduct}>Salvar</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
