@@ -52,6 +52,10 @@ export const businessAPI = {
   
   // Verifica status da conexão (Agora retorna sempre "Conectado" via Twilio Cloud)
   getWhatsAppStatus: () => api.get('/api/whatsapp-status'),
+
+  // Desconecta o WhatsApp
+  logoutWhatsApp: () => api.post('/api/whatsapp-logout')
+
 };
 
 export default api;

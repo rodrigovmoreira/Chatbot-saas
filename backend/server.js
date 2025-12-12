@@ -12,7 +12,7 @@ const { startScheduler } = require('./services/scheduler');
 // --- NOVOS IMPORTS DA ARQUITETURA HÍBRIDA ---
 const { adaptTwilioMessage } = require('./services/providerAdapter'); // Adaptador
 const { handleIncomingMessage } = require('./messageHandler'); // Handler Genérico
-const { initializeWWebJS } = require('./services/wwebjsService'); // Serviço do WWebJS
+const { initializeWWebJS, getCurrentQR, getCurrentStatus, logoutWWebJS } = require('./services/wwebjsService'); // Serviço do WWebJS
 
 // 1. Carregar Schemas
 require('./models/SystemUser');
@@ -64,7 +64,15 @@ const authenticateToken = (req, res, next) => {
 // --- SOCKET.IO EVENTOS (NOVO) ---
 io.on('connection', (socket) => {
   console.log('🔌 Cliente React conectado ao Socket:', socket.id);
-  
+
+  const status = getCurrentStatus();
+  socket.emit('wwebjs_status', status);
+
+  const pendingQR = getCurrentQR();
+  if (pendingQR) {
+    console.log('📦 Enviando QR Code em cache para novo cliente');
+    socket.emit('wwebjs_qr', pendingQR);
+  }
   socket.on('disconnect', () => {
     console.log('🔌 Cliente desconectado:', socket.id);
   });
@@ -76,7 +84,7 @@ io.on('connection', (socket) => {
 app.post('/api/webhook', async (req, res) => {
   try {
     res.status(200).send('<Response></Response>');
-    
+
     // Se vier mensagem, adaptamos e passamos para o handler único
     if (req.body.Body || req.body.NumMedia) {
       const normalizedMsg = adaptTwilioMessage(req.body);
@@ -173,6 +181,15 @@ app.put('/api/business-config', authenticateToken, async (req, res) => {
   }
 });
 
+app.post('/api/whatsapp-logout', authenticateToken, async (req, res) => {
+  try {
+    await logoutWWebJS();
+    res.json({ message: 'Desconectado com sucesso' });
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao desconectar' });
+  }
+});
+
 // --- INICIALIZAÇÃO ---
 async function start() {
   try {
@@ -181,7 +198,7 @@ async function start() {
     startScheduler();
 
     // INICIA O MOTOR DO WHATSAPP WEB E PASSA O SOCKET.IO
-    initializeWWebJS(io); 
+    initializeWWebJS(io);
 
     // Importante: Usar server.listen em vez de app.listen para o Socket funcionar
     server.listen(PORT, () => {

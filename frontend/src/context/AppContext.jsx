@@ -1,16 +1,16 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import { io } from "socket.io-client";
 import { businessAPI } from '../services/api';
 
 const AppContext = createContext();
 
-// Estado Inicial Simplificado (Sem QR Code)
 const initialState = {
   user: null,
   businessConfig: null,
   whatsappStatus: {
-    isConnected: false, // Começa falso até a API confirmar
-    isAuthenticated: false,
-    mode: 'Twilio'
+    isConnected: false,
+    mode: 'Iniciando...',
+    qrCode: null
   },
   loading: false
 };
@@ -23,9 +23,33 @@ function appReducer(state, action) {
       return { ...state, user: action.payload };
     case 'SET_BUSINESS_CONFIG':
       return { ...state, businessConfig: action.payload };
-    case 'SET_WHATSAPP_STATUS':
-      return { ...state, whatsappStatus: action.payload };
-    // Removemos o case 'SET_QR_CODE' pois não existe mais
+    
+    case 'SET_WHATSAPP_STATUS': 
+      // Lógica movida para o Reducer para evitar estado obsoleto (stale state)
+      const isConnected = action.payload.isConnected;
+      
+      return { 
+        ...state, 
+        whatsappStatus: { 
+          ...state.whatsappStatus,
+          isConnected: isConnected,
+          mode: action.payload.mode,
+          // Se conectou, limpa o QR. Se não, MANTÉM o QR que já estava no estado.
+          qrCode: isConnected ? null : state.whatsappStatus.qrCode 
+        }
+      };
+      
+    case 'SET_QR_CODE':
+      return {
+        ...state,
+        whatsappStatus: { 
+          ...state.whatsappStatus, 
+          qrCode: action.payload,
+          isConnected: false,
+          mode: 'Aguardando Leitura'
+        }
+      };
+
     default:
       return state;
   }
@@ -34,34 +58,69 @@ function appReducer(state, action) {
 export const AppProvider = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
-  // Carregar dados iniciais ao abrir a aplicação
+  // 1. Carregar dados iniciais
   useEffect(() => {
     const loadInitialData = async () => {
       const token = localStorage.getItem('token');
       const user = localStorage.getItem('user');
       
       if (token && user) {
-        // 1. Restaura usuário
         dispatch({ type: 'SET_USER', payload: JSON.parse(user) });
-        
         try {
-          // 2. Carrega Configuração do Negócio
-          const configResponse = await businessAPI.getConfig();
-          dispatch({ type: 'SET_BUSINESS_CONFIG', payload: configResponse.data });
-          
-          // 3. Verifica Status da Conexão (Via API, não mais via Socket)
-          const statusResponse = await businessAPI.getWhatsAppStatus();
-          dispatch({ type: 'SET_WHATSAPP_STATUS', payload: statusResponse.data });
-          
-        } catch (error) {
-          console.error('Erro ao carregar dados iniciais:', error);
-          // O interceptor do api.js cuidará se for erro de autenticação (401)
+          const config = await businessAPI.getConfig();
+          dispatch({ type: 'SET_BUSINESS_CONFIG', payload: config.data });
+        } catch (e) { 
+          console.error("Erro config inicial:", e); 
         }
       }
     };
-
     loadInitialData();
   }, []);
+
+  // 2. CONEXÃO SOCKET.IO
+  useEffect(() => {
+    if (!state.user) return;
+
+    const socket = io('http://localhost:3001', {
+      withCredentials: true,
+      transports: ['websocket', 'polling'] // Força estabilidade
+    });
+
+    console.log('🔌 Tentando conectar ao Socket...');
+
+    socket.on('connect', () => {
+      console.log('✅ Conectado ao Socket ID:', socket.id);
+    });
+
+    socket.on('wwebjs_qr', (qr) => {
+      console.log('📸 QR Code recebido via Socket!');
+      dispatch({ type: 'SET_QR_CODE', payload: qr });
+    });
+
+    socket.on('wwebjs_status', (status) => {
+      console.log('🔄 Status WWebJS:', status);
+      
+      let isConnected = false;
+      let mode = 'Desconectado';
+
+      if (status === 'ready' || status === 'authenticated') {
+        isConnected = true;
+        mode = 'Conectado (WWebJS)';
+      } else if (status === 'qrcode') {
+        mode = 'Aguardando Leitura';
+      }
+
+      // NÃO enviamos o qrCode aqui. O reducer vai manter o antigo.
+      dispatch({ 
+        type: 'SET_WHATSAPP_STATUS', 
+        payload: { isConnected, mode } 
+      });
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [state.user]); 
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>
@@ -72,8 +131,6 @@ export const AppProvider = ({ children }) => {
 
 export const useApp = () => {
   const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useApp must be used within an AppProvider');
-  }
+  if (!context) throw new Error('useApp must be used within an AppProvider');
   return context;
 };
