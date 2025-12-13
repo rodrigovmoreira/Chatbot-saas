@@ -15,12 +15,12 @@ const FOLLOW_UP_STEPS = [
   },
   {
     stage: 2,
-    delayMinutes: 1, // 2 horas após o PRIMEIRO follow-up (se o bot falou lá)
+    delayMinutes: 2, // 2 horas após o PRIMEIRO follow-up (se o bot falou lá)
     message: "Oi! Só para não esquecer, nossa agenda para o próximo mês já está abrindo. Quer garantir seu horário?"
   },
   {
     stage: 3,
-    delayMinutes: 1, // 24 horas depois (dia seguinte)
+    delayMinutes: 3, // 24 horas depois (dia seguinte)
     message: "Última chamada por aqui! Vou encerrar seu atendimento por enquanto, mas se decidir tatuar é só chamar. Abraço!"
   }
 ];
