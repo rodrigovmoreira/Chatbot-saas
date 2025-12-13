@@ -7,48 +7,38 @@ const businessConfigSchema = new mongoose.Schema({
     required: true
   },
 
-  businessName: { type: String, required: true, default: 'Estúdio Tattoo' },
+  businessName: { type: String, default: 'Estúdio Tattoo' },
+  whatsappProvider: { type: String, enum: ['twilio', 'wwebjs'], default: 'wwebjs' },
 
-  whatsappProvider: {
-    type: String,
-    enum: ['twilio', 'wwebjs'],
-    default: 'wwebjs' // Vamos deixar wwebjs como padrão agora
-  },
-  // === O CÉREBRO DO BOT (Edite via MongoDB Compass) ===
-  // Aqui ficará toda a personalidade e regras (A "Bíblia" do Atendimento).
-  // Isso substitui a necessidade de menus complexos hardcoded.
-  systemPrompt: {
-    type: String, default: `
-Você é o assistente virtual do Estúdio.
-Objetivo: Agendar avaliações e tirar dúvidas básicas.
-Tom de voz: Profissional, mas descontraído (pode usar emojis).
-Regras:
-1. Não passe valores exatos sem avaliação. Dê apenas estimativas ("A partir de...").
-2. Se o cliente quiser agendar, pergunte a disponibilidade dele.
-    `.trim()
+  // === NOVO: CENTRAL DE PROMPTS (O CÉREBRO) ===
+  prompts: {
+    // 1. Personalidade do Chat (DeepSeek)
+    chatSystem: {
+      type: String,
+      default: `Você é o assistente virtual do Estúdio. Seja descolado, use emojis e foque em agendar.`
+    },
+
+    // 2. Olhos do Robô (Gemini)
+    visionSystem: {
+      type: String,
+      default: `
+        Atue como um especialista em tatuagem e anatomia.
+        1. Se for COMPROVANTE: Extraia valor, data e banco.
+        2. Se for TATUAGEM: Descreva estilo (Old School, Realismo, etc), cores e local do corpo.
+        3. Se for PELE/CORPO: Indique o local e se serve para cobertura.
+        Seja técnico e direto.`
+    }
   },
 
-  // === Configurações de Horário ===
+  // (Mantivemos os outros campos para compatibilidade)
   operatingHours: {
-    active: { type: Boolean, default: true }, // Master switch: false = bot desligado
+    active: { type: Boolean, default: true },
     opening: { type: String, default: '00:01' },
     closing: { type: String, default: '23:59' },
     timezone: { type: String, default: 'America/Sao_Paulo' }
   },
 
-  // Mensagem automática enviada fora do expediente
-  awayMessage: {
-    type: String,
-    default: 'Olá! O estúdio está fechado agora. Deixe sua mensagem que respondemos assim que abrirmos!'
-  },
-
-  // === Catálogo Simplificado (Opcional) ===
-  // Útil para listar estilos que o tatuador faz ou não faz
-  services: [{
-    name: String,        // Ex: "Realismo", "Old School"
-    description: String, // Ex: "Especialidade da casa."
-    startPrice: String   // Ex: "Sessões a partir de R$ 800"
-  }],
+  awayMessage: { type: String, default: 'Estamos fechados agora! Já já respondemos.' },
 
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }

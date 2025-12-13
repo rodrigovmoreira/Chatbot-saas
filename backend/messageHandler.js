@@ -1,5 +1,5 @@
-const { saveMessage, getLastMessages } = require('./services/message');
-const { generateAIResponse } = require('./services/ai'); 
+const { saveMessage, getLastMessages, getImageHistory } = require('./services/message');
+const { generateAIResponse } = require('./services/ai');
 const { analyzeImage } = require('./services/visionService');
 const { sendUnifiedMessage } = require('./services/responseService'); // <-- VAMOS MUDAR ISSO DEPOIS PARA O ADAPTER DE SAÍDA
 const BusinessConfig = require('./models/BusinessConfig');
@@ -7,27 +7,24 @@ const BusinessConfig = require('./models/BusinessConfig');
 const MAX_HISTORY = 30;
 
 async function getMVPConfig() {
-  // (Mantenha igual ao original)
   try {
     const config = await BusinessConfig.findOne({});
-    if (config) return config;
-    console.error('⚠️ NENHUMA CONFIGURAÇÃO ENCONTRADA NO BANCO!');
-    return null;
-  } catch (error) {
-    console.error('💥 Erro ao buscar configuração:', error);
-    return null;
-  }
+    if (config && !config.prompts) {
+      config.prompts = { chatSystem: "...", visionSystem: "..." }; // Fallback
+    }
+    return config;
+  } catch (error) { return null; }
 }
 
 function isWithinOperatingHours(businessConfig) {
   if (businessConfig.operatingHours && businessConfig.operatingHours.active === false) {
     return false;
   }
-  if (!businessConfig.operatingHours ||!businessConfig.operatingHours.opening) return true;
+  if (!businessConfig.operatingHours || !businessConfig.operatingHours.opening) return true;
 
   const now = new Date();
-  const hours = now.getUTCHours() - 3; 
-  const currentHour = hours < 0? hours + 24 : hours;
+  const hours = now.getUTCHours() - 3;
+  const currentHour = hours < 0 ? hours + 24 : hours;
   const [openH] = businessConfig.operatingHours.opening.split(':').map(Number);
   const [closeH] = businessConfig.operatingHours.closing.split(':').map(Number);
 
@@ -39,40 +36,50 @@ function isWithinOperatingHours(businessConfig) {
 // ==========================================
 // Agora recebemos um objeto "normalizedMsg" que veio do Adapter
 async function handleIncomingMessage(normalizedMsg) {
-  const { from, body, name, type, mediaUrl, provider } = normalizedMsg;
+  const { from, body, name, type, mediaData, provider } = normalizedMsg;
 
-  // Ignora se vazio
+  // Ignora se vazio e não for imagem
   if (!body && type === 'text') return;
 
-  console.log(`📩 [${provider.toUpperCase()}] De: ${name} (${from}) | Tipo: ${type}`);
+  console.log(`📩 [${provider}] De: ${name} | Tipo: ${type}`);
 
   let userMessage = body ? body.trim() : "";
+  let visionResult = null; // Variável para guardar a análise
 
   try {
-    // 1. LÓGICA DE VISÃO (Adaptada)
-    if (type === 'image') {
-        console.log(`📸 Imagem detectada.`);
-        
-        let imageDescription = null;
-
-        if (provider === 'twilio' && mediaUrl) {
-            imageDescription = await analyzeImage(mediaUrl);
-        } 
-        // TODO: Implementar lógica de download de imagem do WWebJS aqui
-        else if (provider === 'wwebjs') {
-             console.log("⚠️ Visão para WWebJS será implementada na próxima etapa.");
-             userMessage += " [O cliente enviou uma imagem, mas o sistema visual ainda está sendo calibrado.]";
-        }
-
-        if (imageDescription) {
-            console.log("✅ Descrição Gemini:", imageDescription.substring(0, 50) + "...");
-            userMessage = `${userMessage}\n\n[Descrição da Imagem Visualizada]: ${imageDescription}`.trim();
-        }
-    }
-
-    // 2. Carregar Config
+    // 1. Carregar Config (Prompts)
     const businessConfig = await getMVPConfig();
     if (!businessConfig) return;
+
+    // 2. VISÃO COMPUTACIONAL (Com Prompt do Banco)
+    if (type === 'image' && mediaData) {
+      console.log(`📸 Analisando imagem com prompt do DB...`);
+
+      try {
+        const visionPrompt = businessConfig.prompts?.visionSystem || "Descreva esta imagem.";
+        visionResult = await analyzeImage(mediaData, visionPrompt);
+      } catch (visionError) {
+        console.error("Erro na análise de visão:", visionError.message);
+      }
+
+      if (visionResult) {
+        console.log("✅ Visão OK");
+        userMessage = `${userMessage}\n\n[VISÃO]: ${visionResult}`.trim();
+      } else {
+        // Se a visão falhar, adicionamos um log para o bot saber que houve imagem
+        userMessage = `${userMessage} [Imagem enviada, mas não processada]`.trim();
+      }
+    }
+
+    // === CORREÇÃO DO ERRO DE MONGOOSE ===
+    // Se, após tudo, a mensagem ainda estiver vazia (ex: imagem sem legenda e visão falhou),
+    // definimos um texto padrão para não quebrar o banco.
+    if (!userMessage) {
+      userMessage = `[Arquivo de ${type === 'audio' ? 'Áudio' : 'Mídia'}]`;
+    }
+
+    // 2. Salvar Mensagem (Agora garantimos que userMessage nunca é null/vazio)
+    await saveMessage(from, 'user', userMessage, type, visionResult);
 
     // 3. Verificar Horário
     if (!isWithinOperatingHours(businessConfig)) {
@@ -83,41 +90,47 @@ async function handleIncomingMessage(normalizedMsg) {
     }
 
     // 4. Salvar Mensagem
-    await saveMessage(from, 'user', userMessage);
+    await saveMessage(from, 'user', userMessage, type, visionResult);
 
-    // 5. Histórico e Prompt
+    // 4. Histórico de Conversa (Texto)
     const history = await getLastMessages(from, MAX_HISTORY);
-    const historyText = history
-    .reverse()
-    .map(m => `${m.role === 'user'? 'Cliente' : 'Tatuador'}: ${m.content}`)
-    .join('\n');
+    const historyText = history.reverse()
+      .map(m => `${m.role === 'user' ? 'Cliente' : 'Tatuador'}: ${m.content}`)
+      .join('\n');
 
+    // 5. Histórico de Imagens (Opcional - Contexto extra para o bot)
+    // Se quiser que o bot lembre de fotos antigas, buscamos aqui
+    const imageLog = await getImageHistory(from);
+    let imageContext = "";
+    if (imageLog.length > 0) {
+      imageContext = "\nRESUMO DAS IMAGENS ENVIADAS ANTERIORMENTE:\n" +
+        imageLog.map(img => `- (Data: ${img.timestamp.toISOString().split('T')[0]}): ${img.aiAnalysis.description}`).join('\n');
+    }
+
+    // 6. Montagem do Prompt Final
     const finalSystemPrompt = `
-${businessConfig.systemPrompt}
+${businessConfig.prompts.chatSystem}
 ---
-DADOS DO SISTEMA:
-Nome do Cliente: ${name}
-Histórico:
+${imageContext}
+---
+DADOS DO CLIENTE:
+Nome: ${name}
+Histórico da Conversa:
 ${historyText}
 ---
 `;
 
-    // 6. Gerar Resposta IA
+    // 7. Gerar Resposta IA
     const aiResponse = await generateAIResponse(userMessage, finalSystemPrompt);
 
-    // 7. Enviar e Salvar Resposta
+    // 8. Enviar e Salvar
     if (aiResponse) {
-      console.log(`🤖 Resposta gerada: "${aiResponse.substring(0,20)}..."`);
-      
-      // === ROTEAMENTO DE SAÍDA CORRIGIDO ===
-      // Agora usamos a função unificada que sabe lidar com os dois
       await sendUnifiedMessage(from, aiResponse, provider);
-      
       await saveMessage(from, 'bot', aiResponse);
-    } 
+    }
 
   } catch (error) {
-    console.error('💥 Erro fatal no handleIncomingMessage:', error);
+    console.error('💥 Erro Handler:', error);
   }
 }
 
