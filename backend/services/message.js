@@ -1,84 +1,88 @@
 const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema({
-  // Referência ao contato
-  contactId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Contact',
-    required: true
-  },
-  phone: {
-    type: String,
-    required: true
-  },
-  role: {
-    type: String,
-    enum: ['user', 'bot', 'agent'],
-    required: true
-  },
-  content: {
-    type: String,
-    required: true
-  },
+  contactId: { type: mongoose.Schema.Types.ObjectId, ref: 'Contact', required: true },
+  phone: { type: String, required: true },
+  role: { type: String, enum: ['user', 'bot', 'agent'], required: true },
+  content: { type: String, required: true }, // Texto visível
+  
   messageType: {
     type: String,
     enum: ['text', 'image', 'audio', 'document', 'video'],
     default: 'text'
   },
-  // Referência ao usuário do sistema se for um agente humano
-  agentId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'SystemUser',
-    default: null
+
+  // === NOVO: METADADOS DE INTELIGÊNCIA ===
+  aiAnalysis: {
+    isAnalyzed: { type: Boolean, default: false },
+    description: { type: String }, // O que o Gemini viu
+    detectedIntent: { type: String }, // Ex: "pagamento", "orçamento" (Futuro)
+    confidenceScore: { type: Number }, // (Futuro)
+    modelUsed: { type: String } // Ex: "gemini-2.5-flash"
   },
-  timestamp: {
-    type: Date,
-    default: Date.now
-  }
+  // ======================================
+
+  timestamp: { type: Date, default: Date.now }
 });
 
-// Mudar o nome do model para evitar conflito
 const Message = mongoose.model('ChatMessage', messageSchema);
 
-async function saveMessage(phone, role, content, messageType = 'text') {
+// Atualizei a função saveMessage para aceitar a análise
+async function saveMessage(phone, role, content, messageType = 'text', analysisData = null) {
   try {
-    // Encontrar ou criar contato
-    // Nota: Certifique-se que o Schema do 'Contact' já foi atualizado com 'followUpStage'
     let contact = await mongoose.model('Contact').findOne({ phone });
     
     if (!contact) {
-      contact = await mongoose.model('Contact').create({ 
-        phone, 
-        totalMessages: 0,
-        followUpStage: 0 // Inicia zerado para novos contatos
-      });
+      contact = await mongoose.model('Contact').create({ phone, totalMessages: 0 });
     }
 
-    // === ATUALIZAÇÃO PARA MODO ATIVO (FUNIL DE VENDAS) ===
     contact.totalMessages += 1;
     contact.lastInteraction = new Date();
-    contact.lastSender = role; // 'user' ou 'bot'
-    
-    // RESET DO AGENDADOR:
-    // Qualquer nova mensagem salva aqui (seja do usuário ou uma resposta normal do bot)
-    // deve reiniciar o contador do funil para o estágio 0.
-    // O Scheduler irá gerenciar os incrementos (1, 2, 3) manualmente quando ele rodar.
-    contact.followUpStage = 0;
-    
+    contact.lastSender = role;
+    contact.followUpStage = 0; // Reseta funil se houver interação
     await contact.save();
-    // =====================================================
 
-    // Salvar a mensagem no histórico
-    await mongoose.model('ChatMessage').create({ 
+    const msgData = { 
       contactId: contact._id,
       phone, 
       role, 
       content,
       messageType
-    });
+    };
+
+    // Se tiver análise de imagem, salva junto
+    if (analysisData) {
+      msgData.aiAnalysis = {
+        isAnalyzed: true,
+        description: analysisData,
+        modelUsed: 'gemini-vision'
+      };
+    }
+
+    await Message.create(msgData);
     
   } catch (error) {
     console.error('💥 Erro ao salvar mensagem:', error);
+  }
+}
+
+// Função para buscar histórico focado em imagens (O que você pediu)
+async function getImageHistory(phone) {
+  try {
+    const contact = await mongoose.model('Contact').findOne({ phone });
+    if (!contact) return [];
+
+    // Busca apenas mensagens que tenham análise de IA
+    return await Message.find({ 
+      contactId: contact._id,
+      'aiAnalysis.isAnalyzed': true 
+    })
+    .sort({ timestamp: -1 })
+    .limit(5)
+    .select('content aiAnalysis timestamp')
+    .lean();
+  } catch (error) {
+    return [];
   }
 }
 
@@ -97,4 +101,4 @@ async function getLastMessages(phone, limit = 15) {
   }
 }
 
-module.exports = { saveMessage, getLastMessages };
+module.exports = { saveMessage, getImageHistory, getLastMessages };
