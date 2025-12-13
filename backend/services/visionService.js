@@ -1,8 +1,10 @@
+// ATENÇÃO: Usando a sintaxe da biblioteca nova @google/genai (v0.1.0+)
 const { GoogleGenAI } = require("@google/genai");
 const axios = require('axios');
 
-// Inicializa o Gemini
-const genAI = new GoogleGenAI(process.env.GEMINI_API_KEY);
+// Inicializa o cliente com a chave de API
+// O exemplo que você mandou usa new GoogleGenAI({}), assumindo que a chave vem do ambiente ou config
+const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 // Função auxiliar para baixar imagem (Twilio)
 async function downloadImage(mediaUrl) {
@@ -26,32 +28,19 @@ async function downloadImage(mediaUrl) {
 }
 
 /**
- * Analisa imagem vinda de URL (Twilio) ou Base64 (WWebJS)
+ * Analisa imagem usando a SDK @google/genai (Nova)
  */
 async function analyzeImage(mediaInput, customPrompt) {
-    // 1. Log de Diagnóstico (Vital para entender o que chega)
-    console.log("👁️ VisionService Iniciado. Tipo de input:", typeof mediaInput);
-    if (typeof mediaInput === 'object') {
-        console.log("📦 Dados recebidos:", { 
-            temData: !!mediaInput.data, 
-            mimetype: mediaInput.mimetype,
-            tamanhoAprox: mediaInput.data ? mediaInput.data.length : 0 
-        });
-    }
+    console.log("👁️ VisionService Iniciado.");
 
     try {
-        // CORREÇÃO PRINCIPAL: O modelo correto é gemini-1.5-flash
-        const model = genAI.getGenerativeModel({ model: "gemini-3-pro-image-preview" });
-        
         let imagePart;
 
-        // 2. Verifica se é URL (Twilio) ou Objeto (WWebJS)
+        // 1. Prepara o objeto da imagem (inlineData)
         if (typeof mediaInput === 'string' && mediaInput.startsWith('http')) {
             imagePart = await downloadImage(mediaInput);
         } else if (typeof mediaInput === 'object' && mediaInput.data) {
-            // WWebJS já entrega em Base64
-            // Importante: mimeType (camelCase) é o que o Google espera
-            // mimetype (lowercase) é o que o WWebJS envia
+            // WWebJS (Base64)
             imagePart = {
                 inlineData: {
                     data: mediaInput.data,
@@ -59,24 +48,39 @@ async function analyzeImage(mediaInput, customPrompt) {
                 }
             };
         } else {
-            console.error("❌ Formato de imagem desconhecido ou dados vazios:", mediaInput);
+            console.error("❌ Formato inválido:", mediaInput);
             return null;
         }
 
-        // 3. Usa o prompt do banco ou um fallback
-        const finalPrompt = customPrompt || "Descreva esta imagem com detalhes.";
-        console.log("🚀 Enviando para API Gemini...");
+        // 2. Monta o array 'contents' conforme a nova documentação
+        const promptText = customPrompt || "Descreva esta imagem.";
+        
+        const contents = [
+            imagePart,           // A imagem entra como um objeto do array
+            { text: promptText } // O texto entra como outro objeto
+        ];
 
-        const result = await model.generateContent([finalPrompt, imagePart]);
-        const response = await result.response;
-        const text = response.text();
+        console.log("🚀 Enviando para API Gemini (Via genAI.models.generateContent)...");
 
-        console.log("✅ Resposta Gemini Recebida (Preview):", text.substring(0, 30) + "...");
-        return text;
+        // 3. Chamada Correta para a SDK @google/genai
+        const response = await genAI.models.generateContent({
+            model: "gemini-2.5-flash", // Ou "gemini-2.0-flash-exp" se tiver acesso
+            contents: contents,
+            config: {
+                temperature: 0.4 // Opcional: reduz alucinações
+            }
+        });
+
+        // Na nova SDK, o texto costuma vir direto em response.text (propriedade) ou response.text()
+        // O seu exemplo mostra console.log(response.text), então vamos assumir propriedade.
+        // Por segurança, verificamos se é função ou propriedade.
+        const finalText = typeof response.text === 'function' ? response.text() : response.text;
+
+        console.log("✅ Resposta Gemini:", finalText ? finalText.substring(0, 30) + "..." : "Vazia");
+        return finalText;
 
     } catch (error) {
         console.error("💥 Erro CRÍTICO na visão do Gemini:", error);
-        // Se for erro de API Key ou Cota, ele vai aparecer aqui agora
         return null; 
     }
 }
