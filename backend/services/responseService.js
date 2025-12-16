@@ -9,7 +9,7 @@ const { getWWebJSClient } = require('./wwebjsService'); // Novo serviço do WWeb
  * @param {object} options - Opções extras (ex: originalMsg para reply)
  */
 async function sendUnifiedMessage(to, message, provider = 'wwebjs', options = {}) {
-  console.log(`📤 Enviando via [${provider.toUpperCase()}] para ${to}`);
+  console.log(`📤 Enviando via [${provider.toUpperCase()}] para ${to} ${Date()}`);
 
   try {
     if (provider === 'twilio') {

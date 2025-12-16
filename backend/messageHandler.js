@@ -109,16 +109,16 @@ async function handleIncomingMessage(normalizedMsg) {
 
     // 6. Montagem do Prompt Final
     const finalSystemPrompt = `
-${businessConfig.prompts.chatSystem}
----
-${imageContext}
----
-DADOS DO CLIENTE:
-Nome: ${name}
-Histórico da Conversa:
-${historyText}
----
-`;
+    ${businessConfig.prompts.chatSystem}
+    ---
+    ${imageContext}
+    ---
+    DADOS DO CLIENTE:
+    Nome: ${name}
+    Histórico da Conversa:
+    ${historyText}
+    ---
+    `;
 
     // 7. Gerar Resposta IA
     const aiResponse = await generateAIResponse(userMessage, finalSystemPrompt);
