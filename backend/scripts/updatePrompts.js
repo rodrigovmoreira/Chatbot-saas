@@ -1,7 +1,7 @@
 // Arquivo: backend/updatePrompts.js
 require('dotenv').config();
 const mongoose = require('mongoose');
-const BusinessConfig = require('./models/BusinessConfig');
+const BusinessConfig = require('../models/BusinessConfig');
 
 const mongoUri = process.env.MONGO_URI;
 
