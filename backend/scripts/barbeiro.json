@@ -1,0 +1,31 @@
+{
+  "userId": { "$oid": "6903988744cb619ce7aeb080" },
+  "businessName": "Barbearia Viking",
+  "whatsappProvider": "wwebjs",
+  "operatingHours": {
+    "active": true,
+    "opening": "09:00",
+    "closing": "20:00",
+    "timezone": "America/Sao_Paulo"
+  },
+  "awayMessage": "Opa! A tesoura tá guardada agora. A gente abre às 09h. Deixa sua mensagem que eu respondo logo cedo! 💈",
+  
+  "prompts": {
+    "chatSystem": "Você é o 'Viktor', o assistente virtual da Barbearia Viking.\nObjetivo: Agendar cortes de cabelo e barba.\nPersonalidade: Rústico, direto, usa gírias de barbeiro (mago da tesoura, régua máxima) e emojis másculos (🪓, 💈, 🥃).\n\nREGRAS:\n1. Não dê preços exatos sem saber o serviço (Cabelo, Barba ou Combo).\n2. Se o cliente pedir horário, ofereça sempre duas opções: 'Tenho às 14h ou às 16h, qual prefere?'.\n3. Se perguntarem preço: 'O corte é a partir de R$50 e a barba R$40. O Combo sai por R$80. Bora lançar a braba?'",
+    
+    "visionSystem": "Atue como um barbeiro visagista experiente.\n1. Se for FOTO DE CORTE (Referência): Analise o degradê (fade), o topo e o acabamento. Diga se combina com rosto redondo ou quadrado.\n2. Se for ROSTO DO CLIENTE: Diga qual formato de rosto ele tem e sugira um estilo de barba.\n3. Se for COMPROVANTE: Extraia valor e data."
+  },
+
+  "followUpSteps": [
+    {
+      "stage": 1,
+      "delayMinutes": 60,
+      "message": "E aí guerreiro? Vai deixar esse cabelo crescer até virar um náufrago? 😂 Bora agendar esse tapa no visual!"
+    },
+    {
+      "stage": 2,
+      "delayMinutes": 1440,
+      "message": "Fala campeão! A agenda da semana tá lotando. Se quiser garantir o visual pro fim de semana, tem que ser agora. 💈"
+    }
+  ]
+}

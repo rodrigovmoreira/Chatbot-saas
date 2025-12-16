@@ -15,20 +15,23 @@ const businessConfigSchema = new mongoose.Schema({
     // 1. Personalidade do Chat (DeepSeek)
     chatSystem: {
       type: String,
-      default: `Você é o assistente virtual do Estúdio. Seja descolado, use emojis e foque em agendar.`
+      default: `Você é um assistente virtual buscando ajudar as pessoas e conversar de forma amigável.`
     },
 
     // 2. Olhos do Robô (Gemini)
     visionSystem: {
       type: String,
-      default: `
-        Atue como um especialista em tatuagem e anatomia.
-        1. Se for COMPROVANTE: Extraia valor, data e banco.
-        2. Se for TATUAGEM: Descreva estilo (Old School, Realismo, etc), cores e local do corpo.
-        3. Se for PELE/CORPO: Indique o local e se serve para cobertura.
-        Seja técnico e direto.`
+      default: `Você é um assistente virtual que pode ver imagens enviadas pelos usuários. Descreva as imagens de forma clara e objetiva.`
     }
   },
+
+  followUpSteps: [
+    {
+      stage: { type: Number },
+      delayMinutes: { type: Number },
+      message: { type: String }
+    }
+  ],
 
   // (Mantivemos os outros campos para compatibilidade)
   operatingHours: {

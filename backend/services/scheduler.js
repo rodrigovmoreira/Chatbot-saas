@@ -14,7 +14,7 @@ function startScheduler() {
       const now = new Date();
 
       // 1. BUSCA TODAS AS CONFIGURAÇÕES DE EMPRESAS
-      // No modelo SaaS, cada documento aqui é uma empresa diferente (Tatuador, Imobiliária, etc)
+      // No modelo SaaS, cada documento aqui é uma empresa diferente
       const allConfigs = await BusinessConfig.find({});
 
       // Loop por cada empresa para processar seus respectivos clientes

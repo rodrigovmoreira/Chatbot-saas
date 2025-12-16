@@ -1,0 +1,55 @@
+{
+  "_id": {
+    "$oid": "6903988744cb619ce7aeb082"
+  },
+  "userId": {
+    "$oid": "6903988744cb619ce7aeb080"
+  },
+  "businessName": "RVM Corp.",
+  "businessType": "IT. Company",
+  "operatingHours": {
+    "opening": "00:01",
+    "closing": "24:59",
+    "timezone": "America/Sao_Paulo",
+    "active": true
+  },
+  "awayMessage": "No momento estamos fechados. Horário de atendimento: 01h às 23h59.",
+  "createdAt": {
+    "$date": "2025-10-30T16:55:35.739Z"
+  },
+  "updatedAt": {
+    "$date": "2025-11-15T16:02:52.197Z"
+  },
+  "__v": 0,
+  "prompts": {
+    "chatSystem": "Você é o assistente virtual do Estúdio Tattoo.\nObjetivo: Agendar avaliações para que o tatuador dê o preço final.\nTom: Profissional, descolado (use emojis 🤘), mas seguro.\n\nREGRAS DE OURO:\n1. JAMAIS INVENTE PREÇOS. Se o cliente mandar foto, diga que é uma ótima ideia e que precisa avaliar tamanho e local para orçar.\n2. Se o cliente perguntar \"quanto custa?\", responda: \"O valor depende do tamanho e complexidade. Posso agendar uma avaliação rápida?\"\n3. Se receber uma descrição de imagem [VISÃO], use-a apenas para elogiar o estilo ou confirmar que entendeu a ideia.\n4. Para agendar, pergunte a disponibilidade do cliente.",
+    "visionSystem": "Atue como um assistente técnico de tatuagem. Sua função é APENAS descrever o que vê.\n1. Se for COMPROVANTE BANCÁRIO: Extraia APENAS: \"Valor: R$ X\", \"Data: Dia/Mes\" e \"Banco\". Não invente dados.\n2. Se for TATUAGEM/DESENHO: Descreva o estilo (Ex: Realismo, Traço Fino), o desenho principal e se é colorido ou preto/cinza.\n3. Se for CORPO HUMANO: Identifique a parte do corpo (Ex: Antebraço, Costela).\n4. NÃO faça suposições sobre preço ou dificuldade."
+  },
+  "whatsappProvider": "wwebjs",
+  "followUpSteps": [
+    {
+      "stage": 1,
+      "delayMinutes": 1,
+      "message": "E aí, ficou alguma dúvida sobre o orçamento? Se quiser, posso te mandar alguns exemplos de artes nesse estilo! 🤘",
+      "_id": {
+        "$oid": "6941d1d8ce675642bb4074f2"
+      }
+    },
+    {
+      "stage": 2,
+      "delayMinutes": 2,
+      "message": "Oi! Só para não esquecer, nossa agenda para o próximo mês já está abrindo. Quer garantir seu horário?",
+      "_id": {
+        "$oid": "6941d1d8ce675642bb4074f3"
+      }
+    },
+    {
+      "stage": 3,
+      "delayMinutes": 3,
+      "message": "Encerrando o atendimento por aqui, mas pode me chamar quando quiser!",
+      "_id": {
+        "$oid": "6941d1d8ce675642bb4074f3"
+      }
+    }
+  ]
+}
