@@ -25,16 +25,13 @@ function appReducer(state, action) {
       return { ...state, businessConfig: action.payload };
     
     case 'SET_WHATSAPP_STATUS': 
-      // Lógica movida para o Reducer para evitar estado obsoleto (stale state)
       const isConnected = action.payload.isConnected;
-      
       return { 
         ...state, 
         whatsappStatus: { 
           ...state.whatsappStatus,
           isConnected: isConnected,
           mode: action.payload.mode,
-          // Se conectou, limpa o QR. Se não, MANTÉM o QR que já estava no estado.
           qrCode: isConnected ? null : state.whatsappStatus.qrCode 
         }
       };
@@ -58,14 +55,16 @@ function appReducer(state, action) {
 export const AppProvider = ({ children }) => {
   const [state, dispatch] = useReducer(appReducer, initialState);
 
-  // 1. Carregar dados iniciais
+  // 1. Carregar dados iniciais (User + Token + Config)
   useEffect(() => {
     const loadInitialData = async () => {
       const token = localStorage.getItem('token');
-      const user = localStorage.getItem('user');
+      const userStr = localStorage.getItem('user');
       
-      if (token && user) {
-        dispatch({ type: 'SET_USER', payload: JSON.parse(user) });
+      if (token && userStr) {
+        const userObj = JSON.parse(userStr);
+        dispatch({ type: 'SET_USER', payload: userObj });
+        
         try {
           const config = await businessAPI.getConfig();
           dispatch({ type: 'SET_BUSINESS_CONFIG', payload: config.data });
@@ -77,19 +76,25 @@ export const AppProvider = ({ children }) => {
     loadInitialData();
   }, []);
 
-  // 2. CONEXÃO SOCKET.IO
+  // 2. CONEXÃO SOCKET.IO (CRUCIAL PARA O QR CODE)
   useEffect(() => {
-    if (!state.user) return;
+    // Só conecta se tivermos um usuário logado
+    if (!state.user || !state.user.id) return;
+
+    console.log('🔌 Iniciando conexão Socket para usuário:', state.user.id);
 
     const socket = io('http://localhost:3001', {
       withCredentials: true,
-      transports: ['websocket', 'polling'] // Força estabilidade
+      transports: ['websocket', 'polling']
     });
 
-    console.log('🔌 Tentando conectar ao Socket...');
-
     socket.on('connect', () => {
-      console.log('✅ Conectado ao Socket ID:', socket.id);
+      console.log('✅ Socket Conectado! ID:', socket.id);
+      
+      // --- O PULO DO GATO ---
+      // Emitimos o join_session imediatamente após conectar
+      console.log(`🗣️ Solicitando entrada na sala: ${state.user.id}`);
+      socket.emit('join_session', state.user.id);
     });
 
     socket.on('wwebjs_qr', (qr) => {
@@ -98,19 +103,20 @@ export const AppProvider = ({ children }) => {
     });
 
     socket.on('wwebjs_status', (status) => {
-      console.log('🔄 Status WWebJS:', status);
+      console.log('🔄 Status WWebJS recebido:', status);
       
       let isConnected = false;
       let mode = 'Desconectado';
 
       if (status === 'ready' || status === 'authenticated') {
         isConnected = true;
-        mode = 'Conectado (WWebJS)';
+        mode = 'Conectado';
       } else if (status === 'qrcode') {
         mode = 'Aguardando Leitura';
+      } else if (status === 'initializing') {
+        mode = 'Iniciando...';
       }
 
-      // NÃO enviamos o qrCode aqui. O reducer vai manter o antigo.
       dispatch({ 
         type: 'SET_WHATSAPP_STATUS', 
         payload: { isConnected, mode } 
@@ -118,9 +124,10 @@ export const AppProvider = ({ children }) => {
     });
 
     return () => {
+      console.log('🔌 Desconectando Socket...');
       socket.disconnect();
     };
-  }, [state.user]); 
+  }, [state.user]); // Executa sempre que o usuário muda (Login/Logout)
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>

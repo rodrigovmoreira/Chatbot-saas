@@ -1,13 +1,11 @@
 const mongoose = require('mongoose');
-// Importamos o Contact para garantir que o Mongoose conheça o Schema antes de usar
-// Certifique-se de que o arquivo models/Contact.js existe conforme criamos no passo anterior
 const Contact = require('../models/Contact');
 
 const messageSchema = new mongoose.Schema({
   contactId: { type: mongoose.Schema.Types.ObjectId, ref: 'Contact', required: true },
   phone: { type: String, required: true },
   role: { type: String, enum: ['user', 'bot', 'agent'], required: true },
-  content: { type: String, required: true }, // Texto visível
+  content: { type: String, required: true }, 
 
   messageType: {
     type: String,
@@ -15,31 +13,19 @@ const messageSchema = new mongoose.Schema({
     default: 'text'
   },
 
-  // === METADADOS DE INTELIGÊNCIA ===
   aiAnalysis: {
     isAnalyzed: { type: Boolean, default: false },
-    description: { type: String }, // O que o Gemini viu
+    description: { type: String }, 
     detectedIntent: { type: String },
     confidenceScore: { type: Number },
     modelUsed: { type: String }
   },
-  // =================================
 
   timestamp: { type: Date, default: Date.now }
 });
 
-// Verifica se o model já existe para evitar erro de re-compilação em hot-reload
 const Message = mongoose.models.ChatMessage || mongoose.model('ChatMessage', messageSchema);
 
-/*
- * Salva uma mensagem no banco vinculada à empresa correta.
- * @param {string} phone - Telefone do contato
- * @param {string} role - Quem enviou ('user', 'bot')
- * @param {string} content - Conteúdo do texto
- * @param {string} messageType - Tipo da mensagem
- * @param {string|null} visionResult - Resultado da análise de imagem (se houver)
- * @param {string} businessId - ID da empresa (Obrigatório para SaaS)
- */
 async function saveMessage(phone, role, content, messageType = 'text', visionResult = null, businessId) {
   try {
     if (!businessId) {
@@ -47,31 +33,45 @@ async function saveMessage(phone, role, content, messageType = 'text', visionRes
       return;
     }
 
-    // 1. Busca contato ESPECÍFICO desta empresa
+    // 1. Busca ou Cria contato
     let contact = await Contact.findOne({ phone, businessId });
 
-    // 2. Se não existe, cria vinculado à empresa
     if (!contact) {
       contact = await Contact.create({
         phone,
-        businessId, // <--- Vínculo de segurança
+        businessId,
         totalMessages: 0,
-        followUpStage: 0
+        followUpStage: 0,
+        followUpActive: false // Começa inativo até a primeira interação
       });
     }
 
-    // 3. Atualiza estatísticas do contato
+    // 2. Atualiza estatísticas básicas
     contact.totalMessages += 1;
     contact.lastInteraction = new Date();
     contact.lastSender = role;
 
-    // Se o cliente respondeu, zera o funil de vendas (regra de negócio)
+    // === 3. LÓGICA DO FOLLOW-UP (A CORREÇÃO) ===
+    
     if (role === 'user') {
-      contact.followUpStage = 0;
+      // CENÁRIO: Cliente falou
+      // Ação: O cliente quebrou o silêncio. Paramos de perseguir.
+      contact.followUpStage = 0; 
+      contact.followUpActive = false; // Desativa o scheduler para este contato
+      console.log(`👤 [${phone}] Cliente respondeu. Follow-up pausado.`);
+    } 
+    else if (role === 'bot') {
+      // CENÁRIO: Bot falou (resposta da IA ou mensagem automática)
+      // Ação: Começamos a contar o tempo para o cliente responder.
+      contact.followUpActive = true; // Ativa o scheduler
+      contact.lastResponseTime = new Date(); // O relógio começa AGORA
+      console.log(`🤖 [${phone}] Bot respondeu. Follow-up armado.`);
     }
+
+    // Salva as alterações no Contato
     await contact.save();
 
-    // 4. Prepara dados da mensagem
+    // 4. Cria o registro da mensagem no histórico
     const msgData = {
       contactId: contact._id,
       phone,
@@ -80,7 +80,6 @@ async function saveMessage(phone, role, content, messageType = 'text', visionRes
       messageType
     };
 
-    // Se tiver análise de imagem, salva junto
     if (visionResult) {
       msgData.aiAnalysis = {
         isAnalyzed: true,
@@ -89,7 +88,6 @@ async function saveMessage(phone, role, content, messageType = 'text', visionRes
       };
     }
 
-    // 5. Cria a mensagem
     await Message.create(msgData);
 
   } catch (error) {
@@ -97,15 +95,12 @@ async function saveMessage(phone, role, content, messageType = 'text', visionRes
   }
 }
 
-// Função para buscar histórico focado em imagens
 async function getImageHistory(phone, businessId) {
   try {
     if (!businessId) return [];
-
     const contact = await Contact.findOne({ phone, businessId });
     if (!contact) return [];
 
-    // Busca apenas mensagens que tenham análise de IA deste contato
     return await Message.find({
       contactId: contact._id,
       'aiAnalysis.isAnalyzed': true
@@ -120,11 +115,9 @@ async function getImageHistory(phone, businessId) {
   }
 }
 
-// Busca histórico geral de texto
 async function getLastMessages(phone, limit = 15, businessId) {
   try {
     if (!businessId) return [];
-
     const contact = await Contact.findOne({ phone, businessId });
     if (!contact) return [];
 

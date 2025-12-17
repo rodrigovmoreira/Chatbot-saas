@@ -4,9 +4,9 @@ import {
   Box, Container, Grid, GridItem, Card, CardHeader, CardBody, Heading, Text, Button, VStack, HStack,
   useToast, Badge, Icon, useColorModeValue, FormControl, FormLabel, Input, Textarea, Checkbox,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
-  useDisclosure, Divider, Alert, AlertIcon, Spinner, Select, Tabs, TabList, TabPanels, Tab, TabPanel
+  useDisclosure, Alert, AlertIcon, Spinner, Select, Tabs, TabList, TabPanels, Tab, TabPanel
 } from '@chakra-ui/react';
-import { CheckCircleIcon, WarningTwoIcon, AddIcon, EditIcon, DeleteIcon, StarIcon, TimeIcon } from '@chakra-ui/icons';
+import { CheckCircleIcon, WarningTwoIcon, AddIcon, EditIcon, DeleteIcon, StarIcon } from '@chakra-ui/icons';
 import { useApp } from '../context/AppContext';
 import { businessAPI } from '../services/api';
 
@@ -23,9 +23,9 @@ const Dashboard = () => {
 
   // Estados de Interface
   const [editingHours, setEditingHours] = useState(false);
-  
+
   // Estados de Presets (Inteligência)
-  const [presets, setPresets] = useState([]); 
+  const [presets, setPresets] = useState([]);
   const [selectedPreset, setSelectedPreset] = useState('');
 
   // Formulário de Configurações Gerais
@@ -61,10 +61,12 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchPresets = async () => {
       try {
+        console.log("🔍 Buscando presets na API..."); // Log 1
         const res = await businessAPI.getPresets();
+        console.log("📦 Presets recebidos:", res.data); // Log 2
         setPresets(res.data);
       } catch (error) {
-        console.error("Erro ao buscar presets:", error);
+        console.error("❌ Erro ao buscar presets:", error); // Log erro
       }
     };
     fetchPresets();
@@ -114,7 +116,7 @@ const Dashboard = () => {
 
   const handleApplyPreset = async () => {
     if (!selectedPreset) return;
-    
+
     if (!window.confirm("ATENÇÃO: Isso mudará a personalidade, os prompts e o fluxo de mensagens do seu robô. Deseja continuar?")) {
       return;
     }
@@ -123,11 +125,11 @@ const Dashboard = () => {
       const response = await businessAPI.applyPreset(selectedPreset);
       // Atualiza o contexto global com a nova config que veio do backend
       dispatch({ type: 'SET_BUSINESS_CONFIG', payload: response.data.config });
-      
-      toast({ 
-        title: 'Nova Personalidade Ativa!', 
-        description: 'Seu robô foi reconfigurado com sucesso.', 
-        status: 'success', 
+
+      toast({
+        title: 'Nova Personalidade Ativa!',
+        description: 'Seu robô foi reconfigurado com sucesso.',
+        status: 'success',
         duration: 5000,
         isClosable: true
       });
@@ -177,7 +179,7 @@ const Dashboard = () => {
   return (
     <Box minH="100vh" bg="gray.50" p={4}>
       <Container maxW="1200px">
-        
+
         {/* Header */}
         <HStack justify="space-between" mb={6} bg="white" p={4} borderRadius="lg" boxShadow="sm">
           <VStack align="start" spacing={0}>
@@ -198,17 +200,17 @@ const Dashboard = () => {
           </TabList>
 
           <TabPanels>
-            
+
             {/* ABA 1: VISÃO GERAL (STATUS + HORÁRIOS) */}
             <TabPanel px={0}>
               <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={6}>
-                
+
                 {/* Card WhatsApp (Lógica Multi-tenant) */}
                 <GridItem>
                   <Card bg={cardBg} h="100%" boxShadow="md" borderTop="4px solid" borderColor={state.whatsappStatus.isConnected ? "green.400" : "red.400"}>
                     <CardHeader><Heading size="md">Status do WhatsApp</Heading></CardHeader>
                     <CardBody display="flex" flexDirection="column" alignItems="center" justifyContent="center">
-                      
+
                       {state.whatsappStatus.isConnected ? (
                         // ESTADO: CONECTADO
                         <VStack spacing={4}>
@@ -225,30 +227,30 @@ const Dashboard = () => {
                         // ESTADO: DESCONECTADO OU INICIANDO
                         <VStack spacing={4} w="100%">
                           {state.whatsappStatus.qrCode ? (
-                             // EXIBE QR CODE
-                             <Box p={3} border="2px dashed" borderColor="brand.200" borderRadius="md">
-                               <QRCodeSVG value={state.whatsappStatus.qrCode} size={180} />
-                             </Box>
+                            // EXIBE QR CODE
+                            <Box p={3} border="2px dashed" borderColor="brand.200" borderRadius="md">
+                              <QRCodeSVG value={state.whatsappStatus.qrCode} size={180} />
+                            </Box>
                           ) : state.whatsappStatus.mode === 'Iniciando...' ? (
-                             // EXIBE SPINNER
-                             <VStack py={6}>
-                               <Spinner size="xl" color="brand.500" thickness="4px" />
-                               <Text color="gray.500" fontWeight="bold">Iniciando motor...</Text>
-                             </VStack>
+                            // EXIBE SPINNER
+                            <VStack py={6}>
+                              <Spinner size="xl" color="brand.500" thickness="4px" />
+                              <Text color="gray.500" fontWeight="bold">Iniciando motor...</Text>
+                            </VStack>
                           ) : (
-                             // EXIBE BOTÃO DE CONECTAR
-                             <VStack py={4}>
-                               <Icon as={WarningTwoIcon} color="orange.400" boxSize={12} />
-                               <Text fontWeight="bold" color="gray.600">Sessão Desligada</Text>
-                               <Text fontSize="sm" color="gray.400" textAlign="center" mb={2}>
-                                 Clique abaixo para ligar seu robô e gerar o QR Code.
-                               </Text>
-                               <Button size="lg" colorScheme="green" onClick={handleStartWhatsApp} width="full">
-                                 Ligar Robô
-                               </Button>
-                             </VStack>
+                            // EXIBE BOTÃO DE CONECTAR
+                            <VStack py={4}>
+                              <Icon as={WarningTwoIcon} color="orange.400" boxSize={12} />
+                              <Text fontWeight="bold" color="gray.600">Sessão Desligada</Text>
+                              <Text fontSize="sm" color="gray.400" textAlign="center" mb={2}>
+                                Clique abaixo para ligar seu robô e gerar o QR Code.
+                              </Text>
+                              <Button size="lg" colorScheme="green" onClick={handleStartWhatsApp} width="full">
+                                Ligar Robô
+                              </Button>
+                            </VStack>
                           )}
-                          
+
                           <Badge colorScheme={state.whatsappStatus.qrCode ? "blue" : "gray"}>
                             Status: {state.whatsappStatus.mode}
                           </Badge>
@@ -273,26 +275,26 @@ const Dashboard = () => {
                       <VStack spacing={4} align="stretch">
                         <FormControl>
                           <FormLabel fontSize="xs" fontWeight="bold" color="gray.500" textTransform="uppercase">Nome Fantasia</FormLabel>
-                          <Input isDisabled={!editingHours} value={configForm.businessName} onChange={e => setConfigForm({...configForm, businessName: e.target.value})} />
+                          <Input isDisabled={!editingHours} value={configForm.businessName} onChange={e => setConfigForm({ ...configForm, businessName: e.target.value })} />
                         </FormControl>
-                        
+
                         <HStack>
                           <FormControl>
                             <FormLabel fontSize="xs" fontWeight="bold" color="gray.500" textTransform="uppercase">Abertura</FormLabel>
-                            <Input type="time" isDisabled={!editingHours} value={configForm.operatingHours.opening} onChange={e => setConfigForm({...configForm, operatingHours: {...configForm.operatingHours, opening: e.target.value}})} />
+                            <Input type="time" isDisabled={!editingHours} value={configForm.operatingHours.opening} onChange={e => setConfigForm({ ...configForm, operatingHours: { ...configForm.operatingHours, opening: e.target.value } })} />
                           </FormControl>
                           <FormControl>
                             <FormLabel fontSize="xs" fontWeight="bold" color="gray.500" textTransform="uppercase">Fechamento</FormLabel>
-                            <Input type="time" isDisabled={!editingHours} value={configForm.operatingHours.closing} onChange={e => setConfigForm({...configForm, operatingHours: {...configForm.operatingHours, closing: e.target.value}})} />
+                            <Input type="time" isDisabled={!editingHours} value={configForm.operatingHours.closing} onChange={e => setConfigForm({ ...configForm, operatingHours: { ...configForm.operatingHours, closing: e.target.value } })} />
                           </FormControl>
                         </HStack>
 
                         <FormControl>
                           <FormLabel fontSize="xs" fontWeight="bold" color="gray.500" textTransform="uppercase">Mensagem de Ausência</FormLabel>
-                          <Textarea 
-                            isDisabled={!editingHours} 
-                            value={configForm.awayMessage} 
-                            onChange={e => setConfigForm({...configForm, awayMessage: e.target.value})}
+                          <Textarea
+                            isDisabled={!editingHours}
+                            value={configForm.awayMessage}
+                            onChange={e => setConfigForm({ ...configForm, awayMessage: e.target.value })}
                             placeholder="Ex: Estamos fechados. Atendemos das 09h às 18h."
                             rows={3}
                           />
@@ -313,7 +315,7 @@ const Dashboard = () => {
             {/* ABA 2: INTELIGÊNCIA (PRESETS) */}
             <TabPanel px={0}>
               <Grid templateColumns={{ base: '1fr', lg: '1fr 2fr' }} gap={6}>
-                
+
                 {/* Coluna Esquerda: Seletor */}
                 <GridItem>
                   <Card bg="white" boxShadow="md" borderLeft="4px solid" borderColor="blue.500">
@@ -322,12 +324,12 @@ const Dashboard = () => {
                       <Text fontSize="sm" color="gray.600" mb={4}>
                         Escolha um modelo pronto para configurar instantaneamente a personalidade, visão computacional e regras de negócio do seu bot.
                       </Text>
-                      
+
                       <FormControl mb={4}>
                         <FormLabel>Ramo de Atuação</FormLabel>
-                        <Select 
-                          placeholder="Selecione o nicho..." 
-                          size="lg" 
+                        <Select
+                          placeholder="Selecione o nicho..."
+                          size="lg"
                           bg="gray.50"
                           onChange={(e) => setSelectedPreset(e.target.value)}
                           value={selectedPreset}
@@ -338,10 +340,10 @@ const Dashboard = () => {
                         </Select>
                       </FormControl>
 
-                      <Button 
-                        colorScheme="blue" 
-                        width="full" 
-                        onClick={handleApplyPreset} 
+                      <Button
+                        colorScheme="blue"
+                        width="full"
+                        onClick={handleApplyPreset}
                         isDisabled={!selectedPreset}
                         leftIcon={<StarIcon />}
                       >
@@ -359,22 +361,22 @@ const Dashboard = () => {
                       <VStack align="stretch" spacing={4}>
                         <Box>
                           <Text fontSize="xs" fontWeight="bold" mb={1}>SYSTEM PROMPT (CHAT)</Text>
-                          <Textarea 
-                            value={state.businessConfig?.prompts?.chatSystem || "..."} 
-                            isReadOnly 
-                            bg="white" 
-                            fontSize="xs" 
+                          <Textarea
+                            value={state.businessConfig?.prompts?.chatSystem || "..."}
+                            isReadOnly
+                            bg="white"
+                            fontSize="xs"
                             fontFamily="monospace"
                             h="120px"
                           />
                         </Box>
                         <Box>
                           <Text fontSize="xs" fontWeight="bold" mb={1}>VISION PROMPT (IMAGEM)</Text>
-                          <Textarea 
-                            value={state.businessConfig?.prompts?.visionSystem || "..."} 
-                            isReadOnly 
-                            bg="white" 
-                            fontSize="xs" 
+                          <Textarea
+                            value={state.businessConfig?.prompts?.visionSystem || "..."}
+                            isReadOnly
+                            bg="white"
+                            fontSize="xs"
                             fontFamily="monospace"
                             h="80px"
                           />
@@ -418,7 +420,7 @@ const Dashboard = () => {
                     ))}
                   </Grid>
                   {menuOptions.length === 0 && <Text color="gray.400" textAlign="center" py={8}>Nenhuma regra cadastrada.</Text>}
-                  
+
                   {menuOptions.length > 0 && (
                     <Box mt={6} pt={4} borderTop="1px solid #eee" textAlign="right">
                       <Button colorScheme="brand" onClick={handleSaveMenu}>Salvar Alterações do Menu</Button>
@@ -437,7 +439,7 @@ const Dashboard = () => {
                       <Heading size="md">Produtos & Serviços</Heading>
                       <Text fontSize="sm" color="gray.500">A IA usa essa lista para consultar preços.</Text>
                     </Box>
-                    <Button leftIcon={<AddIcon />} variant="outline" colorScheme="blue" onClick={() => {setEditingProductIndex(null); setNewProduct({name:'',price:'',description:''}); onProductModalOpen();}}>
+                    <Button leftIcon={<AddIcon />} variant="outline" colorScheme="blue" onClick={() => { setEditingProductIndex(null); setNewProduct({ name: '', price: '', description: '' }); onProductModalOpen(); }}>
                       Novo Item
                     </Button>
                   </HStack>
@@ -454,7 +456,7 @@ const Dashboard = () => {
                           <Text fontSize="sm" color="gray.600">{prod.description}</Text>
                         </VStack>
                         <HStack>
-                          <Button size="sm" variant="ghost" onClick={() => {setNewProduct(prod); setEditingProductIndex(idx); onProductModalOpen();}}><EditIcon /></Button>
+                          <Button size="sm" variant="ghost" onClick={() => { setNewProduct(prod); setEditingProductIndex(idx); onProductModalOpen(); }}><EditIcon /></Button>
                           <Button size="sm" colorScheme="red" variant="ghost" onClick={() => handleRemoveProduct(idx)}><DeleteIcon /></Button>
                         </HStack>
                       </HStack>

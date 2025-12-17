@@ -189,10 +189,14 @@ const updateStatus = (userId, status) => {
 const getSessionStatus = (userId) => statuses.get(userId) || 'disconnected';
 const getSessionQR = (userId) => qrCodes.get(userId);
 
+const getClientSession = (userId) => {
+  return sessions.get(userId.toString());
+};
 module.exports = { 
   initializeWWebJS, 
   startSession, 
   stopSession, 
   getSessionStatus, 
-  getSessionQR 
+  getSessionQR,
+  getClientSession
 };

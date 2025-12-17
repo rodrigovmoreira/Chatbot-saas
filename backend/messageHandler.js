@@ -82,7 +82,7 @@ async function handleIncomingMessage(normalizedMsg, activeBusinessId) {
     // 5. Verificar Horário de Funcionamento
     if (!isWithinOperatingHours(businessConfig)) {
       console.log(`zzz Fora do horário.`);
-      await sendUnifiedMessage(from, businessConfig.awayMessage, provider);
+      await sendUnifiedMessage(from, businessConfig.awayMessage, provider, businessConfig.userId);
       return; // Para aqui se estiver fechado
     }
 
@@ -102,7 +102,7 @@ async function handleIncomingMessage(normalizedMsg, activeBusinessId) {
             console.log(`⚡ Resposta Rápida acionada: ${matchedOption.keyword}`);
             
             // Envia a resposta cadastrada
-            await sendUnifiedMessage(from, matchedOption.response, provider);
+            await sendUnifiedMessage(from, matchedOption.response, provider, businessConfig.userId);
             await saveMessage(from, 'bot', matchedOption.response, 'text', null, activeBusinessId);
             
             // Se requer humano, poderíamos notificar aqui (futuro)
@@ -155,7 +155,7 @@ ${historyText}
 
     // 10. Enviar e Salvar
     if (aiResponse) {
-      await sendUnifiedMessage(from, aiResponse, provider);
+      await sendUnifiedMessage(from, aiResponse, provider, businessConfig.userId);
       await saveMessage(from, 'bot', aiResponse, 'text', null, activeBusinessId);
     }
 

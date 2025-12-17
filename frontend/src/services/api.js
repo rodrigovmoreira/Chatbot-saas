@@ -42,20 +42,20 @@ export const authAPI = {
   logout: () => api.post('/api/logout'),
 };
 
-// --- Rotas de Negócio ---
+// --- Rotas de Negócio (Dashboard) ---
 export const businessAPI = {
-  // Pega configurações (Nome, Horários, etc)
+  // 1. Configurações Gerais
   getConfig: () => api.get('/api/business-config'),
-  
-  // Atualiza configurações
   updateConfig: (data) => api.put('/api/business-config', data),
   
-  // Verifica status da conexão (Agora retorna sempre "Conectado" via Twilio Cloud)
+  // 2. Controle do WhatsApp (Multi-tenant)
   getWhatsAppStatus: () => api.get('/api/whatsapp-status'),
+  startWhatsApp: () => api.post('/api/whatsapp-start'), // <--- Botão "Ligar"
+  logoutWhatsApp: () => api.post('/api/whatsapp-logout'), // <--- Botão "Desconectar"
 
-  // Desconecta o WhatsApp
-  logoutWhatsApp: () => api.post('/api/whatsapp-logout')
-
+  // 3. Inteligência e Presets (O que estava faltando!)
+  getPresets: () => api.get('/api/presets'),
+  applyPreset: (presetKey) => api.post('/api/apply-preset', { presetKey })
 };
 
 export default api;
