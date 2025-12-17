@@ -15,6 +15,7 @@ const { handleIncomingMessage } = require('./messageHandler'); // Handler Genér
 const { initializeWWebJS, getCurrentQR, getCurrentStatus, logoutWWebJS } = require('./services/wwebjsService'); // Serviço do WWebJS
 
 // 1. Carregar Schemas
+const IndustryPreset = require('./models/IndustryPreset');
 require('./models/SystemUser');
 require('./models/Contact');
 require('./models/BusinessConfig');
@@ -187,6 +188,60 @@ app.post('/api/whatsapp-logout', authenticateToken, async (req, res) => {
     res.json({ message: 'Desconectado com sucesso' });
   } catch (error) {
     res.status(500).json({ message: 'Erro ao desconectar' });
+  }
+});
+
+// 4. ROTAS DE INTEGRAÇÃO DE PRESETS (NOVO)
+app.get('/api/presets', authenticateToken, async (req, res) => {
+  try {
+    // Busca todos os presets e ordena por nome
+    const presets = await IndustryPreset.find({}).select('key name icon description').sort({ name: 1 });
+    res.json(presets);
+  } catch (error) {
+    console.error('Erro ao buscar presets:', error);
+    res.status(500).json({ message: 'Erro ao carregar modelos de indústria' });
+  }
+});
+
+// Aplica um modelo específico à configuração do usuário logado
+app.post('/api/apply-preset', authenticateToken, async (req, res) => {
+  try {
+    const { presetKey } = req.body; // Ex: 'barber', 'tattoo'
+
+    if (!presetKey) return res.status(400).json({ message: 'Preset Key é obrigatória' });
+
+    // 1. Busca o Modelo Escolhido no banco de templates
+    const preset = await IndustryPreset.findOne({ key: presetKey });
+    if (!preset) return res.status(404).json({ message: 'Modelo de indústria não encontrado' });
+
+    console.log(`🛠️ Aplicando preset "${preset.name}" para o usuário ${req.user.userId}`);
+
+    // 2. Atualiza a configuração do usuário
+    // IMPORTANTE: Usamos $set para sobrescrever SÓ a inteligência,
+    // mantendo o nome da empresa, whatsappProvider e horários intactos.
+    const updatedConfig = await BusinessConfig.findOneAndUpdate(
+      { userId: req.user.userId },
+      {
+        $set: {
+          // Cérebro (IA)
+          'prompts.chatSystem': preset.prompts.chatSystem,
+          'prompts.visionSystem': preset.prompts.visionSystem,
+
+          // Comportamento (Funil)
+          followUpSteps: preset.followUpSteps,
+
+          // Opcional: Salvar qual preset foi usado para mostrar no front depois
+          businessType: preset.name
+        }
+      },
+      { new: true, upsert: true } // Retorna o config novo e cria se não existir
+    );
+
+    res.json({ message: 'Configuração atualizada com sucesso!', config: updatedConfig });
+
+  } catch (error) {
+    console.error('Erro ao aplicar preset:', error);
+    res.status(500).json({ message: 'Erro ao aplicar o modelo de indústria' });
   }
 });
 
