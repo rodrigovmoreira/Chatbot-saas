@@ -2,80 +2,68 @@ const cron = require('node-cron');
 const Contact = require('../models/Contact');
 const BusinessConfig = require('../models/BusinessConfig');
 const { sendUnifiedMessage } = require('./responseService');
-const { sendWhatsAppMessage } = require('./twilioService');
-const { saveMessage } = require('./message');
-
-// CONFIGURAÇÃO DOS ESTÁGIOS DE FOLLOW-UP
-// delayMinutes: Quanto tempo esperar APÓS a última interação do bot para mandar esta mensagem
-const FOLLOW_UP_STEPS = [
-  {
-    stage: 1,
-    delayMinutes: 1, // 30 min após a última fala do bot
-    message: "E aí, ficou alguma dúvida sobre o orçamento? Se quiser, posso te mandar alguns exemplos de artes nesse estilo! 🤘"
-  },
-  {
-    stage: 2,
-    delayMinutes: 90, // 2 horas após o PRIMEIRO follow-up (se o bot falou lá)
-    message: "Oi! Só para não esquecer, nossa agenda para o próximo mês já está abrindo. Quer garantir seu horário?"
-  },
-  {
-    stage: 3,
-    delayMinutes: 1440, // 24 horas depois (dia seguinte),
-    message: "Última chamada por aqui! Vou encerrar seu atendimento por enquanto, mas se decidir tatuar é só chamar. Abraço!"
-  }
-];
+// Importante: Caminho ajustado para a pasta services onde está o message.js atualizado
+const { saveMessage } = require('./message'); 
 
 function startScheduler() {
-  console.log('⏰ Agendador de Follow-up Multi-nível iniciado...');
+  console.log('⏰ Agendador de Follow-up (Multi-tenant) iniciado...');
 
   // Roda a cada 1 minuto
   cron.schedule('* * * * *', async () => {
     try {
       const now = new Date();
 
-      // 1. BUSCA: Contatos onde o BOT falou por último e ainda não completaram todos os estágios
-      // Nota: Não filtramos por tempo aqui no DB para simplificar a query, 
-      // pois cada estágio tem um tempo diferente. Filtramos o tempo no JavaScript.
-      const config = await BusinessConfig.findOne({});
-      const provider = config ? config.whatsappProvider : 'wwebjs';
+      // 1. BUSCA TODAS AS CONFIGURAÇÕES DE EMPRESAS
+      // No modelo SaaS, cada documento aqui é uma empresa diferente
+      const allConfigs = await BusinessConfig.find({});
 
-      const activeContacts = await Contact.find({
-        lastSender: 'bot',
-        followUpStage: { $lt: FOLLOW_UP_STEPS.length }, // Ainda tem etapas para cumprir
-        // Opcional: Trava de segurança para não pegar conversas de meses atrás
-        lastInteraction: { $gt: new Date(now.getTime() - 48 * 60 * 60000) }
-      });
+      // Loop por cada empresa para processar seus respectivos clientes
+      for (const config of allConfigs) {
+          
+          // Se a empresa não tiver passos de follow-up configurados, pula para a próxima
+          if (!config.followUpSteps || config.followUpSteps.length === 0) continue;
 
-      if (activeContacts.length > 0) {
-        // console.log(`🔎 Analisando ${activeContacts.length} contatos ativos...`);
-      }
+          const provider = config.whatsappProvider || 'wwebjs';
+          const steps = config.followUpSteps;
+          const businessId = config._id; // ID da empresa atual no loop
 
-      for (const contact of activeContacts) {
-        // Pega a configuração do PRÓXIMO estágio baseado no número atual do contato
-        // Se contact.followUpStage é 0, pegamos o índice 0 (que é o stage 1)
-        const nextStepConfig = FOLLOW_UP_STEPS[contact.followUpStage];
+          // 2. BUSCA CONTATOS DESTA EMPRESA ESPECÍFICA
+          // Regras: O bot falou por último, ainda tem etapas e a interação foi recente (48h)
+          const activeContacts = await Contact.find({
+            businessId: businessId, // <--- FILTRO DE SEGURANÇA (Só pega contatos dessa empresa)
+            lastSender: 'bot',
+            followUpStage: { $lt: steps.length }, 
+            lastInteraction: { $gt: new Date(now.getTime() - 48 * 60 * 60000) }
+          });
 
-        if (!nextStepConfig) continue; // Segurança extra
+          // Se tiver contatos para processar nesta empresa
+          // if (activeContacts.length > 0) console.log(`🔎 [${config.businessName}] Analisando ${activeContacts.length} contatos...`);
 
-        // Calcula o momento exato que deveríamos enviar a mensagem
-        // LastInteraction + Delay do estágio
-        const timeToTrigger = new Date(contact.lastInteraction.getTime() + nextStepConfig.delayMinutes * 60000);
+          for (const contact of activeContacts) {
+            // Pega a regra baseada no estágio atual do contato
+            const nextStepConfig = steps[contact.followUpStage];
 
-        // Se AGORA já passou do tempo de gatilho
-        if (now >= timeToTrigger) {
-          console.log(`🎣 Disparando Estágio ${nextStepConfig.stage} para: ${contact.phone}`);
+            if (!nextStepConfig) continue;
 
-          await sendUnifiedMessage(contact.phone, nextStepConfig.message, provider);
+            // Calcula o momento do disparo
+            const timeToTrigger = new Date(contact.lastInteraction.getTime() + nextStepConfig.delayMinutes * 60000);
 
-          await saveMessage(contact.phone, 'bot', nextStepConfig.message);
+            // Se já passou da hora
+            if (now >= timeToTrigger) {
+              console.log(`🎣 [${config.businessName}] Disparando Estágio ${contact.followUpStage + 1} para: ${contact.phone}`);
 
-          // 3. Incrementa o estágio
-          contact.followUpStage += 1;
+              // A. Envia a mensagem (via Twilio ou WWebJS)
+              await sendUnifiedMessage(contact.phone, nextStepConfig.message, provider);
 
-          // O saveMessage já deve ter atualizado o lastInteraction, 
-          // mas precisamos salvar o novo followUpStage.
-          await contact.save();
-        }
+              // B. Salva no banco vinculando à empresa correta
+              // Assinatura: saveMessage(phone, role, content, type, visionResult, businessId)
+              await saveMessage(contact.phone, 'bot', nextStepConfig.message, 'text', null, businessId);
+
+              // C. Atualiza o estágio do contato
+              contact.followUpStage += 1;
+              await contact.save();
+            }
+          }
       }
 
     } catch (error) {

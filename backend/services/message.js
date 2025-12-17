@@ -1,94 +1,131 @@
 const mongoose = require('mongoose');
+// Importamos o Contact para garantir que o Mongoose conheça o Schema antes de usar
+// Certifique-se de que o arquivo models/Contact.js existe conforme criamos no passo anterior
+const Contact = require('../models/Contact');
 
 const messageSchema = new mongoose.Schema({
   contactId: { type: mongoose.Schema.Types.ObjectId, ref: 'Contact', required: true },
   phone: { type: String, required: true },
   role: { type: String, enum: ['user', 'bot', 'agent'], required: true },
   content: { type: String, required: true }, // Texto visível
-  
+
   messageType: {
     type: String,
     enum: ['text', 'image', 'audio', 'document', 'video'],
     default: 'text'
   },
 
-  // === NOVO: METADADOS DE INTELIGÊNCIA ===
+  // === METADADOS DE INTELIGÊNCIA ===
   aiAnalysis: {
     isAnalyzed: { type: Boolean, default: false },
     description: { type: String }, // O que o Gemini viu
-    detectedIntent: { type: String }, // Ex: "pagamento", "orçamento" (Futuro)
-    confidenceScore: { type: Number }, // (Futuro)
-    modelUsed: { type: String } // Ex: "gemini-2.5-flash"
+    detectedIntent: { type: String },
+    confidenceScore: { type: Number },
+    modelUsed: { type: String }
   },
-  // ======================================
+  // =================================
 
   timestamp: { type: Date, default: Date.now }
 });
 
-const Message = mongoose.model('ChatMessage', messageSchema);
+// Verifica se o model já existe para evitar erro de re-compilação em hot-reload
+const Message = mongoose.models.ChatMessage || mongoose.model('ChatMessage', messageSchema);
 
-// Atualizei a função saveMessage para aceitar a análise
-async function saveMessage(phone, role, content, messageType = 'text', analysisData = null) {
+/*
+ * Salva uma mensagem no banco vinculada à empresa correta.
+ * @param {string} phone - Telefone do contato
+ * @param {string} role - Quem enviou ('user', 'bot')
+ * @param {string} content - Conteúdo do texto
+ * @param {string} messageType - Tipo da mensagem
+ * @param {string|null} visionResult - Resultado da análise de imagem (se houver)
+ * @param {string} businessId - ID da empresa (Obrigatório para SaaS)
+ */
+async function saveMessage(phone, role, content, messageType = 'text', visionResult = null, businessId) {
   try {
-    let contact = await mongoose.model('Contact').findOne({ phone });
-    
-    if (!contact) {
-      contact = await mongoose.model('Contact').create({ phone, totalMessages: 0 });
+    if (!businessId) {
+      console.error("❌ ERRO GRAVE: Tentativa de salvar mensagem sem businessId!");
+      return;
     }
 
+    // 1. Busca contato ESPECÍFICO desta empresa
+    let contact = await Contact.findOne({ phone, businessId });
+
+    // 2. Se não existe, cria vinculado à empresa
+    if (!contact) {
+      contact = await Contact.create({
+        phone,
+        businessId, // <--- Vínculo de segurança
+        totalMessages: 0,
+        followUpStage: 0
+      });
+    }
+
+    // 3. Atualiza estatísticas do contato
     contact.totalMessages += 1;
     contact.lastInteraction = new Date();
     contact.lastSender = role;
-    contact.followUpStage = 0; // Reseta funil se houver interação
+
+    // Se o cliente respondeu, zera o funil de vendas (regra de negócio)
+    if (role === 'user') {
+      contact.followUpStage = 0;
+    }
     await contact.save();
 
-    const msgData = { 
+    // 4. Prepara dados da mensagem
+    const msgData = {
       contactId: contact._id,
-      phone, 
-      role, 
+      phone,
+      role,
       content,
       messageType
     };
 
     // Se tiver análise de imagem, salva junto
-    if (analysisData) {
+    if (visionResult) {
       msgData.aiAnalysis = {
         isAnalyzed: true,
-        description: analysisData,
-        modelUsed: 'gemini-vision'
+        description: visionResult,
+        modelUsed: 'gemini-2.5-flash'
       };
     }
 
+    // 5. Cria a mensagem
     await Message.create(msgData);
-    
+
   } catch (error) {
     console.error('💥 Erro ao salvar mensagem:', error);
   }
 }
 
-// Função para buscar histórico focado em imagens (O que você pediu)
-async function getImageHistory(phone) {
+// Função para buscar histórico focado em imagens
+async function getImageHistory(phone, businessId) {
   try {
-    const contact = await mongoose.model('Contact').findOne({ phone });
+    if (!businessId) return [];
+
+    const contact = await Contact.findOne({ phone, businessId });
     if (!contact) return [];
 
-    // Busca apenas mensagens que tenham análise de IA
-    return await Message.find({ 
+    // Busca apenas mensagens que tenham análise de IA deste contato
+    return await Message.find({
       contactId: contact._id,
-      'aiAnalysis.isAnalyzed': true 
+      'aiAnalysis.isAnalyzed': true
     })
-    .sort({ timestamp: -1 })
-    .limit(5)
-    .select('content aiAnalysis timestamp')
-    .lean();
+      .sort({ timestamp: -1 })
+      .limit(5)
+      .select('content aiAnalysis timestamp')
+      .lean();
   } catch (error) {
+    console.error('Erro ao buscar histórico de imagens:', error);
     return [];
   }
 }
 
-async function getLastMessages(phone, limit = 15) {
+// Busca histórico geral de texto
+async function getLastMessages(phone, limit = 15, businessId) {
   try {
-    const contact = await mongoose.model('Contact').findOne({ phone });
+    if (!businessId) return [];
+
+    const contact = await Contact.findOne({ phone, businessId });
     if (!contact) return [];
 
     return await Message.find({ contactId: contact._id })

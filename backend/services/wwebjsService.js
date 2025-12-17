@@ -1,15 +1,33 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcodeTerminal = require('qrcode-terminal');
 const { adaptWWebJSMessage } = require('./providerAdapter');
+const BusinessConfig = require('../models/BusinessConfig');
 
 let client;
 let ioInstance;
 let currentQR = null;
 let currentStatus = 'initializing';
+let activeBusinessId = null;
 
-const initializeWWebJS = (io) => {
+const initializeWWebJS = async (io) => {
   ioInstance = io;
   console.log('🔄 Inicializando WWebJS...');
+
+  // === NOVO: Carrega o BusinessID desta sessão ===
+  try {
+    // Como estamos rodando uma instância única, pegamos a primeira empresa encontrada.
+    // Num futuro SaaS com múltiplos containers, isso viria via variável de ambiente ou parâmetro.
+    const config = await BusinessConfig.findOne({});
+    if (config) {
+        activeBusinessId = config._id;
+        console.log(`🏢 Sessão vinculada à empresa: ${config.businessName} (ID: ${activeBusinessId})`);
+    } else {
+        console.warn('⚠️ Nenhuma empresa encontrada no banco! O sistema pode falhar ao salvar mensagens.');
+    }
+  } catch (error) {
+    console.error('❌ Erro ao buscar configuração da empresa:', error);
+  }
+  // ===============================================
 
   client = new Client({
     authStrategy: new LocalAuth(),
@@ -25,11 +43,10 @@ const initializeWWebJS = (io) => {
   };
 
   client.on('qr', (qr) => {
-    currentQR = qr; // <--- NOVO: Salva o QR Code na memória
+    currentQR = qr;
     updateStatus('qrcode');
     console.log('📸 QR RECEIVED no Terminal');
-    //qrcodeTerminal.generate(qr, { small: true });
-
+    
     if (ioInstance) {
       ioInstance.emit('wwebjs_qr', qr);
       ioInstance.emit('wwebjs_status', 'qrcode');
@@ -53,9 +70,15 @@ const initializeWWebJS = (io) => {
   client.on('message', async (msg) => {
     if (msg.type === 'e2e_notification' || msg.type === 'notification_template') return;
     try {
+      // Importamos aqui dentro para evitar problemas de dependência circular
       const { handleIncomingMessage } = require('../messageHandler');
+      
       const normalizedMsg = await adaptWWebJSMessage(msg);
-      await handleIncomingMessage(normalizedMsg);
+      
+      // === ATENÇÃO: Agora passamos o activeBusinessId junto! ===
+      // Se activeBusinessId for null, o handleIncomingMessage deverá tratar o erro
+      await handleIncomingMessage(normalizedMsg, activeBusinessId);
+      
     } catch (error) {
       console.error('Erro ao processar mensagem WWebJS:', error);
     }
@@ -73,8 +96,8 @@ const logoutWWebJS = async () => {
   try {
     if (client) {
       console.log('🚪 Executando Logout do WWebJS...');
-      await client.logout(); // Isso limpa a sessão do LocalAuth
-      // Precisamos reiniciar o cliente para gerar novo QR Code
+      await client.logout(); 
+      
       setTimeout(() => {
         client.initialize();
         currentStatus = 'initializing';
@@ -87,6 +110,6 @@ const logoutWWebJS = async () => {
 
 const getWWebJSClient = () => client;
 const getCurrentQR = () => currentQR;
-const getCurrentStatus = () => currentStatus; // <--- Exporta o status atual
+const getCurrentStatus = () => currentStatus;
 
 module.exports = { initializeWWebJS, getWWebJSClient, getCurrentQR, getCurrentStatus, logoutWWebJS };
