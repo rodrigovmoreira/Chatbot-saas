@@ -19,7 +19,8 @@ const {
   startSession, 
   stopSession, 
   getSessionStatus, 
-  getSessionQR 
+  getSessionQR,
+  closeAllSessions
 } = require('./services/wwebjsService');
 
 // 1. Carregar Schemas (para garantir registro no Mongoose)
@@ -275,8 +276,6 @@ async function start() {
   try {
     await connectDB();
     startScheduler();
-
-    // Inicia o serviço WWebJS (restaura sessões antigas se houver)
     initializeWWebJS(io);
 
     server.listen(PORT, () => {
@@ -288,5 +287,14 @@ async function start() {
     process.exit(1);
   }
 }
+
+const cleanup = async () => {
+  console.log('\n🛑 Recebido sinal de encerramento. Fechando navegadores...');
+  await closeAllSessions();
+  process.exit(0);
+};
+
+process.on('SIGINT', cleanup);
+process.on('SIGTERM', cleanup);
 
 start();
