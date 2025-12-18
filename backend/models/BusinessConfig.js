@@ -8,6 +8,7 @@ const businessConfigSchema = new mongoose.Schema({
   },
 
   businessName: { type: String, default: 'Estúdio Tattoo' },
+  businessType: { type: String }, // <--- ADICIONADO: Identifica o nicho (ex: Barber, Tattoo)
   whatsappProvider: { type: String, enum: ['twilio', 'wwebjs'], default: 'wwebjs' },
 
   // === NOVO: CENTRAL DE PROMPTS (O CÉREBRO) ===
@@ -24,6 +25,25 @@ const businessConfigSchema = new mongoose.Schema({
       default: `Você é um assistente virtual que pode ver imagens enviadas pelos usuários. Descreva as imagens de forma clara e objetiva.`
     }
   },
+
+  // === ADICIONADO: MENU DE RESPOSTAS RÁPIDAS ===
+  menuOptions: [
+    {
+      keyword: { type: String, required: true }, // ex: "pix"
+      description: { type: String },             // ex: "Chave Pix" (interno)
+      response: { type: String, required: true },// ex: "Nossa chave é..."
+      requiresHuman: { type: Boolean, default: false }
+    }
+  ],
+
+  // === ADICIONADO: CATÁLOGO DE PRODUTOS ===
+  products: [
+    {
+      name: { type: String, required: true },
+      price: { type: Number, required: true },
+      description: { type: String }
+    }
+  ],
 
   followUpSteps: [
     {
