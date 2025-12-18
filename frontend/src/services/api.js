@@ -55,7 +55,12 @@ export const businessAPI = {
 
   // 3. Inteligência e Presets (O que estava faltando!)
   getPresets: () => api.get('/api/presets'),
-  applyPreset: (presetKey) => api.post('/api/apply-preset', { presetKey })
+  applyPreset: (presetKey) => api.post('/api/apply-preset', { presetKey }),
+
+  getCustomPrompts: () => api.get('/api/custom-prompts'),
+  saveCustomPrompt: (data) => api.post('/api/custom-prompts', data), // data = { name, prompts: { chatSystem, visionSystem } }
+  deleteCustomPrompt: (id) => api.delete(`/api/custom-prompts/${id}`),
+  
 };
 
 export default api;

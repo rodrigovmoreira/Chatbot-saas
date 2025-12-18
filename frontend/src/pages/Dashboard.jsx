@@ -4,9 +4,9 @@ import {
   Box, Container, Grid, GridItem, Card, CardHeader, CardBody, Heading, Text, Button, VStack, HStack,
   useToast, Badge, Icon, useColorModeValue, FormControl, FormLabel, Input, Textarea, Checkbox,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
-  useDisclosure, Alert, AlertIcon, Spinner, Select, Tabs, TabList, TabPanels, Tab, TabPanel, Divider
+  useDisclosure, Alert, AlertIcon, Spinner, Select, Tabs, TabList, TabPanels, Tab, TabPanel, Divider, IconButton
 } from '@chakra-ui/react';
-import { CheckCircleIcon, WarningTwoIcon, AddIcon, EditIcon, DeleteIcon, StarIcon, TimeIcon } from '@chakra-ui/icons';
+import { CheckCircleIcon, WarningTwoIcon, AddIcon, EditIcon, DeleteIcon, StarIcon, TimeIcon, DownloadIcon } from '@chakra-ui/icons';
 import { useApp } from '../context/AppContext';
 import { businessAPI } from '../services/api';
 
@@ -14,16 +14,22 @@ const Dashboard = () => {
   const { state, dispatch } = useApp();
   const toast = useToast();
   const cardBg = useColorModeValue('white', 'gray.800');
-  
+
   // === ESTADOS DE CONTROLE DE MODAIS ===
   const { isOpen, onOpen, onClose } = useDisclosure(); // Modal Menu
   const { isOpen: isProductModalOpen, onOpen: onProductModalOpen, onClose: onProductModalClose } = useDisclosure(); // Modal Produto
-  const { isOpen: isFollowUpModalOpen, onOpen: onFollowUpOpen, onClose: onFollowUpClose } = useDisclosure(); // Modal Follow-up (NOVO)
+  const { isOpen: isFollowUpModalOpen, onOpen: onFollowUpOpen, onClose: onFollowUpClose } = useDisclosure(); // Modal Follow-up
+  const { isOpen: isSavePromptOpen, onOpen: onSavePromptOpen, onClose: onSavePromptClose } = useDisclosure(); // Modal Salvar Prompt
 
   // === ESTADOS DE DADOS ===
   const [editingHours, setEditingHours] = useState(false);
   const [presets, setPresets] = useState([]);
   const [selectedPreset, setSelectedPreset] = useState('');
+
+  // === ESTADOS PARA CUSTOM PROMPTS (MEUS MODELOS) ===
+  const [customPrompts, setCustomPrompts] = useState([]);
+  const [selectedCustomPrompt, setSelectedCustomPrompt] = useState('');
+  const [newPromptName, setNewPromptName] = useState('');
 
   // Formulário Configs Gerais
   const [configForm, setConfigForm] = useState({
@@ -38,7 +44,7 @@ const Dashboard = () => {
   const [followUpSteps, setFollowUpSteps] = useState([]); // <--- NOVO: Lista de Passos do Funil
 
   // --- ESTADOS DE EDIÇÃO (INPUTS CONTROLADOS) ---
-  
+
   // 1. Prompts (Agora Editáveis)
   const [activePrompts, setActivePrompts] = useState({
     chatSystem: '',
@@ -60,7 +66,7 @@ const Dashboard = () => {
   // =========================================================
   // 🔄 CARREGAMENTO INICIAL
   // =========================================================
-  
+
   // 1. Sincroniza Estado Local com Contexto Global
   useEffect(() => {
     if (state.businessConfig) {
@@ -74,7 +80,7 @@ const Dashboard = () => {
       setMenuOptions(state.businessConfig.menuOptions || []);
       setProducts(state.businessConfig.products || []);
       setFollowUpSteps(state.businessConfig.followUpSteps || []); // Carrega funil
-      
+
       // Prompts (Se existirem)
       if (state.businessConfig.prompts) {
         setActivePrompts({
@@ -97,6 +103,61 @@ const Dashboard = () => {
     };
     fetchPresets();
   }, []);
+
+  // 1. Adicione a busca inicial (pode colocar junto com o useEffect dos Presets ou separado)
+  useEffect(() => {
+    fetchCustomPrompts();
+  }, []);
+
+  const fetchCustomPrompts = async () => {
+    try { const res = await businessAPI.getCustomPrompts(); setCustomPrompts(res.data); } catch (e) { }
+  };
+
+  // 2. Função para Carregar SEU Modelo (Preenche os inputs sem apagar)
+  const handleLoadCustomPrompt = (promptId) => {
+    const selected = customPrompts.find(p => p._id === promptId);
+    if (selected) {
+      setActivePrompts({
+        chatSystem: selected.prompts.chatSystem,
+        visionSystem: selected.prompts.visionSystem
+      });
+      setSelectedCustomPrompt(promptId);
+      setSelectedPreset(''); // Limpa o seletor de Preset do sistema para não confundir
+      toast({ title: 'Modelo carregado! Clique em "Salvar Alterações" para ativar.', status: 'info' });
+    }
+  };
+
+  // 3. Funções para Criar e Deletar Modelos
+  const handleOpenSavePromptModal = () => {
+    setNewPromptName('');
+    onSavePromptOpen();
+  };
+
+  const handleCreateCustomPrompt = async () => {
+    if (!newPromptName) return;
+    try {
+      await businessAPI.saveCustomPrompt({
+        name: newPromptName,
+        prompts: activePrompts // Salva o que está escrito nos TextAreas agora
+      });
+      toast({ title: 'Modelo salvo na sua biblioteca!', status: 'success' });
+      fetchCustomPrompts();
+      onSavePromptClose();
+    } catch (error) {
+      toast({ title: 'Erro ao salvar', description: error.response?.data?.message, status: 'error' });
+    }
+  };
+
+  const handleDeleteCustomPrompt = async (id, e) => {
+    e.stopPropagation();
+    if (!window.confirm("Apagar este modelo salvo?")) return;
+    try {
+      await businessAPI.deleteCustomPrompt(id);
+      fetchCustomPrompts();
+      if (selectedCustomPrompt === id) setSelectedCustomPrompt('');
+      toast({ title: 'Modelo removido', status: 'success' });
+    } catch (e) { }
+  };
 
   // =========================================================
   // 🔌 AÇÕES DE CONEXÃO (WHATSAPP)
@@ -151,7 +212,7 @@ const Dashboard = () => {
     try {
       const response = await businessAPI.applyPreset(selectedPreset);
       dispatch({ type: 'SET_BUSINESS_CONFIG', payload: response.data.config });
-      
+
       // Atualiza visualmente os inputs de prompt e funil imediatamente
       setActivePrompts({
         chatSystem: response.data.config.prompts.chatSystem,
@@ -168,8 +229,8 @@ const Dashboard = () => {
   // Salva Prompts (Edição Manual)
   const handleSavePrompts = async () => {
     try {
-      const payload = { 
-        ...state.businessConfig, 
+      const payload = {
+        ...state.businessConfig,
         prompts: activePrompts // Manda o que está no input
       };
       const response = await businessAPI.updateConfig(payload);
@@ -208,7 +269,7 @@ const Dashboard = () => {
         ...step,
         stage: index + 1
       }));
-      
+
       const payload = { ...state.businessConfig, followUpSteps: orderedSteps };
       const res = await businessAPI.updateConfig(payload);
       dispatch({ type: 'SET_BUSINESS_CONFIG', payload: res.data });
@@ -235,7 +296,7 @@ const Dashboard = () => {
     const updated = [...menuOptions];
     if (editingMenuIndex !== null) updated[editingMenuIndex] = newMenuOption;
     else updated.push(newMenuOption);
-    
+
     setMenuOptions(updated);
     setEditingMenuIndex(null);
     setNewMenuOption({ keyword: '', description: '', response: '', requiresHuman: false, useAI: false });
@@ -367,17 +428,17 @@ const Dashboard = () => {
               </Grid>
             </TabPanel>
 
-            {/* ABA 2: INTELIGÊNCIA & NICHO (ATUALIZADA) */}
+            {/* ABA 2: INTELIGÊNCIA & NICHO */}
             <TabPanel px={0}>
               <VStack spacing={6} align="stretch">
                 
-                {/* 1. SELEÇÃO DE NICHO */}
-                <Card bg="white" boxShadow="md" borderLeft="4px solid" borderColor="blue.500">
+                {/* 1. SELEÇÃO DE PRESET DO SISTEMA */}
+                <Card bg="white" boxShadow="sm" borderLeft="4px solid" borderColor="blue.500">
                   <CardBody>
                     <Grid templateColumns={{ base: '1fr', md: '2fr 1fr' }} gap={4} alignItems="center">
                       <Box>
-                        <Heading size="sm" mb={1}>Modelo de Negócio (Preset)</Heading>
-                        <Text fontSize="sm" color="gray.600">Escolha um nicho para carregar Prompts e Funil de Vendas pré-configurados.</Text>
+                        <Heading size="sm" mb={1}>Modelos Padrão (Sistema)</Heading>
+                        <Text fontSize="sm" color="gray.600">Use um modelo pronto da plataforma.</Text>
                       </Box>
                       <HStack>
                         <Select placeholder="Selecione..." bg="gray.50" onChange={(e) => setSelectedPreset(e.target.value)} value={selectedPreset}>
@@ -389,38 +450,98 @@ const Dashboard = () => {
                   </CardBody>
                 </Card>
 
+                {/* 2. MEUS MODELOS SALVOS (O Retângulo Laranja) */}
+                <Card bg="orange.50" boxShadow="sm" borderLeft="4px solid" borderColor="orange.400">
+                  <CardBody>
+                    <Grid templateColumns={{ base: '1fr', md: '2fr 1fr' }} gap={4} alignItems="center">
+                      <Box>
+                        <Heading size="sm" mb={1} color="orange.800">Meus Modelos Pessoais</Heading>
+                        <Text fontSize="sm" color="orange.700">Carregue suas edições salvas anteriormente.</Text>
+                      </Box>
+                      <HStack>
+                        <Select 
+                          placeholder="Carregar meus prompts..." 
+                          bg="white" 
+                          onChange={(e) => handleLoadCustomPrompt(e.target.value)} 
+                          value={selectedCustomPrompt}
+                        >
+                          {customPrompts.map(p => (
+                            <option key={p._id} value={p._id}>📄 {p.name}</option>
+                          ))}
+                        </Select>
+                        {selectedCustomPrompt && (
+                          <IconButton 
+                            icon={<DeleteIcon />} 
+                            colorScheme="red" 
+                            variant="ghost" 
+                            onClick={(e) => handleDeleteCustomPrompt(selectedCustomPrompt, e)}
+                            aria-label="Deletar"
+                          />
+                        )}
+                      </HStack>
+                    </Grid>
+                  </CardBody>
+                </Card>
+
                 <Divider />
 
-                {/* 2. CÉREBRO DA IA (EDITÁVEL) */}
+                {/* 3. EDITORES DE TEXTO (CHAT E VISÃO) */}
                 <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={6}>
                   <Card bg="white" boxShadow="sm">
-                    <CardHeader pb={0}><Heading size="sm">🧠 Personalidade do Chat (System)</Heading></CardHeader>
+                    <CardHeader pb={0}><Heading size="sm">🧠 Personalidade (Chat)</Heading></CardHeader>
                     <CardBody>
                       <Textarea 
-                        value={activePrompts.chatSystem}
-                        onChange={(e) => setActivePrompts({...activePrompts, chatSystem: e.target.value})}
-                        placeholder="Ex: Você é um assistente..."
-                        rows={10} bg="gray.50" fontSize="sm"
+                        value={activePrompts.chatSystem} 
+                        onChange={(e) => setActivePrompts({...activePrompts, chatSystem: e.target.value})} 
+                        rows={10} 
+                        bg="gray.50" 
+                        fontSize="sm" 
+                        placeholder="Instruções para o chat..."
                       />
                     </CardBody>
                   </Card>
                   <Card bg="white" boxShadow="sm">
-                    <CardHeader pb={0}><Heading size="sm">👁️ Visão Computacional (Vision)</Heading></CardHeader>
+                    <CardHeader pb={0}><Heading size="sm">👁️ Visão (Imagem)</Heading></CardHeader>
                     <CardBody>
                       <Textarea 
-                        value={activePrompts.visionSystem}
-                        onChange={(e) => setActivePrompts({...activePrompts, visionSystem: e.target.value})}
-                        placeholder="Ex: Descreva a imagem focando em..."
-                        rows={10} bg="gray.50" fontSize="sm"
+                        value={activePrompts.visionSystem} 
+                        onChange={(e) => setActivePrompts({...activePrompts, visionSystem: e.target.value})} 
+                        rows={10} 
+                        bg="gray.50" 
+                        fontSize="sm" 
+                        placeholder="Instruções para análise de imagem..."
                       />
                     </CardBody>
                   </Card>
                 </Grid>
-                <Button colorScheme="green" size="lg" onClick={handleSavePrompts}>Salvar Alterações nos Prompts</Button>
+
+                {/* BOTÕES DE AÇÃO DOS PROMPTS */}
+                <HStack spacing={4}>
+                  <Button 
+                    colorScheme="green" 
+                    size="lg" 
+                    onClick={handleSavePrompts} 
+                    flex="2"
+                    boxShadow="md"
+                  >
+                    Salvar Alterações nos Prompts (Ativar)
+                  </Button>
+                  
+                  <Button 
+                    colorScheme="orange" 
+                    variant="outline"
+                    size="lg" 
+                    onClick={handleOpenSavePromptModal} 
+                    flex="1"
+                    leftIcon={<DownloadIcon />}
+                  >
+                    Salvar como Meu Modelo
+                  </Button>
+                </HStack>
 
                 <Divider />
 
-                {/* 3. FUNIL DE VENDAS (FOLLOW-UP) - NOVO! */}
+                {/* 4. FUNIL DE VENDAS (A PARTE QUE TINHA SUMIDO!) */}
                 <Box>
                   <HStack justify="space-between" mb={4}>
                     <Box>
@@ -583,14 +704,14 @@ const Dashboard = () => {
               <FormControl isRequired>
                 <FormLabel>Tempo de Espera (em Minutos)</FormLabel>
                 <HStack>
-                  <Input type="number" value={newFollowUp.delayMinutes} onChange={e => setNewFollowUp({...newFollowUp, delayMinutes: parseInt(e.target.value)})} />
+                  <Input type="number" value={newFollowUp.delayMinutes} onChange={e => setNewFollowUp({ ...newFollowUp, delayMinutes: parseInt(e.target.value) })} />
                   <Text fontSize="sm" color="gray.500">minutos</Text>
                 </HStack>
                 <Text fontSize="xs" color="gray.400">Ex: 60 = 1 hora; 1440 = 24 horas.</Text>
               </FormControl>
               <FormControl isRequired>
                 <FormLabel>Mensagem de Cobrança</FormLabel>
-                <Textarea placeholder="Ex: E aí, ainda tem interesse?" value={newFollowUp.message} onChange={e => setNewFollowUp({...newFollowUp, message: e.target.value})} rows={4} />
+                <Textarea placeholder="Ex: E aí, ainda tem interesse?" value={newFollowUp.message} onChange={e => setNewFollowUp({ ...newFollowUp, message: e.target.value })} rows={4} />
               </FormControl>
             </VStack>
           </ModalBody>
@@ -615,6 +736,28 @@ const Dashboard = () => {
             </VStack>
           </ModalBody>
           <ModalFooter><Button variant="ghost" mr={3} onClick={onProductModalClose}>Cancelar</Button><Button colorScheme="blue" onClick={handleAddProduct}>Salvar</Button></ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Modal Salvar Custom Prompt (NOVO) */}
+      <Modal isOpen={isSavePromptOpen} onClose={onSavePromptClose} isCentered>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Salvar como Meu Modelo</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack spacing={4}>
+              <Text fontSize="sm" color="gray.600">Dê um nome para salvar a configuração atual de prompts na sua biblioteca pessoal.</Text>
+              <FormControl isRequired>
+                <FormLabel>Nome do Modelo</FormLabel>
+                <Input placeholder="Ex: Tatuador Agressivo v2" value={newPromptName} onChange={e => setNewPromptName(e.target.value)} />
+              </FormControl>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={onSavePromptClose}>Cancelar</Button>
+            <Button colorScheme="orange" onClick={handleCreateCustomPrompt}>Salvar na Biblioteca</Button>
+          </ModalFooter>
         </ModalContent>
       </Modal>
 

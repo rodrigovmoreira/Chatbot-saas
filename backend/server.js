@@ -1,24 +1,25 @@
-require('dotenv').config(); 
-const cors = require('cors'); 
-const express = require('express'); 
-const path = require('path'); 
-const http = require('http'); 
-const { Server } = require("socket.io"); 
-const jwt = require('jsonwebtoken'); 
-const cookieParser = require('cookie-parser'); 
-const connectDB = require('./services/database'); 
-const { startScheduler } = require('./services/scheduler'); 
+require('dotenv').config();
+const cors = require('cors');
+const express = require('express');
+const path = require('path');
+const http = require('http');
+const { Server } = require("socket.io");
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
+const connectDB = require('./services/database');
+const { startScheduler } = require('./services/scheduler');
+const CustomPrompt = require('./models/CustomPrompt');
 
 // --- IMPORTS DE SERVIÇOS ---
-const { adaptTwilioMessage } = require('./services/providerAdapter'); 
-const { handleIncomingMessage } = require('./messageHandler'); 
+const { adaptTwilioMessage } = require('./services/providerAdapter');
+const { handleIncomingMessage } = require('./messageHandler');
 
 // IMPORTANTE: Importação atualizada para suportar Multi-sessão
-const { 
-  initializeWWebJS, 
-  startSession, 
-  stopSession, 
-  getSessionStatus, 
+const {
+  initializeWWebJS,
+  startSession,
+  stopSession,
+  getSessionStatus,
   getSessionQR,
   closeAllSessions
 } = require('./services/wwebjsService');
@@ -28,6 +29,7 @@ require('./models/SystemUser');
 require('./models/Contact');
 require('./models/BusinessConfig');
 require('./models/IndustryPreset'); // <--- NOVO
+require('./models/CustomPrompt');
 
 // 2. Importar Models para uso nas rotas
 const SystemUser = require('./models/SystemUser');
@@ -77,10 +79,10 @@ io.on('connection', (socket) => {
   // O Frontend deve emitir este evento logo após conectar
   socket.on('join_session', (userId) => {
     if (!userId) return;
-    
+
     // Entra na "sala" exclusiva deste usuário
     console.log(`👤 Socket ${socket.id} entrou na sala do usuário: ${userId}`);
-    socket.join(userId); 
+    socket.join(userId);
 
     // Envia o status ATUAL desta sessão específica
     const status = getSessionStatus(userId);
@@ -108,7 +110,7 @@ app.post('/api/webhook', async (req, res) => {
       const normalizedMsg = adaptTwilioMessage(req.body);
       // Nota: Twilio precisa de lógica extra para identificar o BusinessID pelo número de destino 'To'
       // Por enquanto, focamos no WWebJS que já está resolvido.
-      await handleIncomingMessage(normalizedMsg, null); 
+      await handleIncomingMessage(normalizedMsg, null);
     }
   } catch (error) {
     console.error('💥 Erro Webhook Twilio:', error);
@@ -253,11 +255,11 @@ app.post('/api/apply-preset', authenticateToken, async (req, res) => {
     // Atualiza apenas os campos de inteligência e comportamento
     const updatedConfig = await BusinessConfig.findOneAndUpdate(
       { userId: req.user.userId },
-      { 
+      {
         $set: {
-            'prompts.chatSystem': preset.prompts.chatSystem,
-            'prompts.visionSystem': preset.prompts.visionSystem,
-            followUpSteps: preset.followUpSteps
+          'prompts.chatSystem': preset.prompts.chatSystem,
+          'prompts.visionSystem': preset.prompts.visionSystem,
+          followUpSteps: preset.followUpSteps
         }
       },
       { new: true }
@@ -270,6 +272,45 @@ app.post('/api/apply-preset', authenticateToken, async (req, res) => {
   }
 });
 
+// === 6. ROTAS DE PROMPTS PERSONALIZADOS (MEUS MODELOS) ===
+// Listar meus modelos
+app.get('/api/custom-prompts', authenticateToken, async (req, res) => {
+  try {
+    const prompts = await CustomPrompt.find({ userId: req.user.userId }).sort({ createdAt: -1 });
+    res.json(prompts);
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao buscar modelos personalizados' });
+  }
+});
+
+// Criar novo modelo (Salvar o que está na tela)
+app.post('/api/custom-prompts', authenticateToken, async (req, res) => {
+  try {
+    const { name, prompts } = req.body;
+    if (!name || !prompts) return res.status(400).json({ message: 'Dados incompletos' });
+
+    const newPrompt = await CustomPrompt.create({
+      userId: req.user.userId,
+      name,
+      prompts
+    });
+    res.json(newPrompt);
+  } catch (error) {
+    // Tratamento de erro de duplicação
+    if (error.code === 11000) return res.status(400).json({ message: 'Já existe um modelo com esse nome.' });
+    res.status(500).json({ message: 'Erro ao salvar modelo' });
+  }
+});
+
+// Deletar modelo
+app.delete('/api/custom-prompts/:id', authenticateToken, async (req, res) => {
+  try {
+    await CustomPrompt.findOneAndDelete({ _id: req.params.id, userId: req.user.userId });
+    res.json({ message: 'Modelo removido' });
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao deletar' });
+  }
+});
 
 // --- INICIALIZAÇÃO ---
 async function start() {
