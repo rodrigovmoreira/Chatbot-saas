@@ -32,7 +32,8 @@ const businessConfigSchema = new mongoose.Schema({
       keyword: { type: String, required: true }, // ex: "pix"
       description: { type: String },             // ex: "Chave Pix" (interno)
       response: { type: String, required: true },// ex: "Nossa chave é..."
-      requiresHuman: { type: Boolean, default: false }
+      requiresHuman: { type: Boolean, default: false },
+      useAI: { type: Boolean, default: false }
     }
   ],
 

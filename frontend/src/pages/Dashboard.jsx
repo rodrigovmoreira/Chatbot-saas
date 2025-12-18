@@ -14,7 +14,7 @@ const Dashboard = () => {
   const { state, dispatch } = useApp();
   const toast = useToast();
   const cardBg = useColorModeValue('white', 'gray.800');
-
+  const [editingMenuIndex, setEditingMenuIndex] = useState(null);
   // Modais de Edição
   const { isOpen, onOpen, onClose } = useDisclosure(); // Modal Menu
   const { isOpen: isProductModalOpen, onOpen: onProductModalOpen, onClose: onProductModalClose } = useDisclosure({
@@ -40,7 +40,7 @@ const Dashboard = () => {
   const [products, setProducts] = useState([]);
 
   // Estados Temporários (Novos Itens)
-  const [newMenuOption, setNewMenuOption] = useState({ keyword: '', description: '', response: '', requiresHuman: false });
+  const [newMenuOption, setNewMenuOption] = useState({ keyword: '', description: '', response: '', requiresHuman: false, useAI: false });
   const [newProduct, setNewProduct] = useState({ name: '', price: '', description: '' });
   const [editingProductIndex, setEditingProductIndex] = useState(null);
 
@@ -157,9 +157,35 @@ const Dashboard = () => {
   };
 
   // --- CRUD Auxiliares (Frontend) ---
-  const handleAddMenuOption = () => {
-    setMenuOptions([...menuOptions, newMenuOption]);
-    setNewMenuOption({ keyword: '', description: '', response: '', requiresHuman: false });
+  // Função para abrir o modal PREENCHIDO com os dados do item clicado
+  const handleEditMenuOption = (idx) => {
+    setEditingMenuIndex(idx);
+    setNewMenuOption(menuOptions[idx]); // Carrega os dados existentes
+    onOpen(); // Abre o modal
+  };
+
+  // Função Unificada: Salvar (Criar ou Atualizar)
+  const handleSaveMenuOption = () => {
+    // Validação básica
+    if (!newMenuOption.keyword || !newMenuOption.response) {
+      toast({ title: 'Preencha os campos obrigatórios', status: 'warning' });
+      return;
+    }
+
+    if (editingMenuIndex !== null) {
+      // MODO EDIÇÃO: Atualiza o item existente
+      const updatedOptions = [...menuOptions];
+      updatedOptions[editingMenuIndex] = newMenuOption;
+      setMenuOptions(updatedOptions);
+      toast({ title: 'Regra atualizada (clique em Salvar Menu para persistir)', status: 'info', duration: 2000 });
+    } else {
+      // MODO CRIAÇÃO: Adiciona no final
+      setMenuOptions([...menuOptions, newMenuOption]);
+    }
+
+    // Limpeza
+    setEditingMenuIndex(null);
+    setNewMenuOption({ keyword: '', description: '', response: '', requiresHuman: false, useAI: false });
     onClose();
   };
   const handleRemoveMenuOption = (idx) => setMenuOptions(menuOptions.filter((_, i) => i !== idx));
@@ -407,14 +433,46 @@ const Dashboard = () => {
                 <CardBody>
                   <Grid templateColumns="repeat(auto-fill, minmax(280px, 1fr))" gap={4}>
                     {menuOptions.map((opt, idx) => (
-                      <Card key={idx} variant="outline" borderColor="gray.200">
+                      <Card key={idx} variant="outline" size="sm" borderColor="gray.200">
                         <CardBody p={3}>
                           <HStack justify="space-between" mb={2}>
-                            <Badge colorScheme="purple" px={2} py={1} borderRadius="md">{opt.keyword}</Badge>
-                            <Icon as={DeleteIcon} color="red.300" cursor="pointer" onClick={() => handleRemoveMenuOption(idx)} />
+                            <Badge colorScheme="purple" fontSize="0.8em">
+                              {idx + 1}. {opt.keyword.split(',')[0]} {/* Mostra só a 1ª palavra pra não poluir */}
+                            </Badge>
+
+                            {/* GRUPO DE BOTÕES DE AÇÃO */}
+                            <HStack spacing={1}>
+                              <Icon
+                                as={EditIcon}
+                                color="blue.400"
+                                cursor="pointer"
+                                onClick={() => handleEditMenuOption(idx)} // <--- CHAMA A EDIÇÃO
+                                boxSize={4}
+                                _hover={{ color: 'blue.600' }}
+                              />
+                              <Icon
+                                as={DeleteIcon}
+                                color="red.300"
+                                cursor="pointer"
+                                onClick={() => handleRemoveMenuOption(idx)}
+                                boxSize={4}
+                                _hover={{ color: 'red.500' }}
+                              />
+                            </HStack>
                           </HStack>
-                          <Text fontSize="xs" color="gray.600" noOfLines={3}>{opt.response}</Text>
-                          {opt.requiresHuman && <Badge mt={2} colorScheme="orange" fontSize="0.6em">Encaminha p/ Humano</Badge>}
+
+                          <Text fontWeight="bold" fontSize="xs" color="gray.700" mb={1}>
+                            {opt.description || "Sem descrição"}
+                          </Text>
+                          <Text fontSize="xs" color="gray.500" noOfLines={2}>
+                            {opt.response}
+                          </Text>
+
+                          {/* Badges de Status */}
+                          <HStack mt={2}>
+                            {opt.requiresHuman && <Badge colorScheme="orange" fontSize="0.6em">Humano</Badge>}
+                            {opt.useAI && <Badge colorScheme="teal" fontSize="0.6em">IA Ativa</Badge>}
+                          </HStack>
                         </CardBody>
                       </Card>
                     ))}
@@ -483,31 +541,85 @@ const Dashboard = () => {
       <Modal isOpen={isOpen} onClose={onClose} isCentered size="lg">
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>Adicionar Resposta Rápida</ModalHeader>
+          <ModalHeader>
+            {editingMenuIndex !== null ? 'Editar Regra' : 'Nova Regra de Resposta'}
+          </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <VStack spacing={4}>
-              <FormControl isRequired>
-                <FormLabel>Palavra-Chave</FormLabel>
-                <Input placeholder="Ex: pix, endereco, horario" value={newMenuOption.keyword} onChange={e => setNewMenuOption({ ...newMenuOption, keyword: e.target.value })} />
-                <Text fontSize="xs" color="gray.500">Quando o cliente digitar isso, o bot responde na hora.</Text>
-              </FormControl>
+
+              {/* 1. DESCRIÇÃO PRIMEIRO (Como você pediu) */}
               <FormControl>
-                <FormLabel>Descrição (Interna)</FormLabel>
-                <Input placeholder="Ex: Enviar chave pix" value={newMenuOption.description} onChange={e => setNewMenuOption({ ...newMenuOption, description: e.target.value })} />
+                <FormLabel fontWeight="bold" fontSize="sm">Descrição Interna</FormLabel>
+                <Input
+                  placeholder="Ex: Enviar chave pix"
+                  value={newMenuOption.description}
+                  onChange={e => setNewMenuOption({ ...newMenuOption, description: e.target.value })}
+                />
+                <Text fontSize="xs" color="gray.500">Para você identificar esta regra no painel.</Text>
               </FormControl>
+
+              {/* 2. PALAVRAS-CHAVE */}
               <FormControl isRequired>
-                <FormLabel>Resposta do Robô</FormLabel>
-                <Textarea placeholder="Digite a resposta completa aqui..." rows={4} value={newMenuOption.response} onChange={e => setNewMenuOption({ ...newMenuOption, response: e.target.value })} />
+                <FormLabel fontWeight="bold" fontSize="sm">Palavras-Chave</FormLabel>
+                <Textarea
+                  placeholder="Ex: pix, pagamento, conta bancária, transferir"
+                  value={newMenuOption.keyword}
+                  onChange={e => setNewMenuOption({ ...newMenuOption, keyword: e.target.value })}
+                  rows={2}
+                />
+                <Text fontSize="xs" color="gray.500">
+                  Separe por vírgulas. Se o cliente digitar <b>qualquer uma</b> dessas palavras, o bot responderá.
+                </Text>
               </FormControl>
-              <Checkbox colorScheme="orange" isChecked={newMenuOption.requiresHuman} onChange={e => setNewMenuOption({ ...newMenuOption, requiresHuman: e.target.checked })}>
-                Marcar atendimento como "Humano Necessário"
-              </Checkbox>
+
+              {/* 3. RESPOSTA */}
+              <FormControl isRequired>
+                <FormLabel fontWeight="bold" fontSize="sm">Resposta Oficial</FormLabel>
+                <Textarea
+                  placeholder="Ex: A chave Pix é o CNPJ 00.000..."
+                  value={newMenuOption.response}
+                  onChange={e => setNewMenuOption({ ...newMenuOption, response: e.target.value })}
+                  rows={4}
+                />
+              </FormControl>
+
+              {/* 4. OPÇÕES AVANÇADAS */}
+              <Box w="100%" bg="gray.50" p={3} borderRadius="md" border="1px dashed" borderColor="gray.200">
+                <Text fontSize="xs" fontWeight="bold" mb={2} color="gray.600">COMPORTAMENTO</Text>
+                <VStack align="start" spacing={3}>
+
+                  <Checkbox
+                    colorScheme="teal"
+                    isChecked={newMenuOption.useAI}
+                    onChange={e => setNewMenuOption({ ...newMenuOption, useAI: e.target.checked })}
+                  >
+                    <Box>
+                      <Text fontSize="sm" fontWeight="semibold">Usar IA para humanizar ✨</Text>
+                      <Text fontSize="xs" color="gray.500">A IA vai reescrever sua resposta oficial de forma natural e educada.</Text>
+                    </Box>
+                  </Checkbox>
+
+                  <Checkbox
+                    colorScheme="orange"
+                    isChecked={newMenuOption.requiresHuman}
+                    onChange={e => setNewMenuOption({ ...newMenuOption, requiresHuman: e.target.checked })}
+                  >
+                    <Box>
+                      <Text fontSize="sm" fontWeight="semibold">Pausar Bot (Chamar Humano) 🛑</Text>
+                      <Text fontSize="xs" color="gray.500">Responde e silencia o robô por 30 minutos para você assumir.</Text>
+                    </Box>
+                  </Checkbox>
+                </VStack>
+              </Box>
+
             </VStack>
           </ModalBody>
           <ModalFooter>
             <Button variant="ghost" mr={3} onClick={onClose}>Cancelar</Button>
-            <Button colorScheme="brand" onClick={handleAddMenuOption}>Adicionar Regra</Button>
+            <Button colorScheme="brand" onClick={handleSaveMenuOption}>
+              {editingMenuIndex !== null ? 'Salvar Alterações' : 'Adicionar Regra'}
+            </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
