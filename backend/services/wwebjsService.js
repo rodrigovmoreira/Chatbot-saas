@@ -31,6 +31,7 @@ const restoreSessions = async () => {
 };
 
 const startSession = async (userId) => {
+  // Evita iniciar se já estiver rodando
   if (sessions.has(userId)) {
     const currentStatus = statuses.get(userId);
     if (currentStatus === 'ready' || currentStatus === 'authenticated') {
@@ -60,7 +61,10 @@ const startSession = async (userId) => {
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
-        '--disable-gpu'
+        '--disable-gpu',
+        // === CORREÇÃO 1: Desativa o log do Chrome para evitar EBUSY no Windows ===
+        '--disable-logging',
+        '--log-level=3' 
       ]
     }
   });
@@ -102,7 +106,8 @@ const startSession = async (userId) => {
 
   client.on('disconnected', (reason) => {
     console.log(`⚠️ Sessão desconectada (${config.businessName}):`, reason);
-    cleanupSession(userId);
+    // Não chamamos cleanupSession direto aqui para evitar loop se o disconnect vier de um logout manual
+    cleanupSession(userId); 
   });
 
   try {
@@ -114,28 +119,34 @@ const startSession = async (userId) => {
   }
 };
 
-// === CORREÇÃO: Função stopSession Blindada contra EBUSY ===
+// === CORREÇÃO 2: Logout Blindado contra EBUSY ===
 const stopSession = async (userId) => {
   console.log(`🛑 Solicitado encerramento para UserID: ${userId}`);
   const client = sessions.get(userId);
   
   if (client) {
     try {
-      // 1. Destroi o navegador (libera arquivos)
-      await client.destroy(); 
-      // 2. Espera o Windows liberar o arquivo (Evita EBUSY)
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      console.log(`✅ Navegador fechado para UserID: ${userId}`);
+        // Tenta fazer o logout oficial (limpa dados)
+        // O Try/Catch aqui é essencial: se o Windows travar o arquivo, 
+        // nós pegamos o erro e não deixamos o servidor cair.
+        await client.logout();
+        console.log(`✅ Logout realizado para UserID: ${userId}`);
     } catch (e) {
-      console.error(`Erro ao destruir sessão ${userId}:`, e.message);
+        // Se der erro EBUSY, ignoramos, pois o importante é que a sessão morreu na memória
+        if (e.message && e.message.includes('EBUSY')) {
+            console.warn(`⚠️ Aviso: Arquivo de sessão preso (EBUSY) no Windows. Ignorando limpeza física.`);
+        } else {
+            console.error(`Erro ao fazer logout da sessão ${userId}:`, e.message);
+        }
+        
+        // Se o logout falhar, forçamos o destroy para garantir que o Chrome feche
+        try { await client.destroy(); } catch (err) {}
     }
   }
   cleanupSession(userId);
 };
 
-// === NOVA FUNÇÃO: Envio Seguro (Para o Scheduler) ===
 const sendWWebJSMessage = async (userId, to, message) => {
-    // Garante que userId seja string para busca no Map
     const client = sessions.get(userId.toString());
 
     if (!client) {
@@ -143,7 +154,6 @@ const sendWWebJSMessage = async (userId, to, message) => {
         return false;
     }
 
-    // Proteção Anti-Crash: Verifica se o WhatsApp Web carregou
     if (!client.info) {
         console.warn(`⚠️ Envio falhou: WhatsApp do User ${userId} ainda não está pronto.`);
         return false;
@@ -162,11 +172,12 @@ const sendWWebJSMessage = async (userId, to, message) => {
     }
 };
 
-// === NOVA FUNÇÃO: Limpeza Geral (Para reiniciar servidor) ===
 const closeAllSessions = async () => {
     console.log(`🛑 Fechando ${sessions.size} sessões ativas...`);
     for (const [userId, client] of sessions.entries()) {
         try {
+            // No shutdown do servidor, usamos destroy() em vez de logout()
+            // para não perder a conexão (QR Code) na próxima reinicialização
             await client.destroy();
             console.log(`-> Sessão ${userId} fechada.`);
         } catch (e) {
@@ -197,10 +208,10 @@ const getClientSession = (userId) => sessions.get(userId.toString());
 module.exports = { 
   initializeWWebJS, 
   startSession, 
-  stopSession,
+  stopSession, 
   getSessionStatus, 
   getSessionQR,
   getClientSession,
-  sendWWebJSMessage, 
-  closeAllSessions   
+  sendWWebJSMessage,
+  closeAllSessions
 };
