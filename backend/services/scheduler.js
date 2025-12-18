@@ -1,71 +1,76 @@
 const cron = require('node-cron');
-const Contact = require('../models/Contact');
 const BusinessConfig = require('../models/BusinessConfig');
+const Contact = require('../models/Contact');
+const { saveMessage } = require('./message');
 const { sendUnifiedMessage } = require('./responseService');
-// Importante: Caminho ajustado para a pasta services onde está o message.js atualizado
-const { saveMessage } = require('./message'); 
 
 function startScheduler() {
   console.log('⏰ Agendador de Follow-up (Multi-tenant) iniciado...');
 
-  // Roda a cada 1 minuto
+  // Roda a cada minuto
   cron.schedule('* * * * *', async () => {
     try {
-      const now = new Date();
+      // 1. Pega TODAS as empresas ativas
+      const configs = await BusinessConfig.find({});
 
-      // 1. BUSCA TODAS AS CONFIGURAÇÕES DE EMPRESAS
-      // No modelo SaaS, cada documento aqui é uma empresa diferente
-      const allConfigs = await BusinessConfig.find({});
+      for (const config of configs) {
+        // Se não tiver passos configurados ou userId, pula
+        if (!config.followUpSteps || config.followUpSteps.length === 0 || !config.userId) continue;
 
-      // Loop por cada empresa para processar seus respectivos clientes
-      for (const config of allConfigs) {
-          
-          // Se a empresa não tiver passos de follow-up configurados, pula para a próxima
-          if (!config.followUpSteps || config.followUpSteps.length === 0) continue;
+        // 2. Para cada empresa, busca contatos pendentes
+        // Regra: lastResponseTime existe (já falou) AND followUpActive é true
+        const pendingContacts = await Contact.find({
+          businessId: config._id,
+          followUpActive: true,
+          lastResponseTime: { $exists: true }
+        });
 
-          const provider = config.whatsappProvider || 'wwebjs';
-          const steps = config.followUpSteps;
-          const businessId = config._id; // ID da empresa atual no loop
+        for (const contact of pendingContacts) {
+          const now = new Date();
+          const lastMsgTime = new Date(contact.lastResponseTime);
+          const minutesSinceLastMsg = (now - lastMsgTime) / 1000 / 60;
 
-          // 2. BUSCA CONTATOS DESTA EMPRESA ESPECÍFICA
-          // Regras: O bot falou por último, ainda tem etapas e a interação foi recente (48h)
-          const activeContacts = await Contact.find({
-            businessId: businessId, // <--- FILTRO DE SEGURANÇA (Só pega contatos dessa empresa)
-            lastSender: 'bot',
-            followUpStage: { $lt: steps.length }, 
-            lastInteraction: { $gt: new Date(now.getTime() - 48 * 60 * 60000) }
-          });
+          // Descobre qual o próximo passo
+          const nextStepIndex = contact.followUpStage ? contact.followUpStage : 0;
+          const nextStep = config.followUpSteps[nextStepIndex];
 
-          // Se tiver contatos para processar nesta empresa
-          // if (activeContacts.length > 0) console.log(`🔎 [${config.businessName}] Analisando ${activeContacts.length} contatos...`);
-
-          for (const contact of activeContacts) {
-            // Pega a regra baseada no estágio atual do contato
-            const nextStepConfig = steps[contact.followUpStage];
-
-            if (!nextStepConfig) continue;
-
-            // Calcula o momento do disparo
-            const timeToTrigger = new Date(contact.lastInteraction.getTime() + nextStepConfig.delayMinutes * 60000);
-
-            // Se já passou da hora
-            if (now >= timeToTrigger) {
-              console.log(`🎣 [${config.businessName}] Disparando Estágio ${contact.followUpStage + 1} para: ${contact.phone}`);
-
-              // A. Envia a mensagem (via Twilio ou WWebJS)
-              await sendUnifiedMessage(contact.phone, nextStepConfig.message, provider);
-
-              // B. Salva no banco vinculando à empresa correta
-              // Assinatura: saveMessage(phone, role, content, type, visionResult, businessId)
-              await saveMessage(contact.phone, 'bot', nextStepConfig.message, 'text', null, businessId);
-
-              // C. Atualiza o estágio do contato
-              contact.followUpStage += 1;
-              await contact.save();
-            }
+          // Se acabou os passos, desativa
+          if (!nextStep) {
+            contact.followUpActive = false;
+            await contact.save();
+            continue;
           }
-      }
 
+          // 3. VERIFICA SE É HORA DE DISPARAR
+          if (minutesSinceLastMsg >= nextStep.delayMinutes) {
+            console.log(`🎣 [${config.businessName}] Disparando Estágio ${nextStep.stage} para: ${contact.phone}`);
+
+            // === A CORREÇÃO ESTÁ AQUI ===
+            // Passamos config.userId para que o WWebJS saiba qual sessão usar
+            await sendUnifiedMessage(
+                contact.phone, 
+                nextStep.message, 
+                config.whatsappProvider, 
+                config.userId // <--- O PULO DO GATO
+            );
+
+            // Salva no histórico como mensagem do BOT
+            await saveMessage(contact.phone, 'bot', nextStep.message, 'text', null, config._id);
+
+            // Atualiza o contato para o próximo estágio
+            contact.followUpStage = nextStepIndex + 1;
+            // IMPORTANTE: Não atualizamos o lastResponseTime para não resetar o ciclo, 
+            // ou atualizamos se a lógica for "tempo entre mensagens".
+            // Geralmente em funil, conta-se do silêncio. Vamos manter sem atualizar lastResponseTime 
+            // para que o próximo delay conte a partir da última interação real, 
+            // OU atualizamos para contar delay entre follow-ups.
+            // Para funil simples, atualizar o time evita disparo em massa.
+            contact.lastResponseTime = now; 
+            
+            await contact.save();
+          }
+        }
+      }
     } catch (error) {
       console.error('💥 Erro no Scheduler:', error);
     }

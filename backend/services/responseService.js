@@ -1,46 +1,30 @@
-const { sendWhatsAppMessage } = require('./twilioService'); // Seu serviço antigo do Twilio
-const { getWWebJSClient } = require('./wwebjsService'); // Novo serviço do WWebJS
+// IMPORTANTE: Importe a função SEGURA de envio, não o getClientSession
+const { sendWWebJSMessage } = require('./wwebjsService');
+const { sendWhatsAppMessage } = require('./twilioService'); // Se tiver o Twilio
 
-/**
- * Envia mensagem pelo canal correto (Twilio ou WWebJS)
- * @param {string} to - Número do destinatário (formato padrão: 5511999999999)
- * @param {string} message - Texto da mensagem
- * @param {string} provider - 'twilio' ou 'wwebjs'
- * @param {object} options - Opções extras (ex: originalMsg para reply)
+/* Envia uma mensagem unificada, independente do provedor.
+   @param {string} to - Número de destino (ex: 5511999999999)
+   @param {string} message - Texto da mensagem
+   @param {string} provider - 'wwebjs' ou 'twilio'
+   @param {string} userId - ID do dono do bot (obrigatório para WWebJS)
  */
-async function sendUnifiedMessage(to, message, provider = 'wwebjs', options = {}) {
-  console.log(`📤 Enviando via [${provider.toUpperCase()}] para ${to} ${Date()}`);
-
+async function sendUnifiedMessage(to, message, provider, userId) {
   try {
-    if (provider === 'twilio') {
-      // Chama sua função existente do Twilio
-      // Nota: o sendWhatsAppMessage já trata o prefixo 'whatsapp:' internamente
-      return await sendWhatsAppMessage(to, message);
+    // console.log(`📤 Enviando via [${provider.toUpperCase()}] para ${to}`);
+
+    if (provider === 'wwebjs') {
+      if (!userId) {
+        console.error('❌ Erro: Tentativa de envio WWebJS sem userId definido.');
+        return false;
+      }
+      return await sendWWebJSMessage(userId, to, message);
     } 
-    
-    else if (provider === 'wwebjs') {
-      const client = getWWebJSClient();
-      
-      // Verifica se o cliente está pronto
-      if (!client || !client.info) {
-        console.error('❌ WWebJS não está pronto para enviar mensagens.');
-        return null;
-      }
-
-      // Formata o número para o padrão do WWebJS (55119...@c.us)
-      // Se já vier formatado (do Adapter), usa direto. Se for apenas números, formata.
-      let chatId = to;
-      if (!chatId.includes('@c.us')) {
-        chatId = `${to}@c.us`;
-      }
-
-      // Envia
-      return await client.sendMessage(chatId, message);
+    else if (provider === 'twilio') {
+       return await sendWhatsAppMessage(to, message);
     }
-
   } catch (error) {
-    console.error(`💥 Erro ao enviar mensagem via ${provider}:`, error);
-    return null;
+    console.error(`💥 Erro ao enviar mensagem unificada (${provider}):`, error.message);
+    return false; // Retorna false para quem chamou saber que falhou
   }
 }
 
