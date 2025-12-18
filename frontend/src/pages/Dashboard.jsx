@@ -6,7 +6,7 @@ import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
   useDisclosure, Alert, AlertIcon, Spinner, Select, Tabs, TabList, TabPanels, Tab, TabPanel, Divider, IconButton
 } from '@chakra-ui/react';
-import { CheckCircleIcon, WarningTwoIcon, AddIcon, EditIcon, DeleteIcon, StarIcon, TimeIcon, DownloadIcon } from '@chakra-ui/icons';
+import { CheckCircleIcon, WarningTwoIcon, AddIcon, EditIcon, DeleteIcon, StarIcon, TimeIcon, DownloadIcon, ChatIcon } from '@chakra-ui/icons';
 import { useApp } from '../context/AppContext';
 import { businessAPI } from '../services/api';
 
@@ -361,6 +361,8 @@ const Dashboard = () => {
             <Tab fontWeight="bold">🧠 Inteligência & Nicho</Tab>
             <Tab fontWeight="bold">💬 Respostas Rápidas</Tab>
             <Tab fontWeight="bold">📦 Catálogo</Tab>
+            <Tab fontWeight="bold" color="purple.600">
+              <Icon as={ChatIcon} mr={2} /> Live Chat</Tab>
           </TabList>
 
           <TabPanels>
@@ -431,7 +433,7 @@ const Dashboard = () => {
             {/* ABA 2: INTELIGÊNCIA & NICHO */}
             <TabPanel px={0}>
               <VStack spacing={6} align="stretch">
-                
+
                 {/* 1. SELEÇÃO DE PRESET DO SISTEMA */}
                 <Card bg="white" boxShadow="sm" borderLeft="4px solid" borderColor="blue.500">
                   <CardBody>
@@ -459,10 +461,10 @@ const Dashboard = () => {
                         <Text fontSize="sm" color="orange.700">Carregue suas edições salvas anteriormente.</Text>
                       </Box>
                       <HStack>
-                        <Select 
-                          placeholder="Carregar meus prompts..." 
-                          bg="white" 
-                          onChange={(e) => handleLoadCustomPrompt(e.target.value)} 
+                        <Select
+                          placeholder="Carregar meus prompts..."
+                          bg="white"
+                          onChange={(e) => handleLoadCustomPrompt(e.target.value)}
                           value={selectedCustomPrompt}
                         >
                           {customPrompts.map(p => (
@@ -470,10 +472,10 @@ const Dashboard = () => {
                           ))}
                         </Select>
                         {selectedCustomPrompt && (
-                          <IconButton 
-                            icon={<DeleteIcon />} 
-                            colorScheme="red" 
-                            variant="ghost" 
+                          <IconButton
+                            icon={<DeleteIcon />}
+                            colorScheme="red"
+                            variant="ghost"
                             onClick={(e) => handleDeleteCustomPrompt(selectedCustomPrompt, e)}
                             aria-label="Deletar"
                           />
@@ -490,12 +492,12 @@ const Dashboard = () => {
                   <Card bg="white" boxShadow="sm">
                     <CardHeader pb={0}><Heading size="sm">🧠 Personalidade (Chat)</Heading></CardHeader>
                     <CardBody>
-                      <Textarea 
-                        value={activePrompts.chatSystem} 
-                        onChange={(e) => setActivePrompts({...activePrompts, chatSystem: e.target.value})} 
-                        rows={10} 
-                        bg="gray.50" 
-                        fontSize="sm" 
+                      <Textarea
+                        value={activePrompts.chatSystem}
+                        onChange={(e) => setActivePrompts({ ...activePrompts, chatSystem: e.target.value })}
+                        rows={10}
+                        bg="gray.50"
+                        fontSize="sm"
                         placeholder="Instruções para o chat..."
                       />
                     </CardBody>
@@ -503,12 +505,12 @@ const Dashboard = () => {
                   <Card bg="white" boxShadow="sm">
                     <CardHeader pb={0}><Heading size="sm">👁️ Visão (Imagem)</Heading></CardHeader>
                     <CardBody>
-                      <Textarea 
-                        value={activePrompts.visionSystem} 
-                        onChange={(e) => setActivePrompts({...activePrompts, visionSystem: e.target.value})} 
-                        rows={10} 
-                        bg="gray.50" 
-                        fontSize="sm" 
+                      <Textarea
+                        value={activePrompts.visionSystem}
+                        onChange={(e) => setActivePrompts({ ...activePrompts, visionSystem: e.target.value })}
+                        rows={10}
+                        bg="gray.50"
+                        fontSize="sm"
                         placeholder="Instruções para análise de imagem..."
                       />
                     </CardBody>
@@ -517,21 +519,21 @@ const Dashboard = () => {
 
                 {/* BOTÕES DE AÇÃO DOS PROMPTS */}
                 <HStack spacing={4}>
-                  <Button 
-                    colorScheme="green" 
-                    size="lg" 
-                    onClick={handleSavePrompts} 
+                  <Button
+                    colorScheme="green"
+                    size="lg"
+                    onClick={handleSavePrompts}
                     flex="2"
                     boxShadow="md"
                   >
                     Salvar Alterações nos Prompts (Ativar)
                   </Button>
-                  
-                  <Button 
-                    colorScheme="orange" 
+
+                  <Button
+                    colorScheme="orange"
                     variant="outline"
-                    size="lg" 
-                    onClick={handleOpenSavePromptModal} 
+                    size="lg"
+                    onClick={handleOpenSavePromptModal}
                     flex="1"
                     leftIcon={<DownloadIcon />}
                   >
@@ -548,7 +550,7 @@ const Dashboard = () => {
                       <Heading size="md">Funil de Vendas (Follow-up)</Heading>
                       <Text fontSize="sm" color="gray.500">Mensagens automáticas para recuperar clientes que pararam de responder.</Text>
                     </Box>
-                    <Button leftIcon={<AddIcon />} colorScheme="purple" onClick={() => { setEditingFollowUpIndex(null); setNewFollowUp({delayMinutes: 60, message: ''}); onFollowUpOpen(); }}>
+                    <Button leftIcon={<AddIcon />} colorScheme="purple" onClick={() => { setEditingFollowUpIndex(null); setNewFollowUp({ delayMinutes: 60, message: '' }); onFollowUpOpen(); }}>
                       Novo Passo
                     </Button>
                   </HStack>
@@ -559,8 +561,8 @@ const Dashboard = () => {
                         <CardBody>
                           <HStack justify="space-between" align="start">
                             <HStack align="start" spacing={4}>
-                              <VStack 
-                                bg="purple.500" color="white" borderRadius="full" boxSize="40px" 
+                              <VStack
+                                bg="purple.500" color="white" borderRadius="full" boxSize="40px"
                                 justify="center" align="center" fontWeight="bold" flexShrink={0}
                               >
                                 <Text>{idx + 1}</Text>
@@ -587,7 +589,7 @@ const Dashboard = () => {
                       <Alert status="warning" borderRadius="md"><AlertIcon />Seu funil está vazio. O bot não cobrará clientes inativos.</Alert>
                     )}
                   </VStack>
-                  
+
                   {followUpSteps.length > 0 && (
                     <Box mt={4} textAlign="right">
                       <Button colorScheme="purple" variant="outline" onClick={handleSaveFollowUps}>Salvar Funil de Vendas</Button>
@@ -660,6 +662,77 @@ const Dashboard = () => {
                   </VStack>
                   {products.length > 0 && <Box mt={6} pt={4} textAlign="right"><Button colorScheme="brand" onClick={handleSaveProducts}>Salvar Catálogo</Button></Box>}
                 </CardBody>
+              </Card>
+            </TabPanel>
+
+            {/* ABA 5: LIVE CHAT (PLACEHOLDER) */}
+            <TabPanel px={0}>
+              <Card h="75vh" overflow="hidden" border="1px solid" borderColor="gray.200">
+                <HStack h="100%" spacing={0} align="stretch">
+
+                  {/* LADO ESQUERDO: LISTA DE CONTATOS (MOCKUP) */}
+                  <Box w={{ base: "80px", md: "300px" }} borderRight="1px solid" borderColor="gray.200" bg="gray.50">
+                    <Box p={4} borderBottom="1px solid" borderColor="gray.200" bg="white">
+                      <Heading size="sm" color="gray.600">Conversas</Heading>
+                    </Box>
+                    <VStack spacing={0} align="stretch" overflowY="auto">
+                      {/* Item Fake 1 */}
+                      <Box p={4} bg="white" borderBottom="1px solid" borderColor="gray.100" cursor="pointer" borderLeft="4px solid" borderLeftColor="green.400">
+                        <Text fontWeight="bold" fontSize="sm" noOfLines={1}>João Silva</Text>
+                        <Text fontSize="xs" color="gray.500" noOfLines={1}>Olá, qual o preço do corte?</Text>
+                        <Badge colorScheme="green" fontSize="0.6em" mt={1}>Online</Badge>
+                      </Box>
+                      {/* Item Fake 2 */}
+                      <Box p={4} _hover={{ bg: "gray.100" }} cursor="pointer" borderBottom="1px solid" borderColor="gray.100">
+                        <Text fontWeight="bold" fontSize="sm" noOfLines={1}>Maria Souza</Text>
+                        <Text fontSize="xs" color="gray.500" noOfLines={1}>Obrigado pelo atendimento!</Text>
+                      </Box>
+                      {/* Item Fake 3 */}
+                      <Box p={4} _hover={{ bg: "gray.100" }} cursor="pointer" borderBottom="1px solid" borderColor="gray.100">
+                        <Text fontWeight="bold" fontSize="sm" noOfLines={1}>Pedro Henrique</Text>
+                        <Text fontSize="xs" color="gray.500" noOfLines={1}>Agendado para amanhã?</Text>
+                      </Box>
+                    </VStack>
+                  </Box>
+
+                  {/* LADO DIREITO: CHAT (MOCKUP) */}
+                  <Box flex="1" bg="gray.100" position="relative" display="flex" flexDirection="column">
+
+                    {/* Header do Chat */}
+                    <HStack p={4} bg="white" borderBottom="1px solid" borderColor="gray.200" justify="space-between">
+                      <HStack>
+                        <Box bg="gray.300" borderRadius="full" w="40px" h="40px" />
+                        <Box>
+                          <Text fontWeight="bold">João Silva</Text>
+                          <Text fontSize="xs" color="green.500">● Respondendo agora</Text>
+                        </Box>
+                      </HStack>
+                      <Button size="sm" colorScheme="orange" variant="outline">Pausar Robô</Button>
+                    </HStack>
+
+                    {/* Área de Mensagens (Vazia/Ilustrativa) */}
+                    <Box flex="1" p={6} overflowY="auto">
+                      <VStack spacing={4}>
+                        <Alert status="info" borderRadius="md">
+                          <Icon as={WarningTwoIcon} mr={2} />
+                          Módulo de Chat ao Vivo em desenvolvimento.
+                        </Alert>
+                        <Text color="gray.400" fontSize="sm" mt={10}>
+                          Selecione uma conversa para visualizar o histórico aqui.
+                        </Text>
+                      </VStack>
+                    </Box>
+
+                    {/* Input de Envio */}
+                    <Box p={4} bg="white" borderTop="1px solid" borderColor="gray.200">
+                      <HStack>
+                        <Input placeholder="Digite sua mensagem..." isDisabled />
+                        <IconButton aria-label="Enviar" icon={<ChatIcon />} colorScheme="blue" isDisabled />
+                      </HStack>
+                    </Box>
+                  </Box>
+
+                </HStack>
               </Card>
             </TabPanel>
 
