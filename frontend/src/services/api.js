@@ -8,7 +8,7 @@ const api = axios.create({
   withCredentials: true // Essencial para manter a sessão (cookies)
 });
 
-// Interceptor: Adiciona Token se existir
+// Interceptor: Adiciona Token se existir.
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
