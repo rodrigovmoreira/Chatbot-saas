@@ -1,4 +1,3 @@
-require('dotenv').config();
 const cors = require('cors');
 const express = require('express');
 const path = require('path');
@@ -30,6 +29,7 @@ require('./models/Contact');
 require('./models/BusinessConfig');
 require('./models/IndustryPreset'); // <--- NOVO
 require('./models/CustomPrompt');
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 // 2. Importar Models para uso nas rotas
 const SystemUser = require('./models/SystemUser');
