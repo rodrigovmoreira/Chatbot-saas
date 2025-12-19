@@ -41,7 +41,7 @@ const Dashboard = () => {
   // Listas de Dados
   const [menuOptions, setMenuOptions] = useState([]);
   const [products, setProducts] = useState([]);
-  const [followUpSteps, setFollowUpSteps] = useState([]); // <--- NOVO: Lista de Passos do Funil
+  const [followUpSteps, setFollowUpSteps] = useState([]); //Lista de Passos do Funil
 
   // --- ESTADOS DE EDIÇÃO (INPUTS CONTROLADOS) ---
 
@@ -317,7 +317,7 @@ const Dashboard = () => {
   };
   const handleRemoveProduct = (idx) => setProducts(products.filter((_, i) => i !== idx));
 
-  // --- FOLLOW-UPS (NOVO) ---
+  // --- FOLLOW-UPS ---
   const handleEditFollowUp = (idx) => {
     setEditingFollowUpIndex(idx);
     setNewFollowUp(followUpSteps[idx]);

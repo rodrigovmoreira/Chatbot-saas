@@ -29,7 +29,7 @@ async function generateAIResponse(userMessage, systemPrompt) {
       {
         model: model,
         messages: messages,
-        max_tokens: 200, // Um pouco maior para explicações de tattoo
+        max_tokens: 350, // Um pouco maior para explicações de tattoo
         temperature: 0.5, // Criatividade controlada
         stream: false
       },
