@@ -1,11 +1,8 @@
 import axios from 'axios';
 
 // Se estiver rodando localmente, mantém localhost.
-const API_BASE = 'http://localhost:3001';
-
 const api = axios.create({
-  baseURL: API_BASE,
-  withCredentials: true // Essencial para manter a sessão (cookies)
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3001',
 });
 
 // Interceptor: Adiciona Token se existir.
