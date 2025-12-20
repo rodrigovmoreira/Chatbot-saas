@@ -36,6 +36,11 @@ const SystemUser = require('./models/SystemUser');
 const BusinessConfig = require('./models/BusinessConfig');
 const IndustryPreset = require('./models/IndustryPreset');
 
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://mindful-happiness-production.up.railway.app"
+];
+
 const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3001;
@@ -43,7 +48,7 @@ const PORT = process.env.PORT || 3001;
 // --- CONFIGURAÇÃO DO SOCKET.IO ---
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: allowedOrigins, // Agora aceita a lista com o Railway
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -55,7 +60,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: allowedOrigins, // Mesma lista aqui para as rotas da API
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
