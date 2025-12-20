@@ -83,7 +83,7 @@ export const AppProvider = ({ children }) => {
 
     console.log('🔌 Iniciando conexão Socket para usuário:', state.user.id);
 
-    const socket = io('http://localhost:3001', {
+    const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:3001', {
       withCredentials: true,
       transports: ['websocket', 'polling']
     });
