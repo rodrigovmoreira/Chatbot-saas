@@ -50,7 +50,7 @@ export const businessAPI = {
   startWhatsApp: () => api.post('/api/whatsapp-start'), // <--- Botão "Ligar"
   logoutWhatsApp: () => api.post('/api/whatsapp-logout'), // <--- Botão "Desconectar"
 
-  // 3. Inteligência e Presets (O que estava faltando!)
+  // 3. Inteligência e Presets
   getPresets: () => api.get('/api/presets'),
   applyPreset: (presetKey) => api.post('/api/apply-preset', { presetKey }),
 
