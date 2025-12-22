@@ -32,32 +32,38 @@ api.interceptors.response.use(
   }
 );
 
-// --- Rotas de Autenticação ---
+// --- Rotas de Autenticação (Atualizadas para /api/auth) ---
 export const authAPI = {
-  login: (data) => api.post('/api/login', data),
-  register: (data) => api.post('/api/register', data),
-  logout: () => api.post('/api/logout'),
+  login: (data) => api.post('/api/auth/login', data),
+  register: (data) => api.post('/api/auth/register', data),
+  logout: () => api.post('/api/auth/logout'),
 };
 
 // --- Rotas de Negócio (Dashboard) ---
 export const businessAPI = {
-  // 1. Configurações Gerais
-  getConfig: () => api.get('/api/business-config'),
-  updateConfig: (data) => api.put('/api/business-config', data),
+  // 1. Configurações Gerais (Atualizado para /api/business)
+  getConfig: () => api.get('/api/business/config'),
+  updateConfig: (data) => api.put('/api/business/config', data),
   
-  // 2. Controle do WhatsApp (Multi-tenant)
-  getWhatsAppStatus: () => api.get('/api/whatsapp-status'),
-  startWhatsApp: () => api.post('/api/whatsapp-start'), // <--- Botão "Ligar"
-  logoutWhatsApp: () => api.post('/api/whatsapp-logout'), // <--- Botão "Desconectar"
+  // 2. Controle do WhatsApp (Atualizado para /api/whatsapp)
+  getWhatsAppStatus: () => api.get('/api/whatsapp/status'),
+  startWhatsApp: () => api.post('/api/whatsapp/start'), // <--- Botão "Ligar"
+  logoutWhatsApp: () => api.post('/api/whatsapp/logout'), // <--- Botão "Desconectar"
 
-  // 3. Inteligência e Presets
-  getPresets: () => api.get('/api/presets'),
-  applyPreset: (presetKey) => api.post('/api/apply-preset', { presetKey }),
+  // 3. Inteligência e Presets (Atualizado para /api/business)
+  getPresets: () => api.get('/api/business/presets'),
+  applyPreset: (presetKey) => api.post('/api/business/apply-preset', { presetKey }),
 
-  getCustomPrompts: () => api.get('/api/custom-prompts'),
-  saveCustomPrompt: (data) => api.post('/api/custom-prompts', data), // data = { name, prompts: { chatSystem, visionSystem } }
-  deleteCustomPrompt: (id) => api.delete(`/api/custom-prompts/${id}`),
+  // 4. Meus Modelos (Custom Prompts) (Atualizado para /api/business)
+  getCustomPrompts: () => api.get('/api/business/custom-prompts'),
+  saveCustomPrompt: (data) => api.post('/api/business/custom-prompts', data), // data = { name, prompts: { chatSystem, visionSystem } }
+  deleteCustomPrompt: (id) => api.delete(`/api/business/custom-prompts/${id}`),
   
+  // 5. Agendamentos (NOVO - /api/appointments)
+  // O parâmetro 'params' serve para filtrar data { start: '...', end: '...' }
+  getAppointments: (params) => api.get('/api/appointments', { params }), 
+  createAppointment: (data) => api.post('/api/appointments', data),
+  deleteAppointment: (id) => api.delete(`/api/appointments/${id}`),
 };
 
 export default api;

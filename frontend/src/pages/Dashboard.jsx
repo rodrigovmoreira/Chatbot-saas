@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
-  Box, Container, Grid, GridItem, Card, CardHeader, CardBody, Heading, Text, Button, VStack, HStack,
+  Box, Container, Grid, GridItem, Card, CardHeader, CardBody, Heading, Text, Button, VStack, HStack, Stack,
   useToast, Badge, Icon, useColorModeValue, FormControl, FormLabel, Input, Textarea, Checkbox,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
   useDisclosure, Alert, AlertIcon, Spinner, Select, Tabs, TabList, TabPanels, Tab, TabPanel, Divider, IconButton
@@ -360,19 +360,25 @@ const handleLogoutSystem = async () => {
     <Box minH="100vh" bg="gray.50" p={4}>
       <Container maxW="1200px">
 
-        {/* Header */}
-        <HStack justify="space-between" mb={6} bg="white" p={4} borderRadius="lg" boxShadow="sm">
+        {/* Header Responsivo */}
+        <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" align={{ base: 'start', md: 'center' }} mb={6} bg="white" p={4} borderRadius="lg" boxShadow="sm" spacing={4} >
           <VStack align="start" spacing={0}>
             <Heading size="lg" color="brand.600">Painel de Controle</Heading>
             <Text color="gray.500" fontSize="sm">
               Gerenciando: <b>{configForm.businessName || 'Minha Empresa'}</b>
             </Text>
           </VStack>
-          <Button colorScheme="red" variant="ghost" size="sm" onClick={handleLogoutSystem}>Sair do Sistema</Button>
-        </HStack>
+          <Button colorScheme="red" variant="ghost" size="sm" onClick={handleLogoutSystem} width={{ base: '100%', md: 'auto' }} >Sair do Sistema </Button>
+        </Stack>
 
         <Tabs variant="soft-rounded" colorScheme="brand" isLazy>
-          <TabList mb={4} bg="white" p={2} borderRadius="lg" boxShadow="sm" overflowX="auto">
+          <TabList mb={4} bg="white" p={2} borderRadius="lg" boxShadow="sm" overflowX="auto"
+            css={{
+              '&::-webkit-scrollbar': { height: '4px' },
+              '&::-webkit-scrollbar-thumb': { background: '#CBD5E0', borderRadius: '24px' },
+            }}
+            whiteSpace="nowrap"
+          >
             <Tab fontWeight="bold">🤖 Conexão & Geral</Tab>
             <Tab fontWeight="bold">🧠 Inteligência & Nicho</Tab>
             <Tab fontWeight="bold">💬 Respostas Rápidas</Tab>
@@ -533,14 +539,18 @@ const handleLogoutSystem = async () => {
                   </Card>
                 </Grid>
 
-                {/* BOTÕES DE AÇÃO DOS PROMPTS */}
-                <HStack spacing={4}>
+                {/* BOTÕES DE AÇÃO DOS PROMPTS - CORRIGIDO PARA MOBILE */}
+                <Stack direction={{ base: 'column', md: 'row' }} spacing={4} width="100%">
                   <Button
                     colorScheme="green"
                     size="lg"
                     onClick={handleSavePrompts}
                     flex="2"
                     boxShadow="md"
+                    width="100%"
+                    whiteSpace="normal"
+                    height="auto"
+                    py={4}
                   >
                     Salvar Alterações nos Prompts (Ativar)
                   </Button>
@@ -552,10 +562,14 @@ const handleLogoutSystem = async () => {
                     onClick={handleOpenSavePromptModal}
                     flex="1"
                     leftIcon={<DownloadIcon />}
+                    width="100%"
+                    whiteSpace="normal"
+                    height="auto"
+                    py={4}
                   >
                     Salvar como Meu Modelo
                   </Button>
-                </HStack>
+                </Stack>
 
                 <Divider />
 
