@@ -9,6 +9,7 @@ import {
 import { CheckCircleIcon, WarningTwoIcon, AddIcon, EditIcon, DeleteIcon, StarIcon, TimeIcon, DownloadIcon, ChatIcon } from '@chakra-ui/icons';
 import { useApp } from '../context/AppContext';
 import { businessAPI } from '../services/api';
+import { authAPI } from '../services/api';
 
 const Dashboard = () => {
   const { state, dispatch } = useApp();
@@ -181,10 +182,25 @@ const Dashboard = () => {
     }
   };
 
-  const handleLogoutSystem = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
+const handleLogoutSystem = async () => {
+    const confirm = window.confirm("Ao sair, o Robô do WhatsApp será desligado para economizar recursos. Deseja continuar?");
+    
+    if (confirm) {
+      try {
+        // 1. Avisa o backend para matar o processo do Chrome
+        await authAPI.logout(); // Você precisará garantir que essa função existe no api.js (veja abaixo)
+        
+        toast({ title: 'Sessão encerrada', status: 'info' });
+      } catch (error) {
+        console.error("Erro ao notificar logout:", error);
+        // Mesmo se der erro na API, forçamos o logout local
+      } finally {
+        // 2. Limpeza Local
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
+    }
   };
 
   // =========================================================

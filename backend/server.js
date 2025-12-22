@@ -1,3 +1,19 @@
+
+// ==================== TRATAMENTO GLOBAL DE ERROS ====================
+process.on('uncaughtException', (err) => {
+  if (err.code === 'EBUSY' || (err.message && err.message.includes('EBUSY'))) {
+    console.warn(`🛡️ BLINDAGEM: Erro de arquivo travado (EBUSY) ignorado para manter servidor online.`);
+    return;
+  }
+  console.error('💥 ERRO CRÍTICO NÃO TRATADO:', err);
+  // Não damos exit(1) para garantir que o SaaS continue para outros clientes
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('💥 Rejeição de Promise não tratada:', reason);
+});
+// ====================================================================
+
 const cors = require('cors');
 const express = require('express');
 const path = require('path');
@@ -174,9 +190,22 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-app.post('/api/logout', (req, res) => {
-  res.clearCookie('auth_token');
-  res.json({ message: 'Logout realizado' });
+app.post('/api/logout', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    console.log(`🚪 Usuário ${userId} fazendo logout do sistema. Encerrando bot...`);
+
+    // Chama a função que mata o Chrome e limpa a memória
+    await stopSession(userId);
+
+    res.clearCookie('auth_token');
+    res.json({ message: 'Logout realizado e bot desligado com sucesso.' });
+  } catch (error) {
+    console.error('Erro no logout:', error);
+    // Mesmo com erro, limpamos o cookie para o usuário conseguir sair
+    res.clearCookie('auth_token'); 
+    res.json({ message: 'Logout realizado (com alerta no encerramento do bot).' });
+  }
 });
 
 // 3. Rotas Dashboard (Configurações Gerais)
