@@ -12,7 +12,11 @@ let ioInstance;
 const initializeWWebJS = async (io) => {
   ioInstance = io;
   console.log('🔄 Serviço WWebJS Multi-tenant iniciado...');
-  await restoreSessions();
+  
+  // 🔴 COMENTE OU APAGUE ESTA LINHA ABAIXO:
+  // await restoreSessions(); 
+  
+  console.log('🛡️ Modo Econômico: Sessões iniciam apenas manualmente.');
 };
 
 const restoreSessions = async () => {
@@ -20,8 +24,8 @@ const restoreSessions = async () => {
     const configs = await BusinessConfig.find({ whatsappProvider: 'wwebjs' });
     for (const config of configs) {
       if (config.userId) {
-        startSession(config.userId.toString()).catch(err => 
-            console.error(`Erro ao restaurar sessão de ${config.businessName}:`, err)
+        startSession(config.userId.toString()).catch(err =>
+          console.error(`Erro ao restaurar sessão de ${config.businessName}:`, err)
         );
       }
     }
@@ -31,12 +35,16 @@ const restoreSessions = async () => {
 };
 
 const startSession = async (userId) => {
-  // Evita iniciar se já estiver rodando
+  // 1. BLINDAGEM CONTRA DUPLICIDADE
   if (sessions.has(userId)) {
-    const currentStatus = statuses.get(userId);
-    if (currentStatus === 'ready' || currentStatus === 'authenticated') {
-        return sessions.get(userId);
-    }
+    console.log(`⚠️ Sessão para ${userId} já existe na memória. Retornando instância atual.`);
+    return sessions.get(userId);
+  }
+
+  // Se o status diz que está iniciando, aborta para não criar condição de corrida
+  if (statuses.get(userId) === 'initializing') {
+    console.log(`⚠️ Sessão para ${userId} já está em processo de inicialização.`);
+    return;
   }
 
   console.log(`🚀 Iniciando motor WWebJS para UserID: ${userId}`);
@@ -48,26 +56,30 @@ const startSession = async (userId) => {
     updateStatus(userId, 'error');
     return;
   }
-  const businessId = config._id;
 
   const client = new Client({
-    authStrategy: new LocalAuth({ clientId: userId }),
+    authStrategy: new LocalAuth({
+      clientId: userId,
+      dataPath: './.wwebjs_auth' // Define explicitamente a pasta para organização
+    }),
     puppeteer: {
       headless: true,
       args: [
-        '--no-sandbox', 
+        '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
         '--disable-gpu',
-        // === CORREÇÃO 1: Desativa o log do Chrome para evitar EBUSY no Windows ===
-        '--disable-logging',
-        '--log-level=3' 
+        '--disable-logging', // Desativa logs para evitar EBUSY no chrome_debug.log
+        '--log-level=3'
       ]
     }
   });
+
+  // Salva referência IMEDIATAMENTE para evitar duplicidade se o frontend chamar de novo rápido
+  sessions.set(userId, client);
 
   client.on('qr', (qr) => {
     console.log(`📸 QR Code gerado para ${config.businessName}`);
@@ -98,93 +110,55 @@ const startSession = async (userId) => {
     try {
       const { handleIncomingMessage } = require('../messageHandler');
       const normalizedMsg = await adaptWWebJSMessage(msg);
-      await handleIncomingMessage(normalizedMsg, businessId);
+      await handleIncomingMessage(normalizedMsg, config._id);
     } catch (error) {
       console.error(`Erro message:`, error);
     }
   });
 
-  client.on('disconnected', (reason) => {
+  client.on('disconnected', async (reason) => {
     console.log(`⚠️ Sessão desconectada (${config.businessName}):`, reason);
-    // Não chamamos cleanupSession direto aqui para evitar loop se o disconnect vier de um logout manual
-    cleanupSession(userId); 
+    await stopSession(userId); // Usa a função centralizada de stop
   });
 
   try {
-    client.initialize();
-    sessions.set(userId, client);
+    await client.initialize();
   } catch (e) {
-    console.error(`Erro fatal ao iniciar cliente ${userId}:`, e);
+    console.error(`Erro fatal ao iniciar cliente ${userId}:`, e.message);
+    sessions.delete(userId);
     updateStatus(userId, 'error');
   }
 };
 
-// === CORREÇÃO 2: Logout Blindado contra EBUSY ===
+// 2. FUNÇÃO DE PARADA BLINDADA (A Mágica acontece aqui)
 const stopSession = async (userId) => {
-  console.log(`🛑 Solicitado encerramento para UserID: ${userId}`);
-  const client = sessions.get(userId);
+  const client = sessions.get(userId.toString());
   
   if (client) {
+    console.log(`🛑 Encerrando sessão de ${userId}...`);
+    
+    // Atualiza status para evitar que o usuário tente reconectar enquanto fecha
+    updateStatus(userId, 'disconnecting');
+
     try {
-        // Tenta fazer o logout oficial (limpa dados)
-        // O Try/Catch aqui é essencial: se o Windows travar o arquivo, 
-        // nós pegamos o erro e não deixamos o servidor cair.
-        await client.logout();
-        console.log(`✅ Logout realizado para UserID: ${userId}`);
+        // Tenta logout limpo (pode falhar no Windows por EBUSY)
+        await client.logout(); 
     } catch (e) {
-        // Se der erro EBUSY, ignoramos, pois o importante é que a sessão morreu na memória
-        if (e.message && e.message.includes('EBUSY')) {
-            console.warn(`⚠️ Aviso: Arquivo de sessão preso (EBUSY) no Windows. Ignorando limpeza física.`);
-        } else {
-            console.error(`Erro ao fazer logout da sessão ${userId}:`, e.message);
-        }
-        
-        // Se o logout falhar, forçamos o destroy para garantir que o Chrome feche
-        try { await client.destroy(); } catch (err) {}
+        // Ignora erros de logout, pois vamos destruir o cliente de qualquer jeito
+    }
+
+    try {
+        // Força o fechamento do navegador (Libera RAM)
+        await client.destroy();
+        console.log(`✅ Navegador destruído para ${userId}`);
+    } catch (e) {
+        console.warn(`⚠️ Erro ao destruir cliente (não crítico): ${e.message}`);
     }
   }
+
+  // 3. LIMPEZA DE MEMÓRIA (Essencial para não vazar memória)
   cleanupSession(userId);
-};
-
-const sendWWebJSMessage = async (userId, to, message) => {
-    const client = sessions.get(userId.toString());
-
-    if (!client) {
-        console.warn(`⚠️ Envio falhou: User ${userId} não tem sessão ativa.`);
-        return false;
-    }
-
-    if (!client.info) {
-        console.warn(`⚠️ Envio falhou: WhatsApp do User ${userId} ainda não está pronto.`);
-        return false;
-    }
-
-    try {
-        let formattedNumber = to.replace(/\D/g, '');
-        if (!formattedNumber.includes('@c.us')) formattedNumber = `${formattedNumber}@c.us`;
-        
-        await client.sendMessage(formattedNumber, message);
-        console.log(`📤 Mensagem enviada por ${userId} para ${formattedNumber}`);
-        return true;
-    } catch (error) {
-        console.error(`💥 Erro envio WWebJS (User ${userId}):`, error.message);
-        return false;
-    }
-};
-
-const closeAllSessions = async () => {
-    console.log(`🛑 Fechando ${sessions.size} sessões ativas...`);
-    for (const [userId, client] of sessions.entries()) {
-        try {
-            // No shutdown do servidor, usamos destroy() em vez de logout()
-            // para não perder a conexão (QR Code) na próxima reinicialização
-            await client.destroy();
-            console.log(`-> Sessão ${userId} fechada.`);
-        } catch (e) {
-            console.error(`-> Erro ao fechar ${userId}:`, e.message);
-        }
-    }
-    sessions.clear();
+  console.log(`🧹 Memória limpa para ${userId}`);
 };
 
 const cleanupSession = (userId) => {
@@ -192,6 +166,47 @@ const cleanupSession = (userId) => {
   qrCodes.delete(userId);
   statuses.delete(userId);
   updateStatus(userId, 'disconnected');
+};
+
+const sendWWebJSMessage = async (userId, to, message) => {
+  const client = sessions.get(userId.toString());
+
+  if (!client) {
+    console.warn(`⚠️ Envio falhou: User ${userId} não tem sessão ativa.`);
+    return false;
+  }
+
+  if (!client.info) {
+    console.warn(`⚠️ Envio falhou: WhatsApp do User ${userId} ainda não está pronto.`);
+    return false;
+  }
+
+  try {
+    let formattedNumber = to.replace(/\D/g, '');
+    if (!formattedNumber.includes('@c.us')) formattedNumber = `${formattedNumber}@c.us`;
+
+    await client.sendMessage(formattedNumber, message);
+    console.log(`📤 Mensagem enviada por ${userId} para ${formattedNumber}`);
+    return true;
+  } catch (error) {
+    console.error(`💥 Erro envio WWebJS (User ${userId}):`, error.message);
+    return false;
+  }
+};
+
+const closeAllSessions = async () => {
+  console.log(`🛑 Fechando ${sessions.size} sessões ativas...`);
+  for (const [userId, client] of sessions.entries()) {
+    try {
+      // No shutdown do servidor, usamos destroy() em vez de logout()
+      // para não perder a conexão (QR Code) na próxima reinicialização
+      await client.destroy();
+      console.log(`-> Sessão ${userId} fechada.`);
+    } catch (e) {
+      console.error(`-> Erro ao fechar ${userId}:`, e.message);
+    }
+  }
+  sessions.clear();
 };
 
 const updateStatus = (userId, status) => {
@@ -205,11 +220,11 @@ const getSessionStatus = (userId) => statuses.get(userId) || 'disconnected';
 const getSessionQR = (userId) => qrCodes.get(userId);
 const getClientSession = (userId) => sessions.get(userId.toString());
 
-module.exports = { 
-  initializeWWebJS, 
-  startSession, 
-  stopSession, 
-  getSessionStatus, 
+module.exports = {
+  initializeWWebJS,
+  startSession,
+  stopSession,
+  getSessionStatus,
   getSessionQR,
   getClientSession,
   sendWWebJSMessage,
