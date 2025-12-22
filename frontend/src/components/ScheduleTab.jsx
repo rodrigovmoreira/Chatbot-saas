@@ -6,21 +6,25 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import {
   Box, Button, Modal, ModalOverlay, ModalContent, ModalHeader, 
   ModalFooter, ModalBody, ModalCloseButton, FormControl, FormLabel, 
-  Input, Select, useDisclosure, useToast, VStack, HStack, Text, IconButton
+  Input, Select, useDisclosure, useToast, VStack, HStack, Text
 } from '@chakra-ui/react';
 import { DeleteIcon } from '@chakra-ui/icons';
 import { businessAPI } from '../services/api';
+import { useApp } from '../context/AppContext';
 
 // Configura o Moment para Português
 moment.locale('pt-br');
 const localizer = momentLocalizer(moment);
 
 const ScheduleTab = () => {
+  const { state } = useApp();
   const [events, setEvents] = useState([]);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
 
-  // Estado do Formulário
+  const [view, setView] = useState('week');
+  const [date, setDate] = useState(new Date());
+
   const [newEvent, setNewEvent] = useState({
     title: '',
     clientName: '',
@@ -30,7 +34,6 @@ const ScheduleTab = () => {
     type: 'servico'
   });
   
-  // Estado para visualização de evento clicado
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   useEffect(() => {
@@ -40,7 +43,6 @@ const ScheduleTab = () => {
   const fetchAppointments = async () => {
     try {
       const res = await businessAPI.getAppointments();
-      // Converte strings de data para Objetos Date (exigência do BigCalendar)
       const formattedEvents = res.data.map(evt => ({
         ...evt,
         start: new Date(evt.start),
@@ -53,9 +55,33 @@ const ScheduleTab = () => {
     }
   };
 
-  // Ao selecionar um horário vazio no calendário
+  const formatForInput = (dateObj) => {
+    return moment(dateObj).format('YYYY-MM-DDTHH:mm');
+  };
+
+  const isWithinOperatingHours = (start, end) => {
+    if (!state.businessConfig?.operatingHours) return true;
+
+    const { opening, closing } = state.businessConfig.operatingHours;
+    
+    const openHour = parseInt(opening.split(':')[0]);
+    const closeHour = parseInt(closing.split(':')[0]);
+    const openMin = parseInt(opening.split(':')[1] || 0);
+    const closeMin = parseInt(closing.split(':')[1] || 0);
+
+    const startH = new Date(start).getHours();
+    const startM = new Date(start).getMinutes();
+    const endH = new Date(end).getHours();
+    const endM = new Date(end).getMinutes();
+
+    if (startH < openHour || (startH === openHour && startM < openMin)) return false;
+    if (endH > closeHour || (endH === closeHour && endM > closeMin)) return false;
+    
+    return true;
+  };
+
   const handleSelectSlot = ({ start, end }) => {
-    setSelectedEvent(null); // Limpa seleção anterior
+    setSelectedEvent(null);
     setNewEvent({
       ...newEvent,
       start: start,
@@ -67,7 +93,6 @@ const ScheduleTab = () => {
     onOpen();
   };
 
-  // Ao clicar em um evento existente
   const handleSelectEvent = (event) => {
     setSelectedEvent(event);
     setNewEvent({
@@ -79,25 +104,34 @@ const ScheduleTab = () => {
   };
 
   const handleSave = async () => {
-    // Validação simples
     if (!newEvent.title || !newEvent.clientName || !newEvent.clientPhone) {
-      toast({ title: 'Preencha todos os campos obrigatórios.', status: 'warning' });
+      toast({ title: 'Preencha título, nome e telefone.', status: 'warning' });
+      return;
+    }
+
+    if (!isWithinOperatingHours(newEvent.start, newEvent.end)) {
+      const { opening, closing } = state.businessConfig?.operatingHours || { opening: '?', closing: '?' };
+      toast({ 
+        title: 'Fora do horário de funcionamento!', 
+        description: `A empresa funciona das ${opening} às ${closing}.`, 
+        status: 'error',
+        duration: 5000
+      });
       return;
     }
 
     try {
       if (selectedEvent) {
-        // Lógica de Edição (Se precisar no futuro)
-        toast({ title: 'Edição ainda não implementada, delete e crie novamente.', status: 'info' });
-      } else {
-        // Criação
-        await businessAPI.createAppointment(newEvent);
-        toast({ title: 'Agendamento criado!', status: 'success' });
+        await businessAPI.deleteAppointment(selectedEvent._id);
       }
+      
+      await businessAPI.createAppointment(newEvent);
+      toast({ title: selectedEvent ? 'Agendamento atualizado!' : 'Agendamento criado!', status: 'success' });
+      
       await fetchAppointments();
       onClose();
     } catch (error) {
-      toast({ title: 'Erro ao salvar (possível conflito de horário).', description: error.response?.data?.message, status: 'error' });
+      toast({ title: 'Erro ao salvar', description: error.response?.data?.message || 'Conflito de horário.', status: 'error' });
     }
   };
 
@@ -115,11 +149,10 @@ const ScheduleTab = () => {
     }
   };
 
-  // Cores por tipo de evento
   const eventStyleGetter = (event) => {
-    let backgroundColor = '#3182ce'; // Azul padrão
-    if (event.type === 'orcamento') backgroundColor = '#d69e2e'; // Amarelo
-    if (event.type === 'servico') backgroundColor = '#38a169'; // Verde
+    let backgroundColor = '#3182ce'; 
+    if (event.type === 'orcamento') backgroundColor = '#d69e2e';
+    if (event.type === 'servico') backgroundColor = '#38a169';
     return { style: { backgroundColor } };
   };
 
@@ -135,29 +168,32 @@ const ScheduleTab = () => {
         onSelectSlot={handleSelectSlot}
         onSelectEvent={handleSelectEvent}
         eventPropGetter={eventStyleGetter}
+        
+        view={view}
+        onView={setView}
+        date={date}
+        onNavigate={setDate}
+
         messages={{
           next: "Próximo", previous: "Anterior", today: "Hoje",
           month: "Mês", week: "Semana", day: "Dia", agenda: "Lista",
-          date: "Data", time: "Hora", event: "Evento", noEventsInRange: "Sem agendamentos neste período."
+          date: "Data", time: "Hora", event: "Evento", noEventsInRange: "Sem agendamentos."
         }}
-        defaultView="week" // Começa vendo a semana
       />
 
-      {/* MODAL DE CRIAÇÃO / DETALHES */}
       <Modal isOpen={isOpen} onClose={onClose} size="md">
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>{selectedEvent ? 'Detalhes do Agendamento' : 'Novo Agendamento'}</ModalHeader>
+          <ModalHeader>{selectedEvent ? 'Editar Agendamento' : 'Novo Agendamento'}</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <VStack spacing={4}>
               <FormControl isRequired>
                 <FormLabel>Título / Serviço</FormLabel>
                 <Input 
-                  placeholder="Ex: Corte de Cabelo" 
+                  placeholder="Digite aqui o título ou serviço" 
                   value={newEvent.title} 
                   onChange={(e) => setNewEvent({...newEvent, title: e.target.value})}
-                  isDisabled={!!selectedEvent} // Desabilita edição se for visualização
                 />
               </FormControl>
               
@@ -168,41 +204,49 @@ const ScheduleTab = () => {
                     placeholder="João Silva" 
                     value={newEvent.clientName} 
                     onChange={(e) => setNewEvent({...newEvent, clientName: e.target.value})}
-                    isDisabled={!!selectedEvent}
                   />
                 </FormControl>
                 <FormControl isRequired>
-                  <FormLabel>Telefone (Zap)</FormLabel>
+                  <FormLabel>Telefone</FormLabel>
                   <Input 
-                    placeholder="5511999999999" 
+                    placeholder="11999999999" 
                     value={newEvent.clientPhone} 
                     onChange={(e) => setNewEvent({...newEvent, clientPhone: e.target.value})}
-                    isDisabled={!!selectedEvent}
                   />
                 </FormControl>
               </HStack>
 
               <HStack w="100%">
-                <FormControl>
+                <FormControl isRequired>
                   <FormLabel>Início</FormLabel>
-                  <Text fontSize="sm" fontWeight="bold">
-                    {moment(newEvent.start).format('DD/MM/YYYY HH:mm')}
-                  </Text>
+                  <Input 
+                    type="datetime-local"
+                    value={formatForInput(newEvent.start)}
+                    onChange={(e) => setNewEvent({...newEvent, start: new Date(e.target.value)})}
+                  />
                 </FormControl>
-                <FormControl>
+                <FormControl isRequired>
                    <FormLabel>Fim</FormLabel>
-                   <Text fontSize="sm" fontWeight="bold">
-                    {moment(newEvent.end).format('HH:mm')}
-                   </Text>
+                   <Input 
+                    type="datetime-local"
+                    value={formatForInput(newEvent.end)}
+                    onChange={(e) => setNewEvent({...newEvent, end: new Date(e.target.value)})}
+                  />
                 </FormControl>
               </HStack>
+
+              {/* CORREÇÃO AQUI: Substituído FormHelperText por Text */}
+              {state.businessConfig?.operatingHours && (
+                <Text fontSize="sm" color="gray.500" textAlign="center">
+                  Horário de funcionamento: {state.businessConfig.operatingHours.opening} às {state.businessConfig.operatingHours.closing}
+                </Text>
+              )}
 
               <FormControl>
                 <FormLabel>Tipo</FormLabel>
                 <Select 
                   value={newEvent.type} 
                   onChange={(e) => setNewEvent({...newEvent, type: e.target.value})}
-                  isDisabled={!!selectedEvent}
                 >
                   <option value="servico">Prestação de Serviço</option>
                   <option value="orcamento">Orçamento / Avaliação</option>
@@ -215,17 +259,15 @@ const ScheduleTab = () => {
           <ModalFooter justifyContent="space-between">
             {selectedEvent ? (
               <Button colorScheme="red" leftIcon={<DeleteIcon />} onClick={handleDelete}>
-                Cancelar Agendamento
+                Cancelar
               </Button>
             ) : (
-              <Box></Box> // Espaçador
+              <Box></Box>
             )}
             
             <HStack>
               <Button variant="ghost" onClick={onClose}>Fechar</Button>
-              {!selectedEvent && (
-                <Button colorScheme="blue" onClick={handleSave}>Agendar</Button>
-              )}
+              <Button colorScheme="blue" onClick={handleSave}>Salvar</Button>
             </HStack>
           </ModalFooter>
         </ModalContent>
