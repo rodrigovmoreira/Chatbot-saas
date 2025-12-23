@@ -11,11 +11,24 @@ import { useApp } from '../context/AppContext';
 import { businessAPI } from '../services/api';
 import { authAPI } from '../services/api';
 import ScheduleTab from '../components/ScheduleTab';
+import ColorModeToggle from '../components/ColorModeToggle';
 
 const Dashboard = () => {
   const { state, dispatch } = useApp();
   const toast = useToast();
+
+  // Call hooks at the top level
   const cardBg = useColorModeValue('white', 'gray.800');
+  const mainBg = useColorModeValue('gray.50', 'gray.900');
+  const headerBg = useColorModeValue('white', 'gray.800');
+  const orangeBg = useColorModeValue('orange.50', 'orange.900');
+  const orange800 = useColorModeValue("orange.800", "orange.200");
+  const orange700 = useColorModeValue("orange.700", "orange.300");
+  const purpleBg = useColorModeValue('purple.50', 'purple.900');
+  const gray50Bg = useColorModeValue('gray.50', 'gray.700');
+  const gray200 = useColorModeValue('gray.200', 'gray.600');
+  const gray800 = useColorModeValue('gray.800', 'gray.200');
+  const gray100 = useColorModeValue("gray.100", "gray.900");
 
   // === ESTADOS DE CONTROLE DE MODAIS ===
   const { isOpen, onOpen, onClose } = useDisclosure(); // Modal Menu
@@ -358,22 +371,25 @@ const Dashboard = () => {
 
 
   return (
-    <Box minH="100vh" bg="gray.50" p={4}>
+    <Box minH="100vh" bg={mainBg} p={4}>
       <Container maxW="1200px">
 
         {/* Header Responsivo */}
-        <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" align={{ base: 'start', md: 'center' }} mb={6} bg="white" p={4} borderRadius="lg" boxShadow="sm" spacing={4} >
+        <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" align={{ base: 'start', md: 'center' }} mb={6} bg={headerBg} p={4} borderRadius="lg" boxShadow="sm" spacing={4} >
           <VStack align="start" spacing={0}>
-            <Heading size="lg" color="brand.600">Painel de Controle</Heading>
-            <Text color="gray.500" fontSize="sm">
+            <Heading size="lg" color={useColorModeValue("brand.600", "brand.200")}>Painel de Controle</Heading>
+            <Text color={useColorModeValue("gray.500", "gray.400")} fontSize="sm">
               Gerenciando: <b>{configForm.businessName || 'Minha Empresa'}</b>
             </Text>
           </VStack>
-          <Button colorScheme="red" variant="ghost" size="sm" onClick={handleLogoutSystem} width={{ base: '100%', md: 'auto' }} >Sair do Sistema </Button>
+          <HStack spacing={2} width={{ base: '100%', md: 'auto' }} justify={{ base: 'space-between', md: 'flex-end' }}>
+            <ColorModeToggle />
+            <Button colorScheme="red" variant="ghost" size="sm" onClick={handleLogoutSystem} width={{ base: 'auto', md: 'auto' }} >Sair do Sistema </Button>
+          </HStack>
         </Stack>
 
         <Tabs variant="soft-rounded" colorScheme="brand" isLazy>
-          <TabList mb={4} bg="white" p={2} borderRadius="lg" boxShadow="sm" overflowX="auto"
+          <TabList mb={4} bg={headerBg} p={2} borderRadius="lg" boxShadow="sm" overflowX="auto"
             css={{
               '&::-webkit-scrollbar': { height: '4px' },
               '&::-webkit-scrollbar-thumb': { background: '#CBD5E0', borderRadius: '24px' },
@@ -384,10 +400,10 @@ const Dashboard = () => {
             <Tab fontWeight="bold">🧠 Inteligência & Nicho</Tab>
             <Tab fontWeight="bold">💬 Respostas Rápidas</Tab>
             <Tab fontWeight="bold">📦 Catálogo</Tab>
-            <Tab fontWeight="bold" color="purple.600">
+            <Tab fontWeight="bold" color={useColorModeValue("purple.600", "purple.300")}>
               <Icon as={ChatIcon} mr={2} /> Live Chat
             </Tab>
-            <Tab fontWeight="bold" color="blue.600">
+            <Tab fontWeight="bold" color={useColorModeValue("blue.600", "blue.300")}>
               <Icon as={TimeIcon} mr={2} /> Agendamentos
             </Tab>
           </TabList>
@@ -462,7 +478,7 @@ const Dashboard = () => {
               <VStack spacing={6} align="stretch">
 
                 {/* 1. SELEÇÃO DE PRESET DO SISTEMA */}
-                <Card bg="white" boxShadow="sm" borderLeft="4px solid" borderColor="blue.500">
+                <Card bg={cardBg} boxShadow="sm" borderLeft="4px solid" borderColor="blue.500">
                   <CardBody>
                     <Grid templateColumns={{ base: '1fr', md: '2fr 1fr' }} gap={4} alignItems="center">
                       <Box>
@@ -470,7 +486,7 @@ const Dashboard = () => {
                         <Text fontSize="sm" color="gray.600">Use um modelo pronto da plataforma.</Text>
                       </Box>
                       <HStack>
-                        <Select placeholder="Selecione..." bg="gray.50" onChange={(e) => setSelectedPreset(e.target.value)} value={selectedPreset}>
+                        <Select placeholder="Selecione..." bg={gray50Bg} onChange={(e) => setSelectedPreset(e.target.value)} value={selectedPreset}>
                           {presets.map(p => (<option key={p.key} value={p.key}>{p.icon} {p.name}</option>))}
                         </Select>
                         <Button colorScheme="blue" onClick={handleApplyPreset} isDisabled={!selectedPreset} leftIcon={<StarIcon />}>Aplicar</Button>
@@ -480,17 +496,17 @@ const Dashboard = () => {
                 </Card>
 
                 {/* 2. MEUS MODELOS SALVOS (O Retângulo Laranja) */}
-                <Card bg="orange.50" boxShadow="sm" borderLeft="4px solid" borderColor="orange.400">
+                <Card bg={orangeBg} boxShadow="sm" borderLeft="4px solid" borderColor="orange.400">
                   <CardBody>
                     <Grid templateColumns={{ base: '1fr', md: '2fr 1fr' }} gap={4} alignItems="center">
                       <Box>
-                        <Heading size="sm" mb={1} color="orange.800">Meus Modelos Pessoais</Heading>
-                        <Text fontSize="sm" color="orange.700">Carregue suas edições salvas anteriormente.</Text>
+                        <Heading size="sm" mb={1} color={orange800}>Meus Modelos Pessoais</Heading>
+                        <Text fontSize="sm" color={orange700}>Carregue suas edições salvas anteriormente.</Text>
                       </Box>
                       <HStack>
                         <Select
                           placeholder="Carregar meus prompts..."
-                          bg="white"
+                          bg={cardBg}
                           onChange={(e) => handleLoadCustomPrompt(e.target.value)}
                           value={selectedCustomPrompt}
                         >
@@ -516,27 +532,27 @@ const Dashboard = () => {
 
                 {/* 3. EDITORES DE TEXTO (CHAT E VISÃO) */}
                 <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={6}>
-                  <Card bg="white" boxShadow="sm">
+                  <Card bg={cardBg} boxShadow="sm">
                     <CardHeader pb={0}><Heading size="sm">🧠 Personalidade (Chat)</Heading></CardHeader>
                     <CardBody>
                       <Textarea
                         value={activePrompts.chatSystem}
                         onChange={(e) => setActivePrompts({ ...activePrompts, chatSystem: e.target.value })}
                         rows={10}
-                        bg="gray.50"
+                        bg={gray50Bg}
                         fontSize="sm"
                         placeholder="Instruções para o chat..."
                       />
                     </CardBody>
                   </Card>
-                  <Card bg="white" boxShadow="sm">
+                  <Card bg={cardBg} boxShadow="sm">
                     <CardHeader pb={0}><Heading size="sm">👁️ Visão (Imagem)</Heading></CardHeader>
                     <CardBody>
                       <Textarea
                         value={activePrompts.visionSystem}
                         onChange={(e) => setActivePrompts({ ...activePrompts, visionSystem: e.target.value })}
                         rows={10}
-                        bg="gray.50"
+                        bg={gray50Bg}
                         fontSize="sm"
                         placeholder="Instruções para análise de imagem..."
                       />
@@ -592,7 +608,7 @@ const Dashboard = () => {
 
                   <VStack spacing={4} align="stretch">
                     {followUpSteps.map((step, idx) => (
-                      <Card key={idx} variant="outline" borderColor="purple.200" bg="purple.50">
+                      <Card key={idx} variant="outline" borderColor="purple.200" bg={purpleBg}>
                         <CardBody>
                           <HStack justify="space-between" align="start">
                             <HStack align="start" spacing={4}>
@@ -609,7 +625,7 @@ const Dashboard = () => {
                                     Após {step.delayMinutes >= 60 ? `${(step.delayMinutes / 60).toFixed(1)} horas` : `${step.delayMinutes} minutos`} de silêncio
                                   </Text>
                                 </HStack>
-                                <Text fontSize="md" color="gray.800">"{step.message}"</Text>
+                                <Text fontSize="md" color={gray800}>"{step.message}"</Text>
                               </Box>
                             </HStack>
                             <HStack>
@@ -637,7 +653,7 @@ const Dashboard = () => {
 
             {/* ABA 3: RESPOSTAS RÁPIDAS */}
             <TabPanel px={0}>
-              <Card bg="white" boxShadow="md">
+              <Card bg={cardBg} boxShadow="md">
                 <CardHeader>
                   <HStack justify="space-between">
                     <Box><Heading size="md">Menu de Respostas</Heading><Text fontSize="sm" color="gray.500">Palavras-chave que o bot responde instantaneamente.</Text></Box>
@@ -673,7 +689,7 @@ const Dashboard = () => {
 
             {/* ABA 4: CATÁLOGO */}
             <TabPanel px={0}>
-              <Card bg="white" boxShadow="md">
+              <Card bg={cardBg} boxShadow="md">
                 <CardHeader>
                   <HStack justify="space-between">
                     <Box><Heading size="md">Produtos & Serviços</Heading><Text fontSize="sm" color="gray.500">Para a IA consultar preços.</Text></Box>
@@ -683,7 +699,7 @@ const Dashboard = () => {
                 <CardBody>
                   <VStack align="stretch" spacing={3}>
                     {products.map((prod, idx) => (
-                      <HStack key={idx} p={4} borderWidth="1px" borderRadius="md" justify="space-between" bg="gray.50">
+                      <HStack key={idx} p={4} borderWidth="1px" borderRadius="md" justify="space-between" bg={gray50Bg}>
                         <VStack align="start" spacing={1}>
                           <HStack><Text fontWeight="bold">{prod.name}</Text><Badge colorScheme="green">R$ {prod.price}</Badge></HStack>
                           <Text fontSize="sm" color="gray.600">{prod.description}</Text>
@@ -706,24 +722,24 @@ const Dashboard = () => {
                 <HStack h="100%" spacing={0} align="stretch">
 
                   {/* LADO ESQUERDO: LISTA DE CONTATOS (MOCKUP) */}
-                  <Box w={{ base: "80px", md: "300px" }} borderRight="1px solid" borderColor="gray.200" bg="gray.50">
-                    <Box p={4} borderBottom="1px solid" borderColor="gray.200" bg="white">
+                  <Box w={{ base: "80px", md: "300px" }} borderRight="1px solid" borderColor={gray50Bg} bg={gray50Bg}>
+                    <Box p={4} borderBottom="1px solid" borderColor={gray50Bg} bg={cardBg}>
                       <Heading size="sm" color="gray.600">Conversas</Heading>
                     </Box>
                     <VStack spacing={0} align="stretch" overflowY="auto">
                       {/* Item Fake 1 */}
-                      <Box p={4} bg="white" borderBottom="1px solid" borderColor="gray.100" cursor="pointer" borderLeft="4px solid" borderLeftColor="green.400">
+                      <Box p={4} bg={cardBg} borderBottom="1px solid" borderColor={gray50Bg} cursor="pointer" borderLeft="4px solid" borderLeftColor="green.400">
                         <Text fontWeight="bold" fontSize="sm" noOfLines={1}>João Silva</Text>
                         <Text fontSize="xs" color="gray.500" noOfLines={1}>Olá, qual o preço do corte?</Text>
                         <Badge colorScheme="green" fontSize="0.6em" mt={1}>Online</Badge>
                       </Box>
                       {/* Item Fake 2 */}
-                      <Box p={4} _hover={{ bg: "gray.100" }} cursor="pointer" borderBottom="1px solid" borderColor="gray.100">
+                      <Box p={4} _hover={{ bg: gray50Bg }} cursor="pointer" borderBottom="1px solid" borderColor={gray50Bg}>
                         <Text fontWeight="bold" fontSize="sm" noOfLines={1}>Maria Souza</Text>
                         <Text fontSize="xs" color="gray.500" noOfLines={1}>Obrigado pelo atendimento!</Text>
                       </Box>
                       {/* Item Fake 3 */}
-                      <Box p={4} _hover={{ bg: "gray.100" }} cursor="pointer" borderBottom="1px solid" borderColor="gray.100">
+                      <Box p={4} _hover={{ bg: gray50Bg }} cursor="pointer" borderBottom="1px solid" borderColor={gray50Bg}>
                         <Text fontWeight="bold" fontSize="sm" noOfLines={1}>Pedro Henrique</Text>
                         <Text fontSize="xs" color="gray.500" noOfLines={1}>Agendado para amanhã?</Text>
                       </Box>
@@ -731,10 +747,10 @@ const Dashboard = () => {
                   </Box>
 
                   {/* LADO DIREITO: CHAT (MOCKUP) */}
-                  <Box flex="1" bg="gray.100" position="relative" display="flex" flexDirection="column">
+                  <Box flex="1" bg={gray100} position="relative" display="flex" flexDirection="column">
 
                     {/* Header do Chat */}
-                    <HStack p={4} bg="white" borderBottom="1px solid" borderColor="gray.200" justify="space-between">
+                    <HStack p={4} bg={cardBg} borderBottom="1px solid" borderColor={gray50Bg} justify="space-between">
                       <HStack>
                         <Box bg="gray.300" borderRadius="full" w="40px" h="40px" />
                         <Box>
@@ -759,7 +775,7 @@ const Dashboard = () => {
                     </Box>
 
                     {/* Input de Envio */}
-                    <Box p={4} bg="white" borderTop="1px solid" borderColor="gray.200">
+                    <Box p={4} bg={cardBg} borderTop="1px solid" borderColor={gray50Bg}>
                       <HStack>
                         <Input placeholder="Digite sua mensagem..." isDisabled />
                         <IconButton aria-label="Enviar" icon={<ChatIcon />} colorScheme="blue" isDisabled />
@@ -793,7 +809,7 @@ const Dashboard = () => {
               <FormControl><FormLabel fontSize="sm" fontWeight="bold">Descrição Interna</FormLabel><Input placeholder="Ex: Chave Pix" value={newMenuOption.description} onChange={e => setNewMenuOption({ ...newMenuOption, description: e.target.value })} /></FormControl>
               <FormControl isRequired><FormLabel fontSize="sm" fontWeight="bold">Palavras-Chave (separadas por vírgula)</FormLabel><Textarea placeholder="pix, pagamento, conta" value={newMenuOption.keyword} onChange={e => setNewMenuOption({ ...newMenuOption, keyword: e.target.value })} rows={2} /></FormControl>
               <FormControl isRequired><FormLabel fontSize="sm" fontWeight="bold">Resposta Oficial</FormLabel><Textarea placeholder="Chave: 123..." value={newMenuOption.response} onChange={e => setNewMenuOption({ ...newMenuOption, response: e.target.value })} rows={4} /></FormControl>
-              <Box w="100%" bg="gray.50" p={3} borderRadius="md" border="1px dashed" borderColor="gray.200">
+              <Box w="100%" bg={gray50Bg} p={3} borderRadius="md" border="1px dashed" borderColor={gray200}>
                 <Text fontSize="xs" fontWeight="bold" mb={2}>COMPORTAMENTO</Text>
                 <VStack align="start">
                   <Checkbox colorScheme="teal" isChecked={newMenuOption.useAI} onChange={e => setNewMenuOption({ ...newMenuOption, useAI: e.target.checked })}>Usar IA para humanizar ✨</Checkbox>

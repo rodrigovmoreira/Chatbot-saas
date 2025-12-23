@@ -6,7 +6,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import {
   Box, Button, Modal, ModalOverlay, ModalContent, ModalHeader, 
   ModalFooter, ModalBody, ModalCloseButton, FormControl, FormLabel, 
-  Input, Select, useDisclosure, useToast, VStack, HStack, Text
+  Input, Select, useDisclosure, useToast, VStack, HStack, Text, useColorModeValue
 } from '@chakra-ui/react';
 import { DeleteIcon } from '@chakra-ui/icons';
 import { businessAPI } from '../services/api';
@@ -156,8 +156,62 @@ const ScheduleTab = () => {
     return { style: { backgroundColor } };
   };
 
+  const bg = useColorModeValue('white', 'gray.800');
+
+  // Custom Styles for Dark Mode Support in React Big Calendar
+  const calendarSx = {
+    '.rbc-calendar': {
+      color: useColorModeValue('gray.800', 'gray.200'),
+    },
+    '.rbc-off-range-bg': {
+      bg: useColorModeValue('gray.100', 'gray.700'),
+    },
+    '.rbc-today': {
+      bg: useColorModeValue('blue.50', 'whiteAlpha.100'),
+    },
+    '.rbc-header': {
+      borderColor: useColorModeValue('gray.200', 'gray.600'),
+    },
+    '.rbc-time-view': {
+      borderColor: useColorModeValue('gray.200', 'gray.600'),
+    },
+    '.rbc-time-content': {
+      borderTopColor: useColorModeValue('gray.200', 'gray.600'),
+    },
+    '.rbc-timeslot-group': {
+      borderBottomColor: useColorModeValue('gray.200', 'gray.600'),
+    },
+    '.rbc-day-slot': {
+      borderLeftColor: useColorModeValue('gray.200', 'gray.600'),
+    },
+    '.rbc-time-header-content': {
+      borderLeftColor: useColorModeValue('gray.200', 'gray.600'),
+    },
+    '.rbc-time-gutter': {
+      borderRightColor: useColorModeValue('gray.200', 'gray.600'),
+    },
+    '.rbc-day-bg': {
+      borderColor: useColorModeValue('gray.200', 'gray.600'),
+    },
+    '.rbc-toolbar button': {
+      color: useColorModeValue('gray.600', 'gray.200'),
+      borderColor: useColorModeValue('gray.300', 'gray.600'),
+      _hover: {
+        bg: useColorModeValue('gray.100', 'gray.700'),
+      },
+      _active: {
+        bg: useColorModeValue('gray.200', 'gray.600'),
+      }
+    },
+    '.rbc-toolbar button.rbc-active': {
+      bg: useColorModeValue('brand.500', 'brand.200'),
+      color: useColorModeValue('white', 'gray.900'),
+      borderColor: useColorModeValue('brand.500', 'brand.200'),
+    }
+  };
+
   return (
-    <Box h="75vh" bg="white" p={4} borderRadius="md" boxShadow="sm">
+    <Box h="75vh" bg={bg} p={4} borderRadius="md" boxShadow="sm" sx={calendarSx}>
       <Calendar
         localizer={localizer}
         events={events}
