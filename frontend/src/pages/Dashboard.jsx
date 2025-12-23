@@ -10,6 +10,7 @@ import { CheckCircleIcon, WarningTwoIcon, AddIcon, EditIcon, DeleteIcon, StarIco
 import { useApp } from '../context/AppContext';
 import { businessAPI } from '../services/api';
 import { authAPI } from '../services/api';
+import ScheduleTab from '../components/ScheduleTab';
 
 const Dashboard = () => {
   const { state, dispatch } = useApp();
@@ -182,14 +183,14 @@ const Dashboard = () => {
     }
   };
 
-const handleLogoutSystem = async () => {
+  const handleLogoutSystem = async () => {
     const confirm = window.confirm("Ao sair, o Robô do WhatsApp será desligado para economizar recursos. Deseja continuar?");
-    
+
     if (confirm) {
       try {
         // 1. Avisa o backend para matar o processo do Chrome
         await authAPI.logout(); // Você precisará garantir que essa função existe no api.js (veja abaixo)
-        
+
         toast({ title: 'Sessão encerrada', status: 'info' });
       } catch (error) {
         console.error("Erro ao notificar logout:", error);
@@ -384,7 +385,11 @@ const handleLogoutSystem = async () => {
             <Tab fontWeight="bold">💬 Respostas Rápidas</Tab>
             <Tab fontWeight="bold">📦 Catálogo</Tab>
             <Tab fontWeight="bold" color="purple.600">
-              <Icon as={ChatIcon} mr={2} /> Live Chat</Tab>
+              <Icon as={ChatIcon} mr={2} /> Live Chat
+            </Tab>
+            <Tab fontWeight="bold" color="blue.600">
+              <Icon as={TimeIcon} mr={2} /> Agendamentos
+            </Tab>
           </TabList>
 
           <TabPanels>
@@ -764,6 +769,11 @@ const handleLogoutSystem = async () => {
 
                 </HStack>
               </Card>
+            </TabPanel>
+
+            {/* ABA DE AGENDAMENTOS */}
+            <TabPanel px={0}>
+              <ScheduleTab />
             </TabPanel>
 
           </TabPanels>

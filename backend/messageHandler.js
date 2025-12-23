@@ -1,15 +1,15 @@
-const { saveMessage, getLastMessages, getImageHistory } = require('./services/message');
-const { generateAIResponse } = require('./services/ai');
+const axios = require('axios'); // Usaremos Axios direto (padrão DeepSeek/OpenAI)
+const { saveMessage, getLastMessages } = require('./services/message');
 const { analyzeImage } = require('./services/visionService');
 const { sendUnifiedMessage } = require('./services/responseService');
 const BusinessConfig = require('./models/BusinessConfig');
+const aiTools = require('./services/aiTools');
 
 const MAX_HISTORY = 30;
 
 // === CONTROLE DE PAUSA (ATENDIMENTO HUMANO) ===
-// Chave: businessId_telefone -> Valor: Timestamp de quando pode voltar a falar
 const humanPauseMap = new Map();
-const HUMAN_PAUSE_TIME = 30 * 60 * 1000; // 30 Minutos
+const HUMAN_PAUSE_TIME = 30 * 60 * 1000;
 
 // === CONTROLE DE PROTEÇÃO (ANTI-LOOP) ===
 const rateLimitMap = new Map();
@@ -20,6 +20,39 @@ const HUMAN_DELAY_MIN = 3000;
 const HUMAN_DELAY_MAX = 8000;
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+// --- FUNÇÃO AUXILIAR: CHAMADA AO DEEPSEEK ---
+async function callDeepSeek(messages) {
+    try {
+        const apiKey = process.env.DEEPSEEK_API_KEY;
+        const apiUrl = process.env.DEEPSEEK_API_URL || "https://api.deepseek.com/chat/completions";
+        const model = process.env.DEEPSEEK_MODEL || "deepseek-chat";
+
+        const response = await axios.post(
+            apiUrl,
+            {
+                model: model,
+                messages: messages,
+                max_tokens: 500,
+                temperature: 0.5,
+                stream: false,
+                response_format: { type: 'text' } // Garante texto puro (nós fazemos o parse do JSON)
+            },
+            {
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 60000 // Timeout maior para garantir
+            }
+        );
+
+        return response.data.choices[0].message.content;
+    } catch (error) {
+        console.error("❌ Erro DeepSeek API:", error.response?.data || error.message);
+        throw error;
+    }
+}
 
 function checkRateLimit(key) {
   const now = Date.now();
@@ -52,18 +85,18 @@ async function handleIncomingMessage(normalizedMsg, activeBusinessId) {
 
   const uniqueKey = `${activeBusinessId}_${from}`;
 
-  // 1. VERIFICA SE ESTÁ EM PAUSA (ATENDIMENTO HUMANO)
+  // 1. VERIFICA PAUSA
   const pauseUntil = humanPauseMap.get(uniqueKey);
   if (pauseUntil && Date.now() < pauseUntil) {
     console.log(`🔇 Bot pausado para ${from} (Aguardando Humano)...`);
-    return; // Não responde nada
+    return;
   }
 
-  // 2. CHECK DE RATE LIMIT
+  // 2. RATE LIMIT
   if (!checkRateLimit(uniqueKey)) return;
 
   console.log(`📩 [${provider}] De: ${name} | Tipo: ${type}`);
-  
+
   let userMessage = body ? body.trim() : "";
   let visionResult = null;
 
@@ -73,18 +106,18 @@ async function handleIncomingMessage(normalizedMsg, activeBusinessId) {
     if (!businessConfig) return;
     if (!businessConfig.prompts) businessConfig.prompts = { chatSystem: "...", visionSystem: "..." };
 
-    // 3. VISÃO COMPUTACIONAL
+    // 3. VISÃO (Mantemos o visionService separado, pois DeepSeek V3 é focado em texto)
     if (type === 'image' && mediaData) {
-      // ... (Lógica de visão mantém igual) ...
       try {
         const visionPrompt = businessConfig.prompts?.visionSystem || "Descreva esta imagem.";
+        // Nota: O visionService ainda usa Gemini internamente. Se quiser trocar tudo, 
+        // precisaria de um modelo de visão alternativo. Por enquanto, mantemos assim.
         visionResult = await analyzeImage(mediaData, visionPrompt);
-        if (visionResult) userMessage = `${userMessage}\n\n[VISÃO]: ${visionResult}`.trim();
-      } catch (e) { console.error(e); }
+        if (visionResult) userMessage = `${userMessage}\n\n[VISÃO DA IMAGEM]: ${visionResult}`.trim();
+      } catch (e) { console.error("Erro Visão:", e); }
     }
     if (!userMessage) userMessage = `[Arquivo de ${type === 'audio' ? 'Áudio' : 'Mídia'}]`;
 
-    // Salva msg do usuário
     await saveMessage(from, 'user', userMessage, type, visionResult, activeBusinessId);
 
     // 4. HORÁRIO
@@ -94,75 +127,172 @@ async function handleIncomingMessage(normalizedMsg, activeBusinessId) {
     }
 
     // =========================================================================
-    // 🆕 LÓGICA DE RESPOSTAS RÁPIDAS (ATUALIZADA)
+    // ⚡ MENU DE RESPOSTAS RÁPIDAS
     // =========================================================================
     if (businessConfig.menuOptions && businessConfig.menuOptions.length > 0) {
-        const lowerMsg = userMessage.toLowerCase();
-        
-        // Procura opção batendo as keywords (separadas por vírgula)
-        const matchedOption = businessConfig.menuOptions.find(opt => {
-            const keywords = opt.keyword.split(',').map(k => k.trim().toLowerCase());
-            return keywords.some(k => k && lowerMsg.includes(k));
-        });
+      const lowerMsg = userMessage.toLowerCase();
+      const matchedOption = businessConfig.menuOptions.find(opt => {
+        const keywords = opt.keyword.split(',').map(k => k.trim().toLowerCase());
+        return keywords.some(k => k && lowerMsg.includes(k));
+      });
 
-        if (matchedOption) {
-            console.log(`⚡ Resposta Rápida: "${matchedOption.description}"`);
-            
-            let finalResponse = matchedOption.response;
+      if (matchedOption) {
+        console.log(`⚡ Resposta Rápida: "${matchedOption.description}"`);
+        let finalResponse = matchedOption.response;
 
-            // A. SE PRECISAR DE IA PARA PERSONALIZAR
-            if (matchedOption.useAI) {
-                console.log("🤖 Usando IA para personalizar resposta rápida...");
-                const promptContext = `
+        if (matchedOption.useAI) {
+          const menuPrompt = `
 ${businessConfig.prompts.chatSystem}
 ---
-INSTRUÇÃO ESPECIAL:
-O usuário perguntou sobre: "${matchedOption.keyword}".
-A informação oficial da empresa é: "${matchedOption.response}".
-Sua tarefa: Responda ao usuário de forma natural e educada usando APENAS a informação oficial acima. Não invente dados.
----
-Cliente: ${userMessage}
-`;
-                // Gera resposta curta e rápida
-                const aiGen = await generateAIResponse(userMessage, promptContext);
-                if (aiGen) finalResponse = aiGen;
-            }
+INSTRUÇÃO: O usuário perguntou sobre "${matchedOption.keyword}".
+A informação oficial é: "${matchedOption.response}".
+Responda de forma natural usando APENAS a informação oficial.
+Cliente: ${userMessage}`;
 
-            // B. SE FOR ATENDIMENTO HUMANO -> PAUSA O BOT
-            if (matchedOption.requiresHuman) {
-                console.log(`🛑 Atendimento Humano solicitado. Pausando bot por 30min para ${from}`);
-                humanPauseMap.set(uniqueKey, Date.now() + HUMAN_PAUSE_TIME);
-                // Adiciona aviso ao final da mensagem se não for IA (opcional)
-                // finalResponse += "\n\n(Um atendente humano foi notificado)";
-            }
-
-            // Envia e Salva
-            await sendUnifiedMessage(from, finalResponse, provider, businessConfig.userId);
-            await saveMessage(from, 'bot', finalResponse, 'text', null, activeBusinessId);
-            return; // 🛑 Fim do processamento
+          try {
+            // Chamada DeepSeek simples para o menu
+            finalResponse = await callDeepSeek([
+                { role: "user", content: menuPrompt }
+            ]);
+          } catch (e) { console.error("Erro IA Menu:", e); }
         }
+
+        if (matchedOption.requiresHuman) {
+          console.log(`🛑 Atendimento Humano solicitado.`);
+          humanPauseMap.set(uniqueKey, Date.now() + HUMAN_PAUSE_TIME);
+        }
+
+        await sendUnifiedMessage(from, finalResponse, provider, businessConfig.userId);
+        await saveMessage(from, 'bot', finalResponse, 'text', null, activeBusinessId);
+        return;
+      }
     }
 
-    // 5. Histórico e IA Padrão (Se não caiu no menu)
-    const history = await getLastMessages(from, MAX_HISTORY, activeBusinessId);
-    const historyText = history.reverse().map(m => `${m.role === 'user' ? 'Cliente' : 'Atendente'}: ${m.content}`).join('\n');
-    
-    // ... (Lógica de Catálogo e Imagem mantém igual) ...
+    // =========================================================================
+    // 🧠 CÉREBRO DA IA + AGENDA (AGORA COM DEEPSEEK)
+    // =========================================================================
+
+    // A. Contexto Temporal
+    const now = new Date();
+    const todayStr = now.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
     let catalogContext = "";
     if (businessConfig.products?.length > 0) {
-        catalogContext = "\n--- TABELA DE PREÇOS ---\n" + businessConfig.products.map(p => `- ${p.name}: R$ ${p.price}`).join('\n');
+      catalogContext = "\n--- TABELA DE PREÇOS ---\n" + businessConfig.products.map(p => `- ${p.name}: R$ ${p.price}`).join('\n');
     }
 
-    const finalSystemPrompt = `${businessConfig.prompts.chatSystem}\n---\n${catalogContext}\n---\nDADOS: ${name}\nHISTÓRICO:\n${historyText}`;
+    // B. System Prompt (Ajustado para o estilo DeepSeek)
+    const systemInstruction = `
+${businessConfig.prompts.chatSystem}
 
-    const aiResponse = await generateAIResponse(userMessage, finalSystemPrompt);
+--- CONTEXTO ATUAL ---
+Hoje é: ${todayStr}.
+Hora atual: ${timeStr}.
 
-    if (aiResponse) {
-      const delay = Math.floor(Math.random() * (HUMAN_DELAY_MAX - HUMAN_DELAY_MIN + 1)) + HUMAN_DELAY_MIN;
-      await sleep(delay);
-      await sendUnifiedMessage(from, aiResponse, provider, businessConfig.userId);
-      await saveMessage(from, 'bot', aiResponse, 'text', null, activeBusinessId);
+${catalogContext}
+
+--- FERRAMENTAS DE AGENDA (IMPORTANTE) ---
+Você tem acesso total à agenda. Siga este protocolo:
+1. Se o usuário perguntar disponibilidade, VERIFIQUE a agenda antes de responder.
+2. Para agendar, confirme o nome e o horário.
+3. Para executar ações, responda APENAS um JSON puro (sem markdown) no formato:
+   - Verificar: {"action": "check", "start": "YYYY-MM-DDTHH:mm", "end": "YYYY-MM-DDTHH:mm"}
+   - Agendar: {"action": "book", "clientName": "Nome", "start": "YYYY-MM-DDTHH:mm", "title": "Serviço"}
+4. Se for conversa normal, responda apenas o texto.
+`;
+
+    // C. Montagem do Histórico (Formato OpenAI/DeepSeek: role 'user' ou 'assistant')
+    const dbHistory = await getLastMessages(from, MAX_HISTORY, activeBusinessId);
+    
+    const messages = [
+        { role: "system", content: systemInstruction }
+    ];
+
+    // Adiciona histórico do banco
+    dbHistory.reverse().forEach(m => {
+        if (m.content && m.content.trim()) {
+            messages.push({
+                role: m.role === 'user' ? 'user' : 'assistant',
+                content: m.content
+            });
+        }
+    });
+
+    // Adiciona a mensagem atual do usuário
+    messages.push({ role: "user", content: userMessage });
+
+    let finalResponseText = "";
+
+    try {
+      // D. Primeira Chamada ao DeepSeek
+      console.log("🤖 Enviando para DeepSeek...");
+      const responseText = await callDeepSeek(messages);
+
+      // E. Detectar Ferramenta (JSON)
+      // O DeepSeek pode mandar ```json ... ```, então limpamos isso
+      const cleanResponse = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+      const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+
+      if (jsonMatch) {
+        try {
+          const command = JSON.parse(jsonMatch[0]);
+          let toolResult = "";
+
+          if (command.action === 'check') {
+            console.log(`🔍 IA verificando agenda: ${command.start}`);
+            const endT = command.end || new Date(new Date(command.start).getTime() + 60 * 60000).toISOString();
+            const check = await aiTools.checkAvailability(businessConfig.userId, command.start, endT);
+            toolResult = check.available 
+              ? "O horário está LIVRE. Pode oferecer." 
+              : `O horário está OCUPADO. Motivo: ${check.reason}.`;
+          }
+
+          if (command.action === 'book') {
+            console.log(`📅 IA agendando: ${command.start}`);
+            const endT = command.end || new Date(new Date(command.start).getTime() + 60 * 60000).toISOString();
+
+            const booking = await aiTools.createAppointmentByAI(businessConfig.userId, {
+              clientName: command.clientName || name || "Cliente",
+              clientPhone: from,
+              title: command.title || "Agendamento via IA",
+              start: command.start,
+              end: endT
+            });
+
+            toolResult = booking.success
+              ? "SUCESSO: Agendamento confirmado no banco de dados."
+              : `ERRO: Falha ao agendar. ${booking.message}`;
+          }
+
+          // F. Segunda Chamada (Feedback da Ferramenta)
+          // Adicionamos a resposta JSON do bot e o resultado do sistema ao histórico temporário
+          messages.push({ role: "assistant", content: cleanResponse });
+          messages.push({ role: "user", content: `[SISTEMA]: Resultado da ação: ${toolResult}. Agora responda ao cliente confirmando ou oferecendo outra opção.` });
+
+          console.log("🤖 Enviando resultado da ferramenta para DeepSeek...");
+          finalResponseText = await callDeepSeek(messages);
+
+        } catch (jsonErr) {
+          console.error("Erro JSON IA:", jsonErr);
+          finalResponseText = responseText; // Manda o texto original se falhar o parse
+        }
+      } else {
+        finalResponseText = responseText;
+      }
+
+    } catch (aiErr) {
+      console.error("Erro Geração IA:", aiErr);
+      // Fallback em caso de erro da API
+      return; 
     }
+
+    // G. Delay Humano e Envio
+    const delay = Math.floor(Math.random() * (HUMAN_DELAY_MAX - HUMAN_DELAY_MIN + 1)) + HUMAN_DELAY_MIN;
+    await sleep(delay);
+
+    await sendUnifiedMessage(from, finalResponseText, provider, businessConfig.userId);
+    await saveMessage(from, 'bot', finalResponseText, 'text', null, activeBusinessId);
 
   } catch (error) {
     console.error('💥 Erro Handler:', error);
