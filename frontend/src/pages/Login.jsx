@@ -19,6 +19,7 @@ import {
   CardBody,
   Alert,
   AlertIcon,
+  useColorModeValue,
 } from '@chakra-ui/react';
 import { authAPI } from '../services/api';
 import { useApp } from '../context/AppContext';
@@ -29,6 +30,9 @@ const Login = () => {
   const [error, setError] = useState('');
   const { dispatch } = useApp();
   const toast = useToast();
+
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const headingColor = useColorModeValue('brand.600', 'brand.200');
 
   const handleAuthSuccess = (response) => {
     const { token, user } = response.data;
@@ -112,12 +116,12 @@ try {
       py={8}
     >
       <Container maxW="md">
-        <Card borderRadius="xl" boxShadow="2xl">
+        <Card borderRadius="xl" boxShadow="2xl" bg={cardBg}>
           <CardBody p={8}>
             <VStack spacing={6}>
               <Heading 
                 size="xl" 
-                color="brand.600" 
+                color={headingColor}
                 textAlign="center"
               >
                 ChatBot Platform
@@ -241,7 +245,7 @@ try {
                 </TabPanels>
               </Tabs>
 
-              <Text fontSize="sm" color="gray.600" textAlign="center">
+              <Text fontSize="sm" color={useColorModeValue("gray.600", "gray.300")} textAlign="center">
                 Sistema de atendimento automatizado via WhatsApp
               </Text>
             </VStack>

@@ -6,7 +6,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import {
   Box, Button, Modal, ModalOverlay, ModalContent, ModalHeader, 
   ModalFooter, ModalBody, ModalCloseButton, FormControl, FormLabel, 
-  Input, Select, useDisclosure, useToast, VStack, HStack, Text
+  Input, Select, useDisclosure, useToast, VStack, HStack, Text, useColorModeValue
 } from '@chakra-ui/react';
 import { DeleteIcon } from '@chakra-ui/icons';
 import { businessAPI } from '../services/api';
@@ -156,8 +156,10 @@ const ScheduleTab = () => {
     return { style: { backgroundColor } };
   };
 
+  const bg = useColorModeValue('white', 'gray.800');
+
   return (
-    <Box h="75vh" bg="white" p={4} borderRadius="md" boxShadow="sm">
+    <Box h="75vh" bg={bg} p={4} borderRadius="md" boxShadow="sm">
       <Calendar
         localizer={localizer}
         events={events}
