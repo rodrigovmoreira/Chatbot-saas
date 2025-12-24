@@ -88,8 +88,38 @@ const getFreeSlots = async (userId, dateStr) => {
     return slots;
 };
 
+// 4. FERRAMENTA: Buscar Produtos (Novo - Changelog 3)
+const searchProducts = async (userId, keywords = []) => {
+    try {
+        const config = await BusinessConfig.findOne({ userId });
+        if (!config || !config.products) return [];
+
+        // Normaliza keywords para lowercase
+        const searchTerms = keywords.map(k => k.toLowerCase());
+
+        // Filtra os produtos
+        const results = config.products.filter(p => {
+            const nameMatch = searchTerms.some(term => p.name.toLowerCase().includes(term));
+            const tagMatch = p.tags && p.tags.some(tag => searchTerms.includes(tag.toLowerCase()));
+            return nameMatch || tagMatch;
+        });
+
+        // Retorna formato simplificado
+        return results.map(p => ({
+            name: p.name,
+            price: p.price,
+            description: p.description,
+            imageUrls: p.imageUrls || []
+        }));
+    } catch (error) {
+        console.error("Erro ao buscar produtos:", error);
+        return [];
+    }
+};
+
 module.exports = {
     checkAvailability,
     createAppointmentByAI,
-    getFreeSlots
+    getFreeSlots,
+    searchProducts
 };

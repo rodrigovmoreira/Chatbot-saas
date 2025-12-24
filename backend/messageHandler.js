@@ -2,6 +2,7 @@ const axios = require('axios'); // Usaremos Axios direto (padrão DeepSeek/OpenA
 const { saveMessage, getLastMessages } = require('./services/message');
 const { analyzeImage } = require('./services/visionService');
 const { sendUnifiedMessage } = require('./services/responseService');
+const wwebjsService = require('./services/wwebjsService');
 const BusinessConfig = require('./models/BusinessConfig');
 const aiTools = require('./services/aiTools');
 
@@ -193,13 +194,15 @@ Hora atual: ${timeStr}.
 ${catalogContext}
 
 --- FERRAMENTAS DE AGENDA (IMPORTANTE) ---
-Você tem acesso total à agenda. Siga este protocolo:
+Você tem acesso total à agenda e ao catálogo visual. Siga este protocolo:
 1. Se o usuário perguntar disponibilidade, VERIFIQUE a agenda antes de responder.
 2. Para agendar, confirme o nome e o horário.
-3. Para executar ações, responda APENAS um JSON puro (sem markdown) no formato:
+3. Se o cliente pedir para ver exemplos, fotos, portfólio ou produtos, USE a busca de catálogo.
+4. Para executar ações, responda APENAS um JSON puro (sem markdown) no formato:
    - Verificar: {"action": "check", "start": "YYYY-MM-DDTHH:mm", "end": "YYYY-MM-DDTHH:mm"}
    - Agendar: {"action": "book", "clientName": "Nome", "start": "YYYY-MM-DDTHH:mm", "title": "Serviço"}
-4. Se for conversa normal, responda apenas o texto.
+   - Buscar Fotos: {"action": "search_catalog", "keywords": ["tag1", "tag2"]}
+5. Se for conversa normal, responda apenas o texto.
 `;
 
     // C. Montagem do Histórico (Formato OpenAI/DeepSeek: role 'user' ou 'assistant')
@@ -263,6 +266,27 @@ Você tem acesso total à agenda. Siga este protocolo:
             toolResult = booking.success
               ? "SUCESSO: Agendamento confirmado no banco de dados."
               : `ERRO: Falha ao agendar. ${booking.message}`;
+          }
+
+          if (command.action === 'search_catalog') {
+            console.log(`🖼️ IA buscando catálogo: ${command.keywords}`);
+            const products = await aiTools.searchProducts(businessConfig.userId, command.keywords);
+
+            if (products.length > 0) {
+              // Envia as imagens
+              let count = 0;
+              for (const p of products) {
+                if (count >= 5) break; // Limite de 5 produtos
+                if (p.imageUrls && p.imageUrls.length > 0) {
+                   // Manda a primeira foto de cada produto encontrado
+                   await wwebjsService.sendImage(businessConfig.userId, from, p.imageUrls[0], `${p.name} - R$ ${p.price}`);
+                   count++;
+                }
+              }
+              toolResult = `Encontrei ${products.length} produtos e já enviei ${count} fotos para o cliente.`;
+            } else {
+              toolResult = "Nenhum produto encontrado com essas palavras-chave.";
+            }
           }
 
           // F. Segunda Chamada (Feedback da Ferramenta)
