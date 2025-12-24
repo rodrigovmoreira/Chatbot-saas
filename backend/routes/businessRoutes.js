@@ -4,6 +4,7 @@ const BusinessConfig = require('../models/BusinessConfig');
 const IndustryPreset = require('../models/IndustryPreset');
 const CustomPrompt = require('../models/CustomPrompt');
 const authenticateToken = require('../middleware/auth');
+const upload = require('../config/upload');
 
 // === CONFIGURAÇÕES GERAIS ===
 
@@ -101,6 +102,27 @@ router.delete('/custom-prompts/:id', authenticateToken, async (req, res) => {
     res.json({ message: 'Modelo removido' });
   } catch (error) {
     res.status(500).json({ message: 'Erro ao deletar' });
+  }
+});
+
+// ==========================================
+// 📸 ROTA DE UPLOAD DE IMAGEM
+// ==========================================
+// O middleware 'upload.single("image")' pega o arquivo enviado e joga pro Cloudinary
+router.post('/upload-image', authenticateToken, upload.single('image'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'Nenhuma imagem enviada.' });
+    }
+
+    // Se chegou aqui, o Cloudinary já devolveu o link seguro (path)
+    console.log('✅ Upload realizado:', req.file.path);
+    
+    // Devolvemos a URL para o Frontend salvar junto com o produto depois
+    res.json({ imageUrl: req.file.path });
+  } catch (error) {
+    console.error('Erro no upload:', error);
+    res.status(500).json({ message: 'Erro ao fazer upload da imagem.' });
   }
 });
 

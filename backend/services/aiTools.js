@@ -88,8 +88,46 @@ const getFreeSlots = async (userId, dateStr) => {
     return slots;
 };
 
+// 4. FERRAMENTA: Buscar Produtos (Novo - Changelog 3)
+const searchProducts = async (userId, keywords = []) => {
+    try {
+        const config = await BusinessConfig.findOne({ userId });
+        if (!config || !config.products) return [];
+
+        // Normaliza keywords para lowercase e trim
+        const searchTerms = keywords.map(k => k.trim().toLowerCase()).filter(k => k.length > 0);
+
+        if (searchTerms.length === 0) return [];
+
+        // Filtra os produtos com Fuzzy Match (parcial)
+        const results = config.products.filter(p => {
+            const productName = p.name.trim().toLowerCase();
+            const productTags = (p.tags || []).map(t => t.trim().toLowerCase());
+
+            // Verifica se algum termo de busca está contido no nome OU nas tags
+            return searchTerms.some(term => {
+                const inName = productName.includes(term);
+                const inTags = productTags.some(tag => tag.includes(term));
+                return inName || inTags;
+            });
+        });
+
+        // Retorna formato simplificado
+        return results.map(p => ({
+            name: p.name,
+            price: p.price,
+            description: p.description,
+            imageUrls: p.imageUrls || []
+        }));
+    } catch (error) {
+        console.error("Erro ao buscar produtos:", error);
+        return [];
+    }
+};
+
 module.exports = {
     checkAvailability,
     createAppointmentByAI,
-    getFreeSlots
+    getFreeSlots,
+    searchProducts
 };

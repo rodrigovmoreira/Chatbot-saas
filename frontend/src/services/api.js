@@ -54,6 +54,11 @@ export const businessAPI = {
   getPresets: () => api.get('/api/business/presets'),
   applyPreset: (presetKey) => api.post('/api/business/apply-preset', { presetKey }),
 
+  // Upload de Imagem (NOVO)
+  uploadImage: (formData) => api.post('/api/business/upload-image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+
   // 4. Meus Modelos (Custom Prompts) (Atualizado para /api/business)
   getCustomPrompts: () => api.get('/api/business/custom-prompts'),
   saveCustomPrompt: (data) => api.post('/api/business/custom-prompts', data), // data = { name, prompts: { chatSystem, visionSystem } }
