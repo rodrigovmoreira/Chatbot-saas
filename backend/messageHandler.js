@@ -184,6 +184,8 @@ Cliente: ${userMessage}`;
     }
 
     // B. System Prompt (Ajustado para o estilo DeepSeek)
+    const { instagram, website, portfolio } = businessConfig.socialMedia || {};
+
     const systemInstruction = `
 ${businessConfig.prompts.chatSystem}
 
@@ -193,11 +195,18 @@ Hora atual: ${timeStr}.
 
 ${catalogContext}
 
---- FERRAMENTAS DE AGENDA (IMPORTANTE) ---
+--- LINKS & CONTATOS ---
+Se o usuário pedir pelo site, portfólio ou instagram, responda imediatamente com os links abaixo:
+Instagram: ${instagram || 'Não informado'}
+Site: ${website || 'Não informado'}
+Portfólio: ${portfolio || 'Não informado'}
+
+--- FERRAMENTAS DE AGENDA E CATÁLOGO ---
 Você tem acesso total à agenda e ao catálogo visual. Siga este protocolo:
 1. Se o usuário perguntar disponibilidade, VERIFIQUE a agenda antes de responder.
 2. Para agendar, confirme o nome e o horário.
 3. Se o cliente pedir para ver exemplos, fotos, portfólio ou produtos, USE a busca de catálogo.
+   - Ao buscar produtos, tente identificar categorias gerais (ex: 'promoção', 'opções') na intenção do usuário, não apenas nomes de objetos específicos.
 4. Para executar ações, responda APENAS um JSON puro (sem markdown) no formato:
    - Verificar: {"action": "check", "start": "YYYY-MM-DDTHH:mm", "end": "YYYY-MM-DDTHH:mm"}
    - Agendar: {"action": "book", "clientName": "Nome", "start": "YYYY-MM-DDTHH:mm", "title": "Serviço"}
