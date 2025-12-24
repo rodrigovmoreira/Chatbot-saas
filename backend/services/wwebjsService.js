@@ -1,4 +1,4 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const { adaptWWebJSMessage } = require('./providerAdapter');
 const BusinessConfig = require('../models/BusinessConfig');
 
@@ -194,6 +194,34 @@ const sendWWebJSMessage = async (userId, to, message) => {
   }
 };
 
+// 4. FUNÇÃO DE ENVIO DE IMAGEM (Novo - Changelog 4)
+const sendImage = async (userId, to, imageUrl, caption) => {
+  const client = sessions.get(userId.toString());
+
+  if (!client || !client.info) {
+    console.warn(`⚠️ Envio de imagem falhou: Sessão ${userId} indisponível.`);
+    return false;
+  }
+
+  try {
+    // Formata número
+    let formattedNumber = to.replace(/\D/g, '');
+    if (!formattedNumber.includes('@c.us')) formattedNumber = `${formattedNumber}@c.us`;
+
+    // Baixa e prepara a mídia
+    const media = await MessageMedia.fromUrl(imageUrl);
+
+    // Envia com legenda (se houver)
+    await client.sendMessage(formattedNumber, media, { caption: caption || "" });
+    console.log(`🖼️ Imagem enviada por ${userId} para ${formattedNumber}`);
+    return true;
+
+  } catch (error) {
+    console.error(`💥 Erro ao enviar imagem (User ${userId}):`, error.message);
+    return false;
+  }
+};
+
 const closeAllSessions = async () => {
   console.log(`🛑 Fechando ${sessions.size} sessões ativas...`);
   for (const [userId, client] of sessions.entries()) {
@@ -228,5 +256,6 @@ module.exports = {
   getSessionQR,
   getClientSession,
   sendWWebJSMessage,
+  sendImage,
   closeAllSessions
 };

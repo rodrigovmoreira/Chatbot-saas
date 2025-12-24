@@ -50,7 +50,8 @@ const Dashboard = () => {
   const [configForm, setConfigForm] = useState({
     businessName: '',
     operatingHours: { opening: '09:00', closing: '18:00' },
-    awayMessage: ''
+    awayMessage: '',
+    socialMedia: { instagram: '', website: '', portfolio: '' }
   });
 
   // Listas de Dados
@@ -71,8 +72,9 @@ const Dashboard = () => {
   const [editingMenuIndex, setEditingMenuIndex] = useState(null);
 
   // 3. Produtos
-  const [newProduct, setNewProduct] = useState({ name: '', price: '', description: '' });
+  const [newProduct, setNewProduct] = useState({ name: '', price: '', description: '', imageUrls: [], tags: [] });
   const [editingProductIndex, setEditingProductIndex] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // 4. Follow-up (NOVO)
   const [newFollowUp, setNewFollowUp] = useState({ delayMinutes: 60, message: '' });
@@ -89,7 +91,8 @@ const Dashboard = () => {
       setConfigForm({
         businessName: state.businessConfig.businessName || '',
         operatingHours: state.businessConfig.operatingHours || { opening: '09:00', closing: '18:00' },
-        awayMessage: state.businessConfig.awayMessage || ''
+        awayMessage: state.businessConfig.awayMessage || '',
+        socialMedia: state.businessConfig.socialMedia || { instagram: '', website: '', portfolio: '' }
       });
       // Listas
       setMenuOptions(state.businessConfig.menuOptions || []);
@@ -336,16 +339,46 @@ const Dashboard = () => {
 
   // --- PRODUTOS ---
   const handleAddProduct = () => {
+    // Normaliza tags de string para array se necessário
+    let finalTags = newProduct.tags;
+    if (typeof finalTags === 'string') {
+        finalTags = finalTags.split(',').map(t => t.trim()).filter(t => t);
+    }
+
+    const productToSave = { ...newProduct, tags: finalTags };
+
     const updated = [...products];
-    if (editingProductIndex !== null) updated[editingProductIndex] = newProduct;
-    else updated.push(newProduct);
+    if (editingProductIndex !== null) updated[editingProductIndex] = productToSave;
+    else updated.push(productToSave);
 
     setProducts(updated);
-    setNewProduct({ name: '', price: '', description: '' });
+    setNewProduct({ name: '', price: '', description: '', imageUrls: [], tags: [] });
     setEditingProductIndex(null);
     onProductModalClose();
   };
   const handleRemoveProduct = (idx) => setProducts(products.filter((_, i) => i !== idx));
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const response = await businessAPI.uploadImage(formData);
+      setNewProduct(prev => ({
+        ...prev,
+        imageUrls: [...(prev.imageUrls || []), response.data.imageUrl]
+      }));
+      toast({ title: 'Imagem enviada!', status: 'success' });
+    } catch (error) {
+      toast({ title: 'Erro ao enviar imagem', description: error.message, status: 'error' });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   // --- FOLLOW-UPS ---
   const handleEditFollowUp = (idx) => {
@@ -465,6 +498,23 @@ const Dashboard = () => {
                           <FormLabel fontSize="xs" fontWeight="bold" color="gray.500">MENSAGEM DE AUSÊNCIA</FormLabel>
                           <Textarea isDisabled={!editingHours} value={configForm.awayMessage} onChange={e => setConfigForm({ ...configForm, awayMessage: e.target.value })} rows={3} />
                         </FormControl>
+
+                        <Divider />
+
+                        <Heading size="sm" pt={2} color="gray.600">Links & Redes Sociais</Heading>
+                        <FormControl>
+                           <FormLabel fontSize="xs" fontWeight="bold" color="gray.500">INSTAGRAM</FormLabel>
+                           <Input isDisabled={!editingHours} placeholder="@seu_negocio" value={configForm.socialMedia.instagram} onChange={e => setConfigForm({...configForm, socialMedia: {...configForm.socialMedia, instagram: e.target.value}})} />
+                        </FormControl>
+                        <FormControl>
+                           <FormLabel fontSize="xs" fontWeight="bold" color="gray.500">WEBSITE</FormLabel>
+                           <Input isDisabled={!editingHours} placeholder="https://..." value={configForm.socialMedia.website} onChange={e => setConfigForm({...configForm, socialMedia: {...configForm.socialMedia, website: e.target.value}})} />
+                        </FormControl>
+                        <FormControl>
+                           <FormLabel fontSize="xs" fontWeight="bold" color="gray.500">PORTFOLIO</FormLabel>
+                           <Input isDisabled={!editingHours} placeholder="Link externo (Drive, Behance...)" value={configForm.socialMedia.portfolio} onChange={e => setConfigForm({...configForm, socialMedia: {...configForm.socialMedia, portfolio: e.target.value}})} />
+                        </FormControl>
+
                         {editingHours && <Button colorScheme="brand" onClick={handleSaveConfig} width="full">Salvar Alterações</Button>}
                       </VStack>
                     </CardBody>
@@ -692,17 +742,27 @@ const Dashboard = () => {
               <Card bg={cardBg} boxShadow="md">
                 <CardHeader>
                   <HStack justify="space-between">
-                    <Box><Heading size="md">Produtos & Serviços</Heading><Text fontSize="sm" color="gray.500">Para a IA consultar preços.</Text></Box>
-                    <Button leftIcon={<AddIcon />} variant="outline" colorScheme="blue" onClick={() => { setEditingProductIndex(null); setNewProduct({ name: '', price: '', description: '' }); onProductModalOpen(); }}>Novo Item</Button>
+                    <Box><Heading size="md">Produtos & Serviços</Heading><Text fontSize="sm" color="gray.500">Para a IA consultar preços e enviar fotos.</Text></Box>
+                    <Button leftIcon={<AddIcon />} variant="outline" colorScheme="blue" onClick={() => { setEditingProductIndex(null); setNewProduct({ name: '', price: '', description: '', imageUrls: [], tags: [] }); onProductModalOpen(); }}>Novo Item</Button>
                   </HStack>
                 </CardHeader>
                 <CardBody>
                   <VStack align="stretch" spacing={3}>
                     {products.map((prod, idx) => (
-                      <HStack key={idx} p={4} borderWidth="1px" borderRadius="md" justify="space-between" bg={gray50Bg}>
-                        <VStack align="start" spacing={1}>
+                      <HStack key={idx} p={4} borderWidth="1px" borderRadius="md" justify="space-between" bg={gray50Bg} align="start">
+                         {prod.imageUrls && prod.imageUrls.length > 0 && (
+                            <Box w="60px" h="60px" borderRadius="md" overflow="hidden" flexShrink={0}>
+                               <img src={prod.imageUrls[0]} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            </Box>
+                         )}
+                        <VStack align="start" spacing={1} flex={1}>
                           <HStack><Text fontWeight="bold">{prod.name}</Text><Badge colorScheme="green">R$ {prod.price}</Badge></HStack>
                           <Text fontSize="sm" color="gray.600">{prod.description}</Text>
+                          {prod.tags && prod.tags.length > 0 && (
+                             <HStack flexWrap="wrap" spacing={1}>
+                                {prod.tags.map((t, i) => <Badge key={i} colorScheme="purple" variant="subtle" fontSize="0.6em">{t}</Badge>)}
+                             </HStack>
+                          )}
                         </VStack>
                         <HStack>
                           <Button size="sm" variant="ghost" onClick={() => { setNewProduct(prod); setEditingProductIndex(idx); onProductModalOpen(); }}><EditIcon /></Button>
@@ -862,9 +922,36 @@ const Dashboard = () => {
               <FormControl isRequired><FormLabel>Nome</FormLabel><Input value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} /></FormControl>
               <FormControl isRequired><FormLabel>Preço</FormLabel><Input type="number" value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: e.target.value })} /></FormControl>
               <FormControl><FormLabel>Detalhes</FormLabel><Textarea value={newProduct.description} onChange={e => setNewProduct({ ...newProduct, description: e.target.value })} /></FormControl>
+
+              <FormControl>
+                <FormLabel>Tags (Palavras-chave separadas por vírgula)</FormLabel>
+                <Input
+                   placeholder="ex: realismo, braço, promoção"
+                   value={Array.isArray(newProduct.tags) ? newProduct.tags.join(', ') : newProduct.tags}
+                   onChange={e => setNewProduct({ ...newProduct, tags: e.target.value })}
+                />
+              </FormControl>
+
+              <FormControl>
+                 <FormLabel>Imagem do Produto</FormLabel>
+                 <HStack>
+                    <Input type="file" accept="image/*" onChange={handleImageUpload} p={1} isDisabled={isUploading} />
+                    {isUploading && <Spinner size="sm" />}
+                 </HStack>
+                 {newProduct.imageUrls && newProduct.imageUrls.length > 0 && (
+                    <HStack mt={2} spacing={2} overflowX="auto">
+                       {newProduct.imageUrls.map((url, i) => (
+                          <Box key={i} w="50px" h="50px" borderRadius="md" overflow="hidden" border="1px solid gray">
+                             <img src={url} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          </Box>
+                       ))}
+                    </HStack>
+                 )}
+              </FormControl>
+
             </VStack>
           </ModalBody>
-          <ModalFooter><Button variant="ghost" mr={3} onClick={onProductModalClose}>Cancelar</Button><Button colorScheme="blue" onClick={handleAddProduct}>Salvar</Button></ModalFooter>
+          <ModalFooter><Button variant="ghost" mr={3} onClick={onProductModalClose}>Cancelar</Button><Button colorScheme="blue" onClick={handleAddProduct} isLoading={isUploading}>Salvar</Button></ModalFooter>
         </ModalContent>
       </Modal>
 

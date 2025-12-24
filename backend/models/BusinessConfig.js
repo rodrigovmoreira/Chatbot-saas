@@ -43,9 +43,16 @@ const businessConfigSchema = new mongoose.Schema({
       name: { type: String, required: true },
       price: { type: Number, required: true },
       description: { type: String },
-      imageUrl: { type: String, default: "" }
+      imageUrls: { type: [String], default: [] },
+      tags: { type: [String], default: [] }
     }
   ],
+
+  socialMedia: {
+    instagram: { type: String },
+    website: { type: String },
+    portfolio: { type: String }
+  },
 
   followUpSteps: [
     {
