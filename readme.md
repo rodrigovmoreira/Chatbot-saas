@@ -55,6 +55,9 @@ DEEPSEEK_API_KEY=sua_chave_deepseek
 DEEPSEEK_API_URL=https://api.deepseek.com/chat/completions
 DEEPSEEK_MODEL=deepseek-chat
 GEMINI_API_KEY=sua_chave_gemini_api_key
+CLOUDINARY_CLOUD_NAME=nome_da_sua_conta
+CLOUDINARY_API_KEY=sua_chave_de_api
+CLOUDINARY_API_SECRET=sua_senha_de_api
 
 # Twilio (WhatsApp)
 TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxx
