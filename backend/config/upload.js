@@ -1,25 +1,48 @@
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
+const admin = require('firebase-admin');
 
-// 1. Configura o Cloudinary com suas credenciais
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+// 1. Configura Firebase Admin
+let serviceAccount;
 
-// 2. Configura o "Storage" (Onde e como salvar)
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'chatbot-catalogo', // Nome da pasta que será criada no seu Cloudinary
-    allowed_formats: ['jpg', 'png', 'jpeg', 'webp'], // Formatos aceitos
-    transformation: [{ width: 800, height: 800, crop: 'limit' }] // Opcional: Redimensiona para economizar dados
+try {
+  if (process.env.FIREBASE_CREDENTIALS) {
+    // Produção: JSON stringificado na variável de ambiente
+    serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
+  } else {
+    // Desenvolvimento: Arquivo local
+    serviceAccount = require('./firebase-credentials.json');
+  }
+
+  // Inicializa apenas se ainda não estiver inicializado
+  if (!admin.apps.length) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      storageBucket: process.env.FIREBASE_BUCKET_URL // ex: "meu-app.appspot.com"
+    });
+  }
+} catch (error) {
+  console.error("⚠️ Erro ao configurar Firebase:", error.message);
+  // Não quebra a aplicação, mas uploads falharão
+}
+
+// 2. Configura Multer para memória (necessário para o Sharp processar antes)
+const storage = multer.memoryStorage();
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB
   },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Apenas imagens são permitidas!'), false);
+    }
+  }
 });
 
-// 3. Cria o middleware do Multer
-const upload = multer({ storage: storage });
+// Exporta o 'upload' (middleware) e o 'bucket' (para salvar manualmente)
+const bucket = admin.storage().bucket();
 
-module.exports = upload;
+module.exports = { upload, bucket };
