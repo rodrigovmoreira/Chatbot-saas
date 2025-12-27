@@ -10,7 +10,7 @@ try {
     serviceAccount = JSON.parse(process.env.FIREBASE_CREDENTIALS);
   } else {
     // Desenvolvimento: Arquivo local
-    serviceAccount = require('../firebase-credentials.json');
+    serviceAccount = require('./firebase-credentials.json');
   }
 
   // Inicializa apenas se ainda não estiver inicializado
