@@ -26,3 +26,6 @@ Thumbs.db
 
 # Ignore txt files
 *.txt
+
+# Ignore firebase service account keys
+firebase-credentials.json
