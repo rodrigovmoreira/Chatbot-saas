@@ -58,6 +58,7 @@ export const businessAPI = {
   uploadImage: (formData) => api.post('/api/business/upload-image', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
+  deleteImage: (imageUrl) => api.post('/api/business/delete-image', { imageUrl }),
 
   // 4. Meus Modelos (Custom Prompts) (Atualizado para /api/business)
   getCustomPrompts: () => api.get('/api/business/custom-prompts'),

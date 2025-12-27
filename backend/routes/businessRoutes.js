@@ -5,6 +5,7 @@ const IndustryPreset = require('../models/IndustryPreset');
 const CustomPrompt = require('../models/CustomPrompt');
 const authenticateToken = require('../middleware/auth');
 const upload = require('../config/upload');
+const { deleteFromCloudinary } = require('../utils/imageHelper');
 
 // === CONFIGURAÇÕES GERAIS ===
 
@@ -23,6 +24,37 @@ router.get('/config', authenticateToken, async (req, res) => {
 // PUT /api/business/config
 router.put('/config', authenticateToken, async (req, res) => {
   try {
+    // 1. Antes de salvar, buscamos a config antiga para comparar imagens
+    const oldConfig = await BusinessConfig.findOne({ userId: req.user.userId });
+
+    if (oldConfig && oldConfig.products && req.body.products) {
+      // Coletar todas as URLs de imagens que existiam
+      const oldImages = new Set();
+      oldConfig.products.forEach(p => {
+        if (p.imageUrls && Array.isArray(p.imageUrls)) {
+          p.imageUrls.forEach(url => oldImages.add(url));
+        }
+      });
+
+      // Coletar todas as URLs que estão chegando agora
+      const newImages = new Set();
+      req.body.products.forEach(p => {
+        if (p.imageUrls && Array.isArray(p.imageUrls)) {
+          p.imageUrls.forEach(url => newImages.add(url));
+        }
+      });
+
+      // Encontrar as que sumiram (foram deletadas)
+      const imagesToDelete = [...oldImages].filter(url => !newImages.has(url));
+
+      // Deletar do Cloudinary
+      if (imagesToDelete.length > 0) {
+        console.log(`🗑️ Detectada exclusão de ${imagesToDelete.length} imagens. Limpando Cloudinary...`);
+        // Não esperamos o delete para não travar a resposta da API (Fire & Forget ou Promise.allSettled)
+        Promise.allSettled(imagesToDelete.map(url => deleteFromCloudinary(url)));
+      }
+    }
+
     const config = await BusinessConfig.findOneAndUpdate(
       { userId: req.user.userId },
       { ...req.body, updatedAt: new Date() },
@@ -30,6 +62,7 @@ router.put('/config', authenticateToken, async (req, res) => {
     );
     res.json(config);
   } catch (error) {
+    console.error('Erro update config:', error);
     res.status(500).json({ message: 'Erro update config' });
   }
 });
@@ -123,6 +156,19 @@ router.post('/upload-image', authenticateToken, upload.single('image'), (req, re
   } catch (error) {
     console.error('Erro no upload:', error);
     res.status(500).json({ message: 'Erro ao fazer upload da imagem.' });
+  }
+});
+
+// DELETE /api/business/delete-image
+router.post('/delete-image', authenticateToken, async (req, res) => {
+  try {
+    const { imageUrl } = req.body;
+    if (!imageUrl) return res.status(400).json({ message: 'URL da imagem não fornecida.' });
+
+    await deleteFromCloudinary(imageUrl);
+    res.json({ message: 'Imagem removida com sucesso.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao deletar imagem.' });
   }
 });
 

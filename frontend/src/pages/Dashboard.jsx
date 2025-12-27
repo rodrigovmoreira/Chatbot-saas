@@ -359,25 +359,53 @@ const Dashboard = () => {
   const handleRemoveProduct = (idx) => setProducts(products.filter((_, i) => i !== idx));
 
   const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
 
     setIsUploading(true);
-    const formData = new FormData();
-    formData.append('image', file);
 
     try {
-      const response = await businessAPI.uploadImage(formData);
+      // Upload de múltiplas imagens em paralelo
+      const uploadPromises = files.map(file => {
+        const formData = new FormData();
+        formData.append('image', file);
+        return businessAPI.uploadImage(formData);
+      });
+
+      const responses = await Promise.all(uploadPromises);
+      const newUrls = responses.map(res => res.data.imageUrl);
+
       setNewProduct(prev => ({
         ...prev,
-        imageUrls: [...(prev.imageUrls || []), response.data.imageUrl]
+        imageUrls: [...(prev.imageUrls || []), ...newUrls]
       }));
-      toast({ title: 'Imagem enviada!', status: 'success' });
+      toast({ title: `${newUrls.length} imagens enviadas!`, status: 'success' });
     } catch (error) {
       toast({ title: 'Erro ao enviar imagem', description: error.message, status: 'error' });
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleDeleteImage = async (indexToRemove) => {
+    const urlToRemove = newProduct.imageUrls[indexToRemove];
+
+    // Se for URL salva (tem http), deletamos do backend
+    if (urlToRemove && urlToRemove.startsWith('http')) {
+      try {
+        await businessAPI.deleteImage(urlToRemove);
+        toast({ title: 'Imagem removida!', status: 'success' });
+      } catch (error) {
+        console.error("Erro ao deletar imagem:", error);
+        toast({ title: 'Erro ao remover arquivo', status: 'error' });
+        return; // Não remove do estado se falhar no backend (opcional)
+      }
+    }
+
+    setNewProduct(prev => ({
+      ...prev,
+      imageUrls: prev.imageUrls.filter((_, i) => i !== indexToRemove)
+    }));
   };
 
   // --- FOLLOW-UPS ---
@@ -933,16 +961,28 @@ const Dashboard = () => {
               </FormControl>
 
               <FormControl>
-                 <FormLabel>Imagem do Produto</FormLabel>
+                 <FormLabel>Imagens do Produto</FormLabel>
                  <HStack>
-                    <Input type="file" accept="image/*" onChange={handleImageUpload} p={1} isDisabled={isUploading} />
+                    <Input type="file" multiple accept="image/*" onChange={handleImageUpload} p={1} isDisabled={isUploading} />
                     {isUploading && <Spinner size="sm" />}
                  </HStack>
                  {newProduct.imageUrls && newProduct.imageUrls.length > 0 && (
-                    <HStack mt={2} spacing={2} overflowX="auto">
+                    <HStack mt={2} spacing={2} overflowX="auto" py={2}>
                        {newProduct.imageUrls.map((url, i) => (
-                          <Box key={i} w="50px" h="50px" borderRadius="md" overflow="hidden" border="1px solid gray">
+                          <Box key={i} w="60px" h="60px" borderRadius="md" overflow="hidden" border="1px solid gray" position="relative" flexShrink={0}>
                              <img src={url} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                             <IconButton
+                                icon={<DeleteIcon boxSize={3} />}
+                                size="xs"
+                                colorScheme="red"
+                                position="absolute"
+                                top={0}
+                                right={0}
+                                onClick={() => handleDeleteImage(i)}
+                                aria-label="Remover imagem"
+                                borderRadius="none"
+                                borderBottomLeftRadius="md"
+                             />
                           </Box>
                        ))}
                     </HStack>

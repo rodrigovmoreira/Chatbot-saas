@@ -286,13 +286,24 @@ Você tem acesso total à agenda e ao catálogo visual. Siga este protocolo:
               let count = 0;
               for (const p of products) {
                 if (count >= 5) break; // Limite de 5 produtos
+
+                const caption = `${p.name} - R$ ${p.price}\n${p.description || ''}`;
+
                 if (p.imageUrls && p.imageUrls.length > 0) {
-                   // Manda a primeira foto de cada produto encontrado
-                   await wwebjsService.sendImage(businessConfig.userId, from, p.imageUrls[0], `${p.name} - R$ ${p.price}`);
+                   // 1. Manda a primeira foto com a legenda
+                   await wwebjsService.sendImage(businessConfig.userId, from, p.imageUrls[0], caption);
+
+                   // 2. Manda as outras fotos (se houver) sem legenda
+                   for (let i = 1; i < p.imageUrls.length; i++) {
+                      await wwebjsService.sendImage(businessConfig.userId, from, p.imageUrls[i], "");
+                   }
                    count++;
+                } else {
+                    // Se não tiver imagem, manda só o texto
+                    await sendUnifiedMessage(from, caption, provider, businessConfig.userId);
                 }
               }
-              toolResult = `Encontrei ${products.length} produtos e já enviei ${count} fotos para o cliente.`;
+              toolResult = `Encontrei ${products.length} produtos e já enviei ${count} com fotos para o cliente.`;
             } else {
               toolResult = "Nenhum produto encontrado com essas palavras-chave.";
             }
