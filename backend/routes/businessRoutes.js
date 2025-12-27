@@ -4,8 +4,10 @@ const BusinessConfig = require('../models/BusinessConfig');
 const IndustryPreset = require('../models/IndustryPreset');
 const CustomPrompt = require('../models/CustomPrompt');
 const authenticateToken = require('../middleware/auth');
-const upload = require('../config/upload');
-const { deleteFromCloudinary } = require('../utils/imageHelper');
+const { upload, bucket } = require('../config/upload'); // Destructuring to get bucket too
+const { deleteFromFirebase } = require('../utils/firebaseHelper');
+const sharp = require('sharp');
+const { v4: uuidv4 } = require('uuid');
 
 // === CONFIGURAÇÕES GERAIS ===
 
@@ -47,11 +49,11 @@ router.put('/config', authenticateToken, async (req, res) => {
       // Encontrar as que sumiram (foram deletadas)
       const imagesToDelete = [...oldImages].filter(url => !newImages.has(url));
 
-      // Deletar do Cloudinary
+      // Deletar do Firebase
       if (imagesToDelete.length > 0) {
-        console.log(`🗑️ Detectada exclusão de ${imagesToDelete.length} imagens. Limpando Cloudinary...`);
+        console.log(`🗑️ Detectada exclusão de ${imagesToDelete.length} imagens. Limpando Storage...`);
         // Não esperamos o delete para não travar a resposta da API (Fire & Forget ou Promise.allSettled)
-        Promise.allSettled(imagesToDelete.map(url => deleteFromCloudinary(url)));
+        Promise.allSettled(imagesToDelete.map(url => deleteFromFirebase(url)));
       }
     }
 
@@ -139,23 +141,58 @@ router.delete('/custom-prompts/:id', authenticateToken, async (req, res) => {
 });
 
 // ==========================================
-// 📸 ROTA DE UPLOAD DE IMAGEM
+// 📸 ROTA DE UPLOAD DE IMAGEM (FIREBASE)
 // ==========================================
-// O middleware 'upload.single("image")' pega o arquivo enviado e joga pro Cloudinary
-router.post('/upload-image', authenticateToken, upload.single('image'), (req, res) => {
+router.post('/upload-image', authenticateToken, upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'Nenhuma imagem enviada.' });
     }
 
-    // Se chegou aqui, o Cloudinary já devolveu o link seguro (path)
-    console.log('✅ Upload realizado:', req.file.path);
-    
-    // Devolvemos a URL para o Frontend salvar junto com o produto depois
-    res.json({ imageUrl: req.file.path });
+    // 1. Processar imagem com Sharp (Redimensionar e converter para JPEG)
+    const processedBuffer = await sharp(req.file.buffer)
+      .resize(1024, 1024, { fit: 'inside', withoutEnlargement: true })
+      .toFormat('jpeg', { quality: 80 })
+      .toBuffer();
+
+    // 2. Criar nome único e referência no Storage
+    const filename = `products/${uuidv4()}.jpg`;
+    const file = bucket.file(filename);
+
+    // 3. Upload Stream para Firebase
+    const stream = file.createWriteStream({
+      metadata: {
+        contentType: 'image/jpeg'
+      }
+    });
+
+    stream.on('error', (err) => {
+      console.error('Erro no stream de upload:', err);
+      res.status(500).json({ message: 'Erro ao fazer upload da imagem.' });
+    });
+
+    stream.on('finish', async () => {
+      try {
+        // 4. Tornar público e gerar URL
+        await file.makePublic();
+
+        // URL Pública Padrão (Firebase/GCS)
+        // https://storage.googleapis.com/BUCKET_NAME/products/filename.jpg
+        const publicUrl = `https://storage.googleapis.com/${bucket.name}/${filename}`;
+
+        console.log('✅ Upload Firebase realizado:', publicUrl);
+        res.json({ imageUrl: publicUrl });
+      } catch (err) {
+         console.error('Erro ao tornar público:', err);
+         res.status(500).json({ message: 'Erro ao finalizar upload.' });
+      }
+    });
+
+    stream.end(processedBuffer);
+
   } catch (error) {
     console.error('Erro no upload:', error);
-    res.status(500).json({ message: 'Erro ao fazer upload da imagem.' });
+    res.status(500).json({ message: 'Erro interno no upload.' });
   }
 });
 
@@ -165,9 +202,10 @@ router.post('/delete-image', authenticateToken, async (req, res) => {
     const { imageUrl } = req.body;
     if (!imageUrl) return res.status(400).json({ message: 'URL da imagem não fornecida.' });
 
-    await deleteFromCloudinary(imageUrl);
+    await deleteFromFirebase(imageUrl);
     res.json({ message: 'Imagem removida com sucesso.' });
   } catch (error) {
+    console.error('Erro delete-image:', error);
     res.status(500).json({ message: 'Erro ao deletar imagem.' });
   }
 });
