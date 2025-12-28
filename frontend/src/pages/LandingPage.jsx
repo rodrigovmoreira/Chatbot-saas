@@ -17,9 +17,12 @@ import {
   Card,
   CardBody,
   CardHeader,
+  Avatar,
+  Icon,
 } from '@chakra-ui/react';
-import { CheckIcon } from '@chakra-ui/icons';
+import { CheckIcon, StarIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
+import { FaWhatsapp, FaRobot, FaCalendarCheck, FaImages } from 'react-icons/fa'; // Se não tiver react-icons, avise que troco por ícones padrão
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -40,19 +43,24 @@ const LandingPage = () => {
       >
         <Container maxW="container.xl">
           <Flex justify="space-between" align="center">
-            <Heading size="md" color={brandColor}>
-              CalangoBot
-            </Heading>
+            <HStack>
+                {/* Logo Placeholder */}
+                <Icon as={FaRobot} w={6} h={6} color={brandColor} />
+                <Heading size="md" color={brandColor}>
+                CalangoBot
+                </Heading>
+            </HStack>
+            
             <HStack spacing={4}>
               <Button variant="ghost" onClick={() => navigate('/login')}>
-                Login
+                Entrar
               </Button>
               <Button
                 colorScheme="brand"
                 variant="solid"
                 onClick={() => navigate('/login')}
               >
-                Start Free Trial
+                Testar Grátis
               </Button>
             </HStack>
           </Flex>
@@ -74,176 +82,252 @@ const LandingPage = () => {
               bgGradient="linear(to-r, brand.600, brand.400)"
               bgClip="text"
             >
-              Automate your WhatsApp Service with AI
+              Automatize seu WhatsApp com Inteligência Artificial
             </Heading>
             <Text fontSize="xl" color="gray.500">
-              Scheduling, Visual Catalog, and Smart Answers 24/7 for your business.
+              Agendamento automático, envio de catálogo visual e respostas inteligentes 24 horas por dia para o seu negócio nunca parar de vender.
             </Text>
-            <Button
-              size="lg"
-              colorScheme="brand"
-              onClick={() => navigate('/login')}
-              px={8}
-            >
-              Get Started Now
-            </Button>
+            <Stack direction={{ base: 'column', sm: 'row' }} spacing={4} w="100%">
+                <Button
+                size="lg"
+                colorScheme="brand"
+                leftIcon={<FaWhatsapp />}
+                onClick={() => navigate('/login')}
+                px={8}
+                >
+                Começar Agora
+                </Button>
+                <Button
+                size="lg"
+                variant="outline"
+                colorScheme="gray"
+                onClick={() => document.getElementById('demo').scrollIntoView({ behavior: 'smooth' })}
+                >
+                Ver Demonstração
+                </Button>
+            </Stack>
           </VStack>
 
-          {/* Live Demo Visualization */}
-          <Box flex={1} w="100%">
+          {/* Live Demo Visualization (Simulador de Chat) */}
+          <Box flex={1} w="100%" id="demo">
             <Card
-              bg={useColorModeValue('#e5ddd5', '#202c33')} // WhatsApp BG color approximation
+              bg={useColorModeValue('#e5ddd5', '#202c33')} 
               borderRadius="xl"
-              boxShadow="xl"
+              boxShadow="2xl"
               maxW="400px"
               mx="auto"
               overflow="hidden"
+              border="8px solid"
+              borderColor="gray.800"
             >
               <Box bg={useColorModeValue('#075e54', '#202c33')} p={3} color="white">
                 <HStack>
-                  <Box w={8} h={8} borderRadius="full" bg="gray.300" />
-                  <Text fontWeight="bold">CalangoBot Store</Text>
+                  <Avatar size="sm" src="https://bit.ly/broken-link" bg="gray.300" icon={<FaRobot />} />
+                  <VStack align="start" spacing={0}>
+                    <Text fontWeight="bold" fontSize="sm">CalangoBot Store</Text>
+                    <Text fontSize="xs">Online agora</Text>
+                  </VStack>
                 </HStack>
               </Box>
-              <CardBody p={4} minH="300px" display="flex" flexDirection="column" gap={3}>
-                {/* User Message */}
-                <Flex justify="flex-end">
-                  <Box
-                    bg="#dcf8c6"
-                    color="black"
-                    p={2}
-                    borderRadius="lg"
-                    borderTopRightRadius="0"
-                    maxW="80%"
-                  >
-                    <Text fontSize="sm">Do you have the green sneakers in size 42?</Text>
-                  </Box>
-                </Flex>
+              <CardBody p={4} minH="350px" display="flex" flexDirection="column" gap={3}>
+                
+                <ChatMessage isUser>Vocês têm esse tênis no tamanho 42?</ChatMessage>
+                
+                <ChatMessage>
+                    <VStack align="start" spacing={2}>
+                        <Box h="120px" w="100%" bg="gray.200" borderRadius="md" display="flex" alignItems="center" justifyContent="center">
+                            <Icon as={FaImages} boxSize={8} color="gray.400" />
+                        </Box>
+                        <Text>Sim! Temos o <b>Tênis Emerald Runner</b> em estoque. Olha a foto dele acima 👆</Text>
+                    </VStack>
+                </ChatMessage>
 
-                {/* Bot Response - Image */}
-                <Flex justify="flex-start">
-                  <Box
-                    bg="white"
-                    color="black"
-                    p={2}
-                    borderRadius="lg"
-                    borderTopLeftRadius="0"
-                    maxW="80%"
-                  >
-                    <Box
-                      h="150px"
-                      w="100%"
-                      bg="gray.200"
-                      borderRadius="md"
-                      mb={2}
-                      display="flex"
-                      alignItems="center"
-                      justifyContent="center"
-                    >
-                      <Text fontSize="4xl">👟</Text>
-                    </Box>
-                    <Text fontSize="sm">Yes! We have the Emerald Runners in stock. Here is a photo.</Text>
-                  </Box>
-                </Flex>
+                <ChatMessage isUser>Top! Posso agendar pra provar amanhã às 14h?</ChatMessage>
 
-                 {/* User Message */}
-                 <Flex justify="flex-end">
-                  <Box
-                    bg="#dcf8c6"
-                    color="black"
-                    p={2}
-                    borderRadius="lg"
-                    borderTopRightRadius="0"
-                    maxW="80%"
-                  >
-                    <Text fontSize="sm">Great! Can I schedule a pickup for tomorrow at 2PM?</Text>
-                  </Box>
-                </Flex>
+                <ChatMessage>
+                    ✅ <b>Agendamento confirmado!</b><br/>
+                    Te espero amanhã às 14:00. Já reservei o modelo pra você.
+                </ChatMessage>
 
-                {/* Bot Response - Confirmation */}
-                <Flex justify="flex-start">
-                  <Box
-                    bg="white"
-                    color="black"
-                    p={2}
-                    borderRadius="lg"
-                    borderTopLeftRadius="0"
-                    maxW="80%"
-                  >
-                     <Text fontSize="sm">✅ Appointment confirmed for tomorrow at 2:00 PM. See you then!</Text>
-                  </Box>
-                </Flex>
               </CardBody>
             </Card>
           </Box>
         </Stack>
       </Container>
 
-      {/* Features Grid */}
-      <Box bg={useColorModeValue('white', 'gray.800')} py={20}>
+      {/* Parceiros / Confiança */}
+      <Box borderTopWidth={1} borderBottomWidth={1} borderColor={useColorModeValue('gray.100', 'gray.700')} py={8} bg={useColorModeValue('white', 'gray.800')}>
         <Container maxW="container.xl">
+            <Text textAlign="center" color="gray.500" mb={6} fontSize="sm" fontWeight="bold" textTransform="uppercase">
+                Empresas que confiam na nossa tecnologia
+            </Text>
+            <SimpleGrid columns={{ base: 2, md: 5 }} spacing={10} opacity={0.6} filter="grayscale(100%)">
+                {/* Substitua por imagens reais de logos */}
+                <PartnerPlaceholder name="Barbearia Silva" />
+                <PartnerPlaceholder name="Clínica Bem Estar" />
+                <PartnerPlaceholder name="Imobiliária Top" />
+                <PartnerPlaceholder name="Studio Tattoo" />
+                <PartnerPlaceholder name="Advocacia" />
+            </SimpleGrid>
+        </Container>
+      </Box>
+
+      {/* Features Grid */}
+      <Box py={20}>
+        <Container maxW="container.xl">
+          <VStack spacing={4} mb={12} textAlign="center">
+            <Heading>Tudo que você precisa para automatizar</Heading>
+            <Text color="gray.500" fontSize="lg">Ferramentas completas para transformar visitantes em clientes</Text>
+          </VStack>
           <SimpleGrid columns={{ base: 1, md: 3 }} spacing={10}>
             <FeatureCard
-              icon="🤖"
-              title="AI Brain"
-              text="Understands context and images to answer customer queries instantly."
+              icon={FaRobot}
+              title="Cérebro de IA"
+              text="Entende o contexto da conversa, gírias e áudios. Não é apenas um menu de opções, é uma conversa real."
             />
             <FeatureCard
-              icon="📅"
-              title="Auto Scheduling"
-              text="Integrated calendar management so you never miss an appointment."
+              icon={FaCalendarCheck}
+              title="Agendamento Automático"
+              text="Sincronizado com sua agenda. O cliente escolhe o horário livre e o robô marca sozinho."
             />
             <FeatureCard
-              icon="📸"
-              title="Visual Catalog"
-              text="Sends product photos automatically when customers ask for them."
+              icon={FaImages}
+              title="Catálogo Visual"
+              text="O cliente pediu foto? O robô envia imagens do seu produto na hora, direto do seu cadastro."
             />
           </SimpleGrid>
         </Container>
       </Box>
 
-      {/* Pricing Section */}
+      {/* Galeria de Telas (Screenshots) */}
+      <Box bg={useColorModeValue('gray.100', 'gray.800')} py={20}>
+        <Container maxW="container.xl">
+          <VStack spacing={4} mb={12} textAlign="center">
+            <Heading>Conheça a Plataforma por Dentro</Heading>
+            <Text color="gray.500">Interface simples, limpa e focada em produtividade.</Text>
+          </VStack>
+          
+          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8}>
+            <ScreenshotPlaceholder title="Dashboard Intuitivo" desc="Acompanhe atendimentos e métricas" />
+            <ScreenshotPlaceholder title="Gestão de Produtos" desc="Cadastre fotos e preços facilmente" />
+            <ScreenshotPlaceholder title="Agenda Visual" desc="Controle total dos seus horários" />
+            <ScreenshotPlaceholder title="Configuração de IA" desc="Personalize a personalidade do seu robô" />
+          </SimpleGrid>
+        </Container>
+      </Box>
+
+      {/* Depoimentos */}
       <Container maxW="container.xl" py={20}>
-        <VStack spacing={4} mb={10}>
-          <Heading textAlign="center">Simple Pricing</Heading>
-          <Text color="gray.500" fontSize="lg">Choose the plan that fits your business</Text>
-        </VStack>
-        <SimpleGrid columns={{ base: 1, md: 3 }} spacing={10}>
-          <PricingCard
-            title="Starter"
-            price="Free"
-            features={['Basic AI Responses', 'Manual Scheduling', '5 Products in Catalog']}
-          />
-          <PricingCard
-            title="Pro"
-            price="$29/mo"
-            highlight
-            features={['Advanced Context AI', 'Auto-Scheduling', '50 Products in Catalog', 'Priority Support']}
-          />
-          <PricingCard
-            title="Business"
-            price="$99/mo"
-            features={['Custom AI Training', 'Unlimited Scheduling', 'Unlimited Catalog', 'API Access']}
-          />
+        <Heading textAlign="center" mb={12}>O que nossos clientes dizem</Heading>
+        <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8}>
+            <TestimonialCard 
+                name="Carlos Mendes" 
+                role="Tatuador" 
+                text="Antes eu perdia 2 horas por dia respondendo orçamento. Agora o CalangoBot faz tudo e já agenda. Minha agenda lotou!" 
+            />
+            <TestimonialCard 
+                name="Ana Souza" 
+                role="Dona de Clínica" 
+                text="A função de enviar fotos dos procedimentos automaticamente é incrível. Os clientes adoram a rapidez." 
+            />
+            <TestimonialCard 
+                name="Imobiliária Nova" 
+                role="Corretores" 
+                text="O melhor investimento do ano. O robô atende fim de semana e feriado, não perdemos mais nenhum lead." 
+            />
         </SimpleGrid>
       </Container>
 
-      {/* Footer */}
-      <Box bg={useColorModeValue('gray.100', 'gray.900')} py={10}>
+      {/* Pricing Section */}
+      <Box bg={useColorModeValue('white', 'gray.800')} py={20}>
         <Container maxW="container.xl">
-          <Flex direction={{ base: 'column', md: 'row' }} justify="space-between" align="center">
-            <Text>&copy; {new Date().getFullYear()} CalangoBot. All rights reserved.</Text>
-            <Stack direction="row" spacing={6} mt={{ base: 4, md: 0 }}>
-              <Button variant="link">Privacy</Button>
-              <Button variant="link">Terms</Button>
-              <Button variant="link">Contact</Button>
-            </Stack>
-          </Flex>
+            <VStack spacing={4} mb={10}>
+            <Heading textAlign="center">Planos Simples e Transparentes</Heading>
+            <Text color="gray.500" fontSize="lg">Escolha o plano ideal para o tamanho do seu negócio</Text>
+            </VStack>
+            <SimpleGrid columns={{ base: 1, md: 3 }} spacing={10}>
+            <PricingCard
+                title="Iniciante"
+                price="Grátis"
+                features={['Respostas Básicas de IA', 'Agendamento Manual', '5 Produtos no Catálogo', 'Suporte por Email']}
+            />
+            <PricingCard
+                title="Profissional"
+                price="R$ 97/mês"
+                highlight
+                features={['IA Contextual Avançada', 'Agendamento 100% Automático', '50 Produtos no Catálogo', 'Suporte Prioritário', 'Múltiplos Atendentes']}
+            />
+            <PricingCard
+                title="Empresarial"
+                price="R$ 297/mês"
+                features={['Treinamento de IA Personalizado', 'Agendamentos Ilimitados', 'Catálogo Ilimitado', 'API de Integração', 'Gerente de Conta']}
+            />
+            </SimpleGrid>
+        </Container>
+      </Box>
+
+      {/* Footer */}
+      <Box bg={useColorModeValue('gray.900', 'black')} color="white" py={12}>
+        <Container maxW="container.xl">
+          <SimpleGrid columns={{ base: 1, md: 4 }} spacing={8}>
+            <VStack align="start">
+                <HStack>
+                    <Icon as={FaRobot} color={brandColor} />
+                    <Heading size="md">CalangoBot</Heading>
+                </HStack>
+                <Text color="gray.400" fontSize="sm">
+                    A revolução do atendimento automático para pequenos e médios negócios.
+                </Text>
+            </VStack>
+            
+            <VStack align="start">
+                <Text fontWeight="bold" mb={2}>Produto</Text>
+                <Button variant="link" color="gray.400" size="sm">Funcionalidades</Button>
+                <Button variant="link" color="gray.400" size="sm">Preços</Button>
+                <Button variant="link" color="gray.400" size="sm">Integrações</Button>
+            </VStack>
+
+            <VStack align="start">
+                <Text fontWeight="bold" mb={2}>Suporte</Text>
+                <Button variant="link" color="gray.400" size="sm">Central de Ajuda</Button>
+                <Button variant="link" color="gray.400" size="sm">Comunidade</Button>
+                <Button variant="link" color="gray.400" size="sm">Status</Button>
+            </VStack>
+
+            <VStack align="start">
+                <Text fontWeight="bold" mb={2}>Legal</Text>
+                <Button variant="link" color="gray.400" size="sm">Privacidade</Button>
+                <Button variant="link" color="gray.400" size="sm">Termos de Uso</Button>
+            </VStack>
+          </SimpleGrid>
+          <Text textAlign="center" color="gray.500" fontSize="sm" mt={12}>
+            &copy; {new Date().getFullYear()} CalangoBot Tecnologia. Todos os direitos reservados.
+          </Text>
         </Container>
       </Box>
     </Box>
   );
 };
+
+// --- Componentes Auxiliares ---
+
+const ChatMessage = ({ isUser, children }) => (
+    <Flex justify={isUser ? "flex-end" : "flex-start"}>
+        <Box
+        bg={isUser ? "#dcf8c6" : "white"}
+        color="black"
+        p={2}
+        px={3}
+        borderRadius="lg"
+        borderTopRightRadius={isUser ? "0" : "lg"}
+        borderTopLeftRadius={isUser ? "lg" : "0"}
+        maxW="85%"
+        boxShadow="sm"
+        >
+        <Text fontSize="sm">{children}</Text>
+        </Box>
+    </Flex>
+);
 
 const FeatureCard = ({ icon, title, text }) => {
   return (
@@ -254,8 +338,9 @@ const FeatureCard = ({ icon, title, text }) => {
       align="flex-start"
       spacing={4}
       boxShadow="md"
+      _hover={{ transform: 'translateY(-5px)', transition: '0.3s' }}
     >
-      <Text fontSize="4xl">{icon}</Text>
+      <Icon as={icon} w={10} h={10} color="brand.500" />
       <Heading size="md">{title}</Heading>
       <Text color="gray.500">{text}</Text>
     </VStack>
@@ -264,8 +349,9 @@ const FeatureCard = ({ icon, title, text }) => {
 
 const PricingCard = ({ title, price, features, highlight }) => {
   const borderColor = highlight ? 'brand.500' : 'transparent';
-  const borderWidth = highlight ? '2px' : '0';
+  const borderWidth = highlight ? '2px' : '1px';
   const scale = highlight ? '1.05' : '1';
+  const shadow = highlight ? 'xl' : 'md';
 
   return (
     <Card
@@ -273,18 +359,24 @@ const PricingCard = ({ title, price, features, highlight }) => {
       borderColor={borderColor}
       transform={`scale(${scale})`}
       transition="transform 0.2s"
-      boxShadow="lg"
+      boxShadow={shadow}
+      position="relative"
     >
-      <CardHeader>
+      {highlight && (
+          <Box position="absolute" top="-12px" left="50%" transform="translateX(-50%)" bg="brand.500" color="white" px={3} py={1} borderRadius="full" fontSize="xs" fontWeight="bold">
+              MAIS POPULAR
+          </Box>
+      )}
+      <CardHeader textAlign="center">
         <Heading size="md">{title}</Heading>
         <Heading size="2xl" mt={4}>{price}</Heading>
       </CardHeader>
       <CardBody>
         <List spacing={3}>
           {features.map((feature, index) => (
-            <ListItem key={index}>
+            <ListItem key={index} display="flex" alignItems="center">
               <ListIcon as={CheckIcon} color="green.500" />
-              {feature}
+              <Text fontSize="sm">{feature}</Text>
             </ListItem>
           ))}
         </List>
@@ -294,11 +386,46 @@ const PricingCard = ({ title, price, features, highlight }) => {
           colorScheme="brand"
           variant={highlight ? 'solid' : 'outline'}
         >
-          Choose {title}
+          Escolher {title}
         </Button>
       </CardBody>
     </Card>
   );
 };
+
+const PartnerPlaceholder = ({ name }) => (
+    <Flex align="center" justify="center" h="50px" bg="gray.100" borderRadius="md" fontWeight="bold" color="gray.400">
+        {name}
+    </Flex>
+);
+
+const ScreenshotPlaceholder = ({ title, desc }) => (
+    <Box bg="gray.200" h="250px" borderRadius="xl" display="flex" flexDirection="column" align="center" justify="center" position="relative" overflow="hidden" group>
+        <Icon as={FaImages} w={12} h={12} color="gray.400" mb={4} />
+        <Text fontWeight="bold" color="gray.600">{title}</Text>
+        <Text fontSize="sm" color="gray.500">{desc}</Text>
+        <Box position="absolute" inset="0" bg="blackAlpha.600" opacity={0} _hover={{ opacity: 1 }} transition="0.3s" display="flex" align="center" justify="center" color="white" fontWeight="bold" cursor="pointer">
+            Ver Print Ampliado
+        </Box>
+    </Box>
+);
+
+const TestimonialCard = ({ name, role, text }) => (
+    <Stack bg={useColorModeValue('white', 'gray.700')} p={6} borderRadius="xl" boxShadow="lg" spacing={4}>
+        <Text color="gray.500" fontStyle="italic">"{text}"</Text>
+        <HStack spacing={4}>
+            <Avatar name={name} src={`https://i.pravatar.cc/150?u=${name}`} />
+            <Box>
+                <Text fontWeight="bold">{name}</Text>
+                <Text fontSize="sm" color="gray.500">{role}</Text>
+            </Box>
+            <Flex flex={1} justify="flex-end">
+                {[...Array(5)].map((_, i) => (
+                    <StarIcon key={i} color="yellow.400" />
+                ))}
+            </Flex>
+        </HStack>
+    </Stack>
+);
 
 export default LandingPage;
