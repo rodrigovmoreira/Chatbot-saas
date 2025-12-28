@@ -58,9 +58,9 @@ const createAppointmentByAI = async (userId, data) => {
             status: 'agendado'
         });
 
-        return { success: true, appointment: newAppt };
+        return { success: true, data: newAppt };
     } catch (error) {
-        return { success: false, message: error.message };
+        return { success: false, error: error.message };
     }
 };
 
@@ -96,6 +96,8 @@ const searchProducts = async (userId, keywords = []) => {
 
         // Normaliza keywords para lowercase e trim
         const searchTerms = keywords.map(k => k.trim().toLowerCase()).filter(k => k.length > 0);
+
+        console.log(`🔎 Buscando produtos com termos: [${searchTerms.join(', ')}]`);
 
         if (searchTerms.length === 0) return [];
 
