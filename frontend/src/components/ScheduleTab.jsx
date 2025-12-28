@@ -4,12 +4,12 @@ import moment from 'moment';
 import 'moment/locale/pt-br';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import {
-  Box, Button, Modal, ModalOverlay, ModalContent, ModalHeader, 
-  ModalFooter, ModalBody, ModalCloseButton, FormControl, FormLabel, 
+  Box, Button, Modal, ModalOverlay, ModalContent, ModalHeader,
+  ModalFooter, ModalBody, ModalCloseButton, FormControl, FormLabel,
   Input, Select, useDisclosure, useToast, VStack, HStack, Text,
-  useColorModeValue, Badge, Menu, MenuButton, MenuList, MenuItem, IconButton
+  useColorModeValue, Badge, Menu, MenuButton, MenuList, MenuItem
 } from '@chakra-ui/react';
-import { DeleteIcon, ChevronDownIcon, CheckIcon, TimeIcon } from '@chakra-ui/icons';
+import { DeleteIcon, ChevronDownIcon, CheckIcon } from '@chakra-ui/icons';
 import { businessAPI } from '../services/api';
 import { useApp } from '../context/AppContext';
 
@@ -38,7 +38,7 @@ const ScheduleTab = () => {
     type: 'servico',
     status: 'scheduled'
   });
-  
+
   const [selectedEvent, setSelectedEvent] = useState(null);
 
   useEffect(() => {
@@ -80,7 +80,7 @@ const ScheduleTab = () => {
     if (!state.businessConfig?.operatingHours) return true;
 
     const { opening, closing } = state.businessConfig.operatingHours;
-    
+
     const openHour = parseInt(opening.split(':')[0]);
     const closeHour = parseInt(closing.split(':')[0]);
     const openMin = parseInt(opening.split(':')[1] || 0);
@@ -93,7 +93,7 @@ const ScheduleTab = () => {
 
     if (startH < openHour || (startH === openHour && startM < openMin)) return false;
     if (endH > closeHour || (endH === closeHour && endM > closeMin)) return false;
-    
+
     return true;
   };
 
@@ -121,37 +121,37 @@ const ScheduleTab = () => {
   };
 
   const handleStatusChange = async (newStatus) => {
-      if (!selectedEvent) return;
+    if (!selectedEvent) return;
 
-      // Se for marcar como concluído, pergunta sobre o follow-up
-      if (newStatus === 'completed') {
-          onFollowUpOpen(); // Abre modal de confirmação
-          return;
-      }
+    // Se for marcar como concluído, pergunta sobre o follow-up
+    if (newStatus === 'completed') {
+      onFollowUpOpen(); // Abre modal de confirmação
+      return;
+    }
 
-      await updateStatus(newStatus);
+    await updateStatus(newStatus);
   };
 
   const updateStatus = async (status) => {
-      try {
-          await businessAPI.updateAppointmentStatus(selectedEvent._id, status);
-          toast({ title: `Status atualizado para: ${status}`, status: 'success' });
-          fetchAppointments();
-          onClose();
-          onFollowUpClose();
-      } catch (error) {
-          toast({ title: 'Erro ao atualizar status', status: 'error' });
-      }
+    try {
+      await businessAPI.updateAppointmentStatus(selectedEvent._id, status);
+      toast({ title: `Status atualizado para: ${status}`, status: 'success' });
+      fetchAppointments();
+      onClose();
+      onFollowUpClose();
+    } catch (error) {
+      toast({ title: 'Erro ao atualizar status', status: 'error' });
+    }
   };
 
   const handleFollowUpChoice = async (shouldSchedule) => {
-      // Se sim, status = followup_pending (para o scheduler pegar)
-      // Se não, status = completed (finaliza ciclo)
-      const finalStatus = shouldSchedule ? 'followup_pending' : 'completed';
-      await updateStatus(finalStatus);
-      if (shouldSchedule) {
-          toast({ title: 'Agendado para follow-up automático!', status: 'info' });
-      }
+    // Se sim, status = followup_pending (para o scheduler pegar)
+    // Se não, status = completed (finaliza ciclo)
+    const finalStatus = shouldSchedule ? 'followup_pending' : 'completed';
+    await updateStatus(finalStatus);
+    if (shouldSchedule) {
+      toast({ title: 'Agendado para follow-up automático!', status: 'info' });
+    }
   };
 
   const handleSave = async () => {
@@ -162,9 +162,9 @@ const ScheduleTab = () => {
 
     if (!isWithinOperatingHours(newEvent.start, newEvent.end)) {
       const { opening, closing } = state.businessConfig?.operatingHours || { opening: '?', closing: '?' };
-      toast({ 
-        title: 'Fora do horário de funcionamento!', 
-        description: `A empresa funciona das ${opening} às ${closing}.`, 
+      toast({
+        title: 'Fora do horário de funcionamento!',
+        description: `A empresa funciona das ${opening} às ${closing}.`,
         status: 'error',
         duration: 5000
       });
@@ -175,8 +175,8 @@ const ScheduleTab = () => {
       if (selectedEvent) {
         // UPDATE (Preserva histórico e IDs)
         await businessAPI.updateAppointment(selectedEvent._id, {
-            ...newEvent,
-            status: selectedEvent.status // Garante que status não seja resetado acidentalmente
+          ...newEvent,
+          status: selectedEvent.status // Garante que status não seja resetado acidentalmente
         });
         toast({ title: 'Agendamento atualizado!', status: 'success' });
       } else {
@@ -184,7 +184,7 @@ const ScheduleTab = () => {
         await businessAPI.createAppointment(newEvent);
         toast({ title: 'Agendamento criado!', status: 'success' });
       }
-      
+
       await fetchAppointments();
       onClose();
     } catch (error) {
@@ -217,8 +217,8 @@ const ScheduleTab = () => {
 
     // Se estiver 'scheduled', usa a cor do TIPO
     if (event.status === 'scheduled') {
-        if (event.type === 'orcamento') backgroundColor = '#d69e2e'; // Yellow
-        if (event.type === 'servico') backgroundColor = '#3182ce'; // Blue
+      if (event.type === 'orcamento') backgroundColor = '#d69e2e'; // Yellow
+      if (event.type === 'servico') backgroundColor = '#3182ce'; // Blue
     }
 
     return { style: { backgroundColor } };
@@ -226,14 +226,16 @@ const ScheduleTab = () => {
 
   const bg = useColorModeValue('white', 'gray.800');
 
+  const actionsBg = useColorModeValue("gray.50", "gray.700");
+
   const statusColors = {
-      scheduled: 'blue',
-      confirmed: 'cyan',
-      completed: 'green',
-      cancelled: 'red',
-      no_show: 'gray',
-      followup_pending: 'orange',
-      archived: 'gray'
+    scheduled: 'blue',
+    confirmed: 'cyan',
+    completed: 'green',
+    cancelled: 'red',
+    no_show: 'gray',
+    followup_pending: 'orange',
+    archived: 'gray'
   };
 
   // Custom Styles for Dark Mode Support in React Big Calendar
@@ -294,36 +296,36 @@ const ScheduleTab = () => {
       {/* BARRA DE FILTROS DE STATUS */}
       <HStack mb={4} spacing={4} overflowX="auto" pb={2}>
         <Button
-            size="sm"
-            variant={filterStatus === 'all' ? 'solid' : 'outline'}
-            colorScheme="blue"
-            onClick={() => setFilterStatus('all')}
+          size="sm"
+          variant={filterStatus === 'all' ? 'solid' : 'outline'}
+          colorScheme="blue"
+          onClick={() => setFilterStatus('all')}
         >
-            Todos
+          Todos
         </Button>
         <Button
-            size="sm"
-            variant={filterStatus === 'scheduled' ? 'solid' : 'outline'}
-            colorScheme="blue"
-            onClick={() => setFilterStatus('scheduled')}
+          size="sm"
+          variant={filterStatus === 'scheduled' ? 'solid' : 'outline'}
+          colorScheme="blue"
+          onClick={() => setFilterStatus('scheduled')}
         >
-            Agendados
+          Agendados
         </Button>
         <Button
-            size="sm"
-            variant={filterStatus === 'completed' ? 'solid' : 'outline'}
-            colorScheme="green"
-            onClick={() => setFilterStatus('completed')}
+          size="sm"
+          variant={filterStatus === 'completed' ? 'solid' : 'outline'}
+          colorScheme="green"
+          onClick={() => setFilterStatus('completed')}
         >
-            Concluídos
+          Concluídos
         </Button>
         <Button
-            size="sm"
-            variant={filterStatus === 'pending' ? 'solid' : 'outline'}
-            colorScheme="orange"
-            onClick={() => setFilterStatus('pending')}
+          size="sm"
+          variant={filterStatus === 'pending' ? 'solid' : 'outline'}
+          colorScheme="orange"
+          onClick={() => setFilterStatus('pending')}
         >
-            Follow-up Pendente
+          Follow-up Pendente
         </Button>
       </HStack>
 
@@ -337,7 +339,7 @@ const ScheduleTab = () => {
         onSelectSlot={handleSelectSlot}
         onSelectEvent={handleSelectEvent}
         eventPropGetter={eventStyleGetter}
-        
+
         view={view}
         onView={setView}
         date={date}
@@ -354,58 +356,58 @@ const ScheduleTab = () => {
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>
-              {selectedEvent ? 'Gerenciar Agendamento' : 'Novo Agendamento'}
-              {selectedEvent && (
-                  <Badge ml={2} colorScheme={statusColors[selectedEvent.status]}>
-                      {selectedEvent.status}
-                  </Badge>
-              )}
+            {selectedEvent ? 'Gerenciar Agendamento' : 'Novo Agendamento'}
+            {selectedEvent && (
+              <Badge ml={2} colorScheme={statusColors[selectedEvent.status]}>
+                {selectedEvent.status}
+              </Badge>
+            )}
           </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <VStack spacing={4}>
               {/* STATUS CONTROL (Só aparece se já existir) */}
               {selectedEvent && (
-                 <HStack w="100%" justify="space-between" bg={useColorModeValue("gray.50", "gray.700")} p={2} borderRadius="md">
-                     <Text fontWeight="bold" fontSize="sm">Ações Rápidas:</Text>
-                     <Menu>
-                        <MenuButton as={Button} size="sm" rightIcon={<ChevronDownIcon />}>
-                            Mudar Status
-                        </MenuButton>
-                        <MenuList>
-                            <MenuItem onClick={() => handleStatusChange('confirmed')}>Confirmar</MenuItem>
-                            <MenuItem onClick={() => handleStatusChange('completed')} icon={<CheckIcon color="green.500"/>}>Concluir</MenuItem>
-                            <MenuItem onClick={() => handleStatusChange('no_show')}>Não Compareceu</MenuItem>
-                            <MenuItem onClick={() => handleStatusChange('cancelled')} color="red.500">Cancelar</MenuItem>
-                        </MenuList>
-                     </Menu>
-                 </HStack>
+                <HStack w="100%" justify="space-between" bg={actionsBg} p={2} borderRadius="md">
+                  <Text fontWeight="bold" fontSize="sm">Ações Rápidas:</Text>
+                  <Menu>
+                    <MenuButton as={Button} size="sm" rightIcon={<ChevronDownIcon />}>
+                      Mudar Status
+                    </MenuButton>
+                    <MenuList>
+                      <MenuItem onClick={() => handleStatusChange('confirmed')}>Confirmar</MenuItem>
+                      <MenuItem onClick={() => handleStatusChange('completed')} icon={<CheckIcon color="green.500" />}>Concluir</MenuItem>
+                      <MenuItem onClick={() => handleStatusChange('no_show')}>Não Compareceu</MenuItem>
+                      <MenuItem onClick={() => handleStatusChange('cancelled')} color="red.500">Cancelar</MenuItem>
+                    </MenuList>
+                  </Menu>
+                </HStack>
               )}
 
               <FormControl isRequired>
                 <FormLabel>Título / Serviço</FormLabel>
-                <Input 
-                  placeholder="Digite aqui o título ou serviço" 
-                  value={newEvent.title} 
-                  onChange={(e) => setNewEvent({...newEvent, title: e.target.value})}
+                <Input
+                  placeholder="Digite aqui o título ou serviço"
+                  value={newEvent.title}
+                  onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
                 />
               </FormControl>
-              
+
               <HStack w="100%">
                 <FormControl isRequired>
                   <FormLabel>Nome Cliente</FormLabel>
-                  <Input 
-                    placeholder="João Silva" 
-                    value={newEvent.clientName} 
-                    onChange={(e) => setNewEvent({...newEvent, clientName: e.target.value})}
+                  <Input
+                    placeholder="João Silva"
+                    value={newEvent.clientName}
+                    onChange={(e) => setNewEvent({ ...newEvent, clientName: e.target.value })}
                   />
                 </FormControl>
                 <FormControl isRequired>
                   <FormLabel>Telefone</FormLabel>
-                  <Input 
-                    placeholder="11999999999" 
-                    value={newEvent.clientPhone} 
-                    onChange={(e) => setNewEvent({...newEvent, clientPhone: e.target.value})}
+                  <Input
+                    placeholder="11999999999"
+                    value={newEvent.clientPhone}
+                    onChange={(e) => setNewEvent({ ...newEvent, clientPhone: e.target.value })}
                   />
                 </FormControl>
               </HStack>
@@ -413,18 +415,18 @@ const ScheduleTab = () => {
               <HStack w="100%">
                 <FormControl isRequired>
                   <FormLabel>Início</FormLabel>
-                  <Input 
+                  <Input
                     type="datetime-local"
                     value={formatForInput(newEvent.start)}
-                    onChange={(e) => setNewEvent({...newEvent, start: new Date(e.target.value)})}
+                    onChange={(e) => setNewEvent({ ...newEvent, start: new Date(e.target.value) })}
                   />
                 </FormControl>
                 <FormControl isRequired>
-                   <FormLabel>Fim</FormLabel>
-                   <Input 
+                  <FormLabel>Fim</FormLabel>
+                  <Input
                     type="datetime-local"
                     value={formatForInput(newEvent.end)}
-                    onChange={(e) => setNewEvent({...newEvent, end: new Date(e.target.value)})}
+                    onChange={(e) => setNewEvent({ ...newEvent, end: new Date(e.target.value) })}
                   />
                 </FormControl>
               </HStack>
@@ -438,9 +440,9 @@ const ScheduleTab = () => {
 
               <FormControl>
                 <FormLabel>Tipo</FormLabel>
-                <Select 
-                  value={newEvent.type} 
-                  onChange={(e) => setNewEvent({...newEvent, type: e.target.value})}
+                <Select
+                  value={newEvent.type}
+                  onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value })}
                 >
                   <option value="servico">Prestação de Serviço</option>
                   <option value="orcamento">Orçamento / Avaliação</option>
@@ -458,7 +460,7 @@ const ScheduleTab = () => {
             ) : (
               <Box></Box>
             )}
-            
+
             <HStack>
               <Button variant="ghost" onClick={onClose}>Fechar</Button>
               <Button colorScheme="blue" onClick={handleSave}>Salvar</Button>
@@ -471,18 +473,18 @@ const ScheduleTab = () => {
       <Modal isOpen={isFollowUpOpen} onClose={onFollowUpClose} size="sm">
         <ModalOverlay />
         <ModalContent>
-            <ModalHeader>Serviço Concluído!</ModalHeader>
-            <ModalBody>
-                <Text>Você deseja agendar o <b>Follow-up Automático</b> (mensagem pós-venda) para este cliente?</Text>
-            </ModalBody>
-            <ModalFooter>
-                <Button variant="ghost" mr={3} onClick={() => handleFollowUpChoice(false)}>
-                    Não, apenas concluir
-                </Button>
-                <Button colorScheme="green" onClick={() => handleFollowUpChoice(true)}>
-                    Sim, agendar Follow-up
-                </Button>
-            </ModalFooter>
+          <ModalHeader>Serviço Concluído!</ModalHeader>
+          <ModalBody>
+            <Text>Você deseja agendar o <b>Follow-up Automático</b> (mensagem pós-venda) para este cliente?</Text>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={() => handleFollowUpChoice(false)}>
+              Não, apenas concluir
+            </Button>
+            <Button colorScheme="green" onClick={() => handleFollowUpChoice(true)}>
+              Sim, agendar Follow-up
+            </Button>
+          </ModalFooter>
         </ModalContent>
       </Modal>
 
