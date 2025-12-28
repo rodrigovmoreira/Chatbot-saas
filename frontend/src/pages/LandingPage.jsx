@@ -22,7 +22,7 @@ import {
 } from '@chakra-ui/react';
 import { CheckIcon, StarIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
-import { FaWhatsapp, FaRobot, FaCalendarCheck, FaImages } from 'react-icons/fa'; // Se não tiver react-icons, avise que troco por ícones padrão
+import { FaWhatsapp, FaRobot, FaCalendarCheck, FaImages } from 'react-icons/fa'; // Se não tiver react-icons, avise que troco por ícones padrão.
 
 const LandingPage = () => {
   const navigate = useNavigate();
