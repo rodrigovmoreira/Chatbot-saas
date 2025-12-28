@@ -181,6 +181,19 @@ Cliente: ${userMessage}`;
     let catalogContext = "";
     if (businessConfig.products?.length > 0) {
       catalogContext = "\n--- TABELA DE PREÇOS ---\n" + businessConfig.products.map(p => `- ${p.name}: R$ ${p.price}`).join('\n');
+
+      // Extrair tags únicas para contexto
+      const allTags = new Set();
+      businessConfig.products.forEach(p => {
+          if (p.tags && Array.isArray(p.tags)) {
+              p.tags.forEach(t => allTags.add(t));
+          }
+      });
+      const uniqueTags = Array.from(allTags).join(', ');
+
+      if (uniqueTags) {
+          catalogContext += `\n\nCONTEXT: You have a product catalog containing items related to: [${uniqueTags}]. If the user's intent matches these, ALWAYS use the search_catalog tool.`;
+      }
     }
 
     // B. System Prompt (Ajustado para o estilo DeepSeek)
@@ -261,7 +274,7 @@ Você tem acesso total à agenda e ao catálogo visual. Siga este protocolo:
           }
 
           if (command.action === 'book') {
-            console.log(`📅 IA agendando: ${command.start}`);
+            console.log(`📅 IA tentando agendar: ${command.start} para ${command.clientName}`);
             const endT = command.end || new Date(new Date(command.start).getTime() + 60 * 60000).toISOString();
 
             const booking = await aiTools.createAppointmentByAI(businessConfig.userId, {
@@ -272,9 +285,13 @@ Você tem acesso total à agenda e ao catálogo visual. Siga este protocolo:
               end: endT
             });
 
-            toolResult = booking.success
-              ? "SUCESSO: Agendamento confirmado no banco de dados."
-              : `ERRO: Falha ao agendar. ${booking.message}`;
+            console.log("📅 Resultado do agendamento:", booking);
+
+            if (booking.success) {
+                toolResult = `SUCESSO: Agendamento salvo no banco de dados (ID: ${booking.data._id}). Pode confirmar ao cliente.`;
+            } else {
+                toolResult = `ERRO CRÍTICO: O agendamento FALHOU. Motivo: ${booking.error}. NÃO confirme o agendamento. Peça desculpas e tente novamente.`;
+            }
           }
 
           if (command.action === 'search_catalog') {

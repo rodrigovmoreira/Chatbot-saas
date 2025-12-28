@@ -24,7 +24,7 @@ const checkAvailability = async (userId, start, end) => {
         // 2. Verifica conflitos na agenda
         const conflito = await Appointment.findOne({
             userId,
-            status: 'agendado',
+            status: { $in: ['scheduled', 'confirmed'] },
             $or: [
                 { start: { $lt: endTime, $gte: startTime } },
                 { end: { $gt: startTime, $lte: endTime } }
@@ -55,12 +55,12 @@ const createAppointmentByAI = async (userId, data) => {
             userId,
             ...data,
             type: 'servico', // Padrão
-            status: 'agendado'
+            status: 'scheduled'
         });
 
-        return { success: true, appointment: newAppt };
+        return { success: true, data: newAppt };
     } catch (error) {
-        return { success: false, message: error.message };
+        return { success: false, error: error.message };
     }
 };
 
@@ -96,6 +96,8 @@ const searchProducts = async (userId, keywords = []) => {
 
         // Normaliza keywords para lowercase e trim
         const searchTerms = keywords.map(k => k.trim().toLowerCase()).filter(k => k.length > 0);
+
+        console.log(`🔎 Buscando produtos com termos: [${searchTerms.join(', ')}]`);
 
         if (searchTerms.length === 0) return [];
 

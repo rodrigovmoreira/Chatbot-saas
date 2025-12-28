@@ -27,13 +27,27 @@ const appointmentSchema = new mongoose.Schema({
   
   status: {
     type: String,
-    enum: ['agendado', 'concluido', 'cancelado', 'no_show'],
-    default: 'agendado'
+    enum: ['scheduled', 'confirmed', 'completed', 'no_show', 'cancelled', 'followup_pending', 'archived'],
+    default: 'scheduled'
   },
+
+  statusHistory: [{
+    status: String,
+    changedAt: { type: Date, default: Date.now },
+    changedBy: String // 'System' ou User ID
+  }],
 
   // Integração Futura
   googleEventId: { type: String }, // ID do evento no Google
   googleHtmlLink: { type: String }, // Link para abrir direto no Google
+
+  // === ADICIONADO: HISTÓRICO DE NOTIFICAÇÕES (Fase 2) ===
+  // Mapeia ruleId -> Data de Envio. Garante idempotência.
+  notificationHistory: {
+    type: Map,
+    of: Date,
+    default: {}
+  },
 
   createdAt: { type: Date, default: Date.now }
 });
