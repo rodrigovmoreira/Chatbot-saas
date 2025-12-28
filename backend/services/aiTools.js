@@ -24,7 +24,7 @@ const checkAvailability = async (userId, start, end) => {
         // 2. Verifica conflitos na agenda
         const conflito = await Appointment.findOne({
             userId,
-            status: 'agendado',
+            status: { $in: ['scheduled', 'confirmed'] },
             $or: [
                 { start: { $lt: endTime, $gte: startTime } },
                 { end: { $gt: startTime, $lte: endTime } }
@@ -55,7 +55,7 @@ const createAppointmentByAI = async (userId, data) => {
             userId,
             ...data,
             type: 'servico', // Padrão
-            status: 'agendado'
+            status: 'scheduled'
         });
 
         return { success: true, data: newAppt };

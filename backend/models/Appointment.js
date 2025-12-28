@@ -27,9 +27,15 @@ const appointmentSchema = new mongoose.Schema({
   
   status: {
     type: String,
-    enum: ['agendado', 'concluido', 'cancelado', 'no_show'],
-    default: 'agendado'
+    enum: ['scheduled', 'confirmed', 'completed', 'no_show', 'cancelled', 'followup_pending', 'archived'],
+    default: 'scheduled'
   },
+
+  statusHistory: [{
+    status: String,
+    changedAt: { type: Date, default: Date.now },
+    changedBy: String // 'System' ou User ID
+  }],
 
   // Integração Futura
   googleEventId: { type: String }, // ID do evento no Google

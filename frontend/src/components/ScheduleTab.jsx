@@ -6,9 +6,10 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import {
   Box, Button, Modal, ModalOverlay, ModalContent, ModalHeader, 
   ModalFooter, ModalBody, ModalCloseButton, FormControl, FormLabel, 
-  Input, Select, useDisclosure, useToast, VStack, HStack, Text, useColorModeValue
+  Input, Select, useDisclosure, useToast, VStack, HStack, Text,
+  useColorModeValue, Badge, Menu, MenuButton, MenuList, MenuItem, IconButton
 } from '@chakra-ui/react';
-import { DeleteIcon } from '@chakra-ui/icons';
+import { DeleteIcon, ChevronDownIcon, CheckIcon, TimeIcon } from '@chakra-ui/icons';
 import { businessAPI } from '../services/api';
 import { useApp } from '../context/AppContext';
 
@@ -19,11 +20,14 @@ const localizer = momentLocalizer(moment);
 const ScheduleTab = () => {
   const { state } = useApp();
   const [events, setEvents] = useState([]);
+  const [filteredEvents, setFilteredEvents] = useState([]);
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isFollowUpOpen, onOpen: onFollowUpOpen, onClose: onFollowUpClose } = useDisclosure(); // Modal de confirmação follow-up
   const toast = useToast();
 
   const [view, setView] = useState('week');
   const [date, setDate] = useState(new Date());
+  const [filterStatus, setFilterStatus] = useState('all'); // all, scheduled, completed, pending
 
   const [newEvent, setNewEvent] = useState({
     title: '',
@@ -31,7 +35,8 @@ const ScheduleTab = () => {
     clientPhone: '',
     start: '',
     end: '',
-    type: 'servico'
+    type: 'servico',
+    status: 'scheduled'
   });
   
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -40,6 +45,17 @@ const ScheduleTab = () => {
     fetchAppointments();
   }, []);
 
+  useEffect(() => {
+    if (filterStatus === 'all') {
+      setFilteredEvents(events);
+    } else {
+      setFilteredEvents(events.filter(e => {
+        if (filterStatus === 'pending') return e.status === 'followup_pending';
+        return e.status === filterStatus;
+      }));
+    }
+  }, [events, filterStatus]);
+
   const fetchAppointments = async () => {
     try {
       const res = await businessAPI.getAppointments();
@@ -47,7 +63,8 @@ const ScheduleTab = () => {
         ...evt,
         start: new Date(evt.start),
         end: new Date(evt.end),
-        title: `${evt.title} - ${evt.clientName}`
+        title: `${evt.title} - ${evt.clientName}`,
+        status: evt.status || 'scheduled'
       }));
       setEvents(formattedEvents);
     } catch (error) {
@@ -103,6 +120,40 @@ const ScheduleTab = () => {
     onOpen();
   };
 
+  const handleStatusChange = async (newStatus) => {
+      if (!selectedEvent) return;
+
+      // Se for marcar como concluído, pergunta sobre o follow-up
+      if (newStatus === 'completed') {
+          onFollowUpOpen(); // Abre modal de confirmação
+          return;
+      }
+
+      await updateStatus(newStatus);
+  };
+
+  const updateStatus = async (status) => {
+      try {
+          await businessAPI.updateAppointmentStatus(selectedEvent._id, status);
+          toast({ title: `Status atualizado para: ${status}`, status: 'success' });
+          fetchAppointments();
+          onClose();
+          onFollowUpClose();
+      } catch (error) {
+          toast({ title: 'Erro ao atualizar status', status: 'error' });
+      }
+  };
+
+  const handleFollowUpChoice = async (shouldSchedule) => {
+      // Se sim, status = followup_pending (para o scheduler pegar)
+      // Se não, status = completed (finaliza ciclo)
+      const finalStatus = shouldSchedule ? 'followup_pending' : 'completed';
+      await updateStatus(finalStatus);
+      if (shouldSchedule) {
+          toast({ title: 'Agendado para follow-up automático!', status: 'info' });
+      }
+  };
+
   const handleSave = async () => {
     if (!newEvent.title || !newEvent.clientName || !newEvent.clientPhone) {
       toast({ title: 'Preencha título, nome e telefone.', status: 'warning' });
@@ -122,11 +173,17 @@ const ScheduleTab = () => {
 
     try {
       if (selectedEvent) {
-        await businessAPI.deleteAppointment(selectedEvent._id);
+        // UPDATE (Preserva histórico e IDs)
+        await businessAPI.updateAppointment(selectedEvent._id, {
+            ...newEvent,
+            status: selectedEvent.status // Garante que status não seja resetado acidentalmente
+        });
+        toast({ title: 'Agendamento atualizado!', status: 'success' });
+      } else {
+        // CREATE
+        await businessAPI.createAppointment(newEvent);
+        toast({ title: 'Agendamento criado!', status: 'success' });
       }
-      
-      await businessAPI.createAppointment(newEvent);
-      toast({ title: selectedEvent ? 'Agendamento atualizado!' : 'Agendamento criado!', status: 'success' });
       
       await fetchAppointments();
       onClose();
@@ -150,13 +207,34 @@ const ScheduleTab = () => {
   };
 
   const eventStyleGetter = (event) => {
-    let backgroundColor = '#3182ce'; 
-    if (event.type === 'orcamento') backgroundColor = '#d69e2e';
-    if (event.type === 'servico') backgroundColor = '#38a169';
+    let backgroundColor = '#3182ce'; // Default Blue
+
+    // Cores por STATUS têm prioridade
+    if (event.status === 'completed') backgroundColor = '#38a169'; // Green
+    if (event.status === 'cancelled') backgroundColor = '#e53e3e'; // Red
+    if (event.status === 'followup_pending') backgroundColor = '#dd6b20'; // Orange
+    if (event.status === 'no_show') backgroundColor = '#718096'; // Grey
+
+    // Se estiver 'scheduled', usa a cor do TIPO
+    if (event.status === 'scheduled') {
+        if (event.type === 'orcamento') backgroundColor = '#d69e2e'; // Yellow
+        if (event.type === 'servico') backgroundColor = '#3182ce'; // Blue
+    }
+
     return { style: { backgroundColor } };
   };
 
   const bg = useColorModeValue('white', 'gray.800');
+
+  const statusColors = {
+      scheduled: 'blue',
+      confirmed: 'cyan',
+      completed: 'green',
+      cancelled: 'red',
+      no_show: 'gray',
+      followup_pending: 'orange',
+      archived: 'gray'
+  };
 
   // Custom Styles for Dark Mode Support in React Big Calendar
   const calendarSx = {
@@ -211,13 +289,50 @@ const ScheduleTab = () => {
   };
 
   return (
-    <Box h="75vh" bg={bg} p={4} borderRadius="md" boxShadow="sm" sx={calendarSx}>
+    <Box h="85vh" bg={bg} p={4} borderRadius="md" boxShadow="sm" sx={calendarSx}>
+
+      {/* BARRA DE FILTROS DE STATUS */}
+      <HStack mb={4} spacing={4} overflowX="auto" pb={2}>
+        <Button
+            size="sm"
+            variant={filterStatus === 'all' ? 'solid' : 'outline'}
+            colorScheme="blue"
+            onClick={() => setFilterStatus('all')}
+        >
+            Todos
+        </Button>
+        <Button
+            size="sm"
+            variant={filterStatus === 'scheduled' ? 'solid' : 'outline'}
+            colorScheme="blue"
+            onClick={() => setFilterStatus('scheduled')}
+        >
+            Agendados
+        </Button>
+        <Button
+            size="sm"
+            variant={filterStatus === 'completed' ? 'solid' : 'outline'}
+            colorScheme="green"
+            onClick={() => setFilterStatus('completed')}
+        >
+            Concluídos
+        </Button>
+        <Button
+            size="sm"
+            variant={filterStatus === 'pending' ? 'solid' : 'outline'}
+            colorScheme="orange"
+            onClick={() => setFilterStatus('pending')}
+        >
+            Follow-up Pendente
+        </Button>
+      </HStack>
+
       <Calendar
         localizer={localizer}
-        events={events}
+        events={filteredEvents}
         startAccessor="start"
         endAccessor="end"
-        style={{ height: '100%' }}
+        style={{ height: '90%' }}
         selectable
         onSelectSlot={handleSelectSlot}
         onSelectEvent={handleSelectEvent}
@@ -238,10 +353,35 @@ const ScheduleTab = () => {
       <Modal isOpen={isOpen} onClose={onClose} size="md">
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>{selectedEvent ? 'Editar Agendamento' : 'Novo Agendamento'}</ModalHeader>
+          <ModalHeader>
+              {selectedEvent ? 'Gerenciar Agendamento' : 'Novo Agendamento'}
+              {selectedEvent && (
+                  <Badge ml={2} colorScheme={statusColors[selectedEvent.status]}>
+                      {selectedEvent.status}
+                  </Badge>
+              )}
+          </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <VStack spacing={4}>
+              {/* STATUS CONTROL (Só aparece se já existir) */}
+              {selectedEvent && (
+                 <HStack w="100%" justify="space-between" bg={useColorModeValue("gray.50", "gray.700")} p={2} borderRadius="md">
+                     <Text fontWeight="bold" fontSize="sm">Ações Rápidas:</Text>
+                     <Menu>
+                        <MenuButton as={Button} size="sm" rightIcon={<ChevronDownIcon />}>
+                            Mudar Status
+                        </MenuButton>
+                        <MenuList>
+                            <MenuItem onClick={() => handleStatusChange('confirmed')}>Confirmar</MenuItem>
+                            <MenuItem onClick={() => handleStatusChange('completed')} icon={<CheckIcon color="green.500"/>}>Concluir</MenuItem>
+                            <MenuItem onClick={() => handleStatusChange('no_show')}>Não Compareceu</MenuItem>
+                            <MenuItem onClick={() => handleStatusChange('cancelled')} color="red.500">Cancelar</MenuItem>
+                        </MenuList>
+                     </Menu>
+                 </HStack>
+              )}
+
               <FormControl isRequired>
                 <FormLabel>Título / Serviço</FormLabel>
                 <Input 
@@ -326,6 +466,26 @@ const ScheduleTab = () => {
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      {/* MODAL DE CONFIRMAÇÃO DE FOLLOW-UP */}
+      <Modal isOpen={isFollowUpOpen} onClose={onFollowUpClose} size="sm">
+        <ModalOverlay />
+        <ModalContent>
+            <ModalHeader>Serviço Concluído!</ModalHeader>
+            <ModalBody>
+                <Text>Você deseja agendar o <b>Follow-up Automático</b> (mensagem pós-venda) para este cliente?</Text>
+            </ModalBody>
+            <ModalFooter>
+                <Button variant="ghost" mr={3} onClick={() => handleFollowUpChoice(false)}>
+                    Não, apenas concluir
+                </Button>
+                <Button colorScheme="green" onClick={() => handleFollowUpChoice(true)}>
+                    Sim, agendar Follow-up
+                </Button>
+            </ModalFooter>
+        </ModalContent>
+      </Modal>
+
     </Box>
   );
 };

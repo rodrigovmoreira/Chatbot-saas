@@ -69,6 +69,8 @@ export const businessAPI = {
   // O parâmetro 'params' serve para filtrar data { start: '...', end: '...' }
   getAppointments: (params) => api.get('/api/appointments', { params }), 
   createAppointment: (data) => api.post('/api/appointments', data),
+  updateAppointment: (id, data) => api.put(`/api/appointments/${id}`, data), // <--- NOVO
+  updateAppointmentStatus: (id, status) => api.patch(`/api/appointments/${id}/status`, { status }), // <--- NOVO
   deleteAppointment: (id) => api.delete(`/api/appointments/${id}`),
 };
 

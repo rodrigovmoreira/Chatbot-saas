@@ -29,9 +29,13 @@ function calculateTriggerTime(appointment, rule) {
 }
 
 // === HELPER: Formatar Mensagem ===
-function formatMessage(template, appointment) {
+function formatMessage(template, appointment, timezone = 'America/Sao_Paulo') {
     let msg = template;
-    const dateStr = new Date(appointment.start).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    const dateStr = new Date(appointment.start).toLocaleString('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+        timeZone: timezone
+    });
 
     msg = msg.replace(/{clientName}/g, appointment.clientName || 'Cliente');
     msg = msg.replace(/{appointmentTime}/g, dateStr);
@@ -59,11 +63,11 @@ function startScheduler() {
             // Busca agendamentos relevantes (Agendados ou Concluídos recentemente)
             // Otimização: Pegamos do passado recente até o futuro distante
             const recentStart = new Date();
-            recentStart.setDate(recentStart.getDate() - 7); // Olha 7 dias pra trás (pra pegar follow-ups "after")
+            recentStart.setDate(recentStart.getDate() - 30); // Olha 30 dias pra trás (pra pegar follow-ups "after")
 
             const appointments = await Appointment.find({
                 userId: config.userId,
-                status: { $in: ['agendado', 'concluido'] },
+                status: { $in: ['scheduled', 'confirmed', 'completed', 'followup_pending'] },
                 start: { $gte: recentStart }
             });
 
@@ -92,7 +96,8 @@ function startScheduler() {
 
                         console.log(`🔔 [${config.businessName}] Disparando regra '${rule.name}' para ${appt.clientName}`);
 
-                        const message = formatMessage(rule.messageTemplate, appt);
+                        const tz = config.operatingHours?.timezone || 'America/Sao_Paulo';
+                        const message = formatMessage(rule.messageTemplate, appt, tz);
 
                         // Envia
                         await sendUnifiedMessage(
