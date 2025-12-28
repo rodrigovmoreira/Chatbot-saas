@@ -141,6 +141,77 @@ router.delete('/custom-prompts/:id', authenticateToken, async (req, res) => {
 });
 
 // ==========================================
+// 🔔 ROTAS DE REGRAS DE NOTIFICAÇÃO (Fase 2)
+// ==========================================
+
+// POST /api/business/config/notifications
+router.post('/config/notifications', authenticateToken, async (req, res) => {
+  try {
+    const config = await BusinessConfig.findOne({ userId: req.user.userId });
+    if (!config) return res.status(404).json({ message: 'Configuração não encontrada' });
+
+    const newRule = {
+      id: uuidv4(),
+      ...req.body // name, triggerOffset, etc.
+    };
+
+    if (!config.notificationRules) config.notificationRules = [];
+    config.notificationRules.push(newRule);
+
+    await config.save();
+    res.json(newRule);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Erro ao adicionar regra');
+  }
+});
+
+// PUT /api/business/config/notifications/:ruleId
+router.put('/config/notifications/:ruleId', authenticateToken, async (req, res) => {
+  try {
+    const config = await BusinessConfig.findOne({ userId: req.user.userId });
+    if (!config) return res.status(404).json({ message: 'Configuração não encontrada' });
+
+    if (!config.notificationRules) config.notificationRules = [];
+    const ruleIndex = config.notificationRules.findIndex(r => r.id === req.params.ruleId);
+
+    if (ruleIndex === -1) return res.status(404).json({ message: 'Regra não encontrada' });
+
+    // Atualiza campos permitidos
+    const fields = ['name', 'triggerOffset', 'triggerUnit', 'triggerDirection', 'messageTemplate', 'isActive'];
+    fields.forEach(f => {
+      if (req.body[f] !== undefined) {
+        config.notificationRules[ruleIndex][f] = req.body[f];
+      }
+    });
+
+    await config.save();
+    res.json(config.notificationRules[ruleIndex]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Erro ao editar regra');
+  }
+});
+
+// DELETE /api/business/config/notifications/:ruleId
+router.delete('/config/notifications/:ruleId', authenticateToken, async (req, res) => {
+  try {
+    const config = await BusinessConfig.findOne({ userId: req.user.userId });
+    if (!config) return res.status(404).json({ message: 'Configuração não encontrada' });
+
+    if (config.notificationRules) {
+        config.notificationRules = config.notificationRules.filter(r => r.id !== req.params.ruleId);
+        await config.save();
+    }
+
+    res.json({ message: 'Regra removida' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Erro ao remover regra');
+  }
+});
+
+// ==========================================
 // 📸 ROTA DE UPLOAD DE IMAGEM (FIREBASE)
 // ==========================================
 router.post('/upload-image', authenticateToken, upload.single('image'), async (req, res) => {

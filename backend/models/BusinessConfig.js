@@ -62,6 +62,17 @@ const businessConfigSchema = new mongoose.Schema({
     }
   ],
 
+  // === ADICIONADO: ENGINE DE NOTIFICAÇÕES (Fase 2) ===
+  notificationRules: [{
+    id: { type: String, required: true }, // UUID
+    name: { type: String, required: true }, // ex: 'Lembrete 24h'
+    triggerOffset: { type: Number, required: true }, // ex: 24
+    triggerUnit: { type: String, enum: ['minutes', 'hours', 'days'], required: true },
+    triggerDirection: { type: String, enum: ['before', 'after'], required: true }, // 'before' (antes do start), 'after' (depois do end)
+    messageTemplate: { type: String, required: true }, // Variáveis: {clientName}, {appointmentTime}, {serviceName}
+    isActive: { type: Boolean, default: true }
+  }],
+
   // (Mantivemos os outros campos para compatibilidade)
   operatingHours: {
     active: { type: Boolean, default: true },

@@ -35,6 +35,14 @@ const appointmentSchema = new mongoose.Schema({
   googleEventId: { type: String }, // ID do evento no Google
   googleHtmlLink: { type: String }, // Link para abrir direto no Google
 
+  // === ADICIONADO: HISTÓRICO DE NOTIFICAÇÕES (Fase 2) ===
+  // Mapeia ruleId -> Data de Envio. Garante idempotência.
+  notificationHistory: {
+    type: Map,
+    of: Date,
+    default: {}
+  },
+
   createdAt: { type: Date, default: Date.now }
 });
 

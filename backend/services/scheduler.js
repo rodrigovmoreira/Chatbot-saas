@@ -1,11 +1,47 @@
 const cron = require('node-cron');
 const BusinessConfig = require('../models/BusinessConfig');
 const Contact = require('../models/Contact');
+const Appointment = require('../models/Appointment'); // <--- Importado
 const { saveMessage } = require('./message');
 const { sendUnifiedMessage } = require('./responseService');
 
+// === HELPER: Calcular Data Alvo ===
+function calculateTriggerTime(appointment, rule) {
+    const baseTime = rule.triggerDirection === 'before' ? new Date(appointment.start) : new Date(appointment.end);
+    const offset = rule.triggerOffset;
+
+    // Clona a data base para não mutar o objeto original
+    const target = new Date(baseTime);
+
+    if (rule.triggerDirection === 'before') {
+        // Subtrai tempo
+        if (rule.triggerUnit === 'minutes') target.setMinutes(target.getMinutes() - offset);
+        if (rule.triggerUnit === 'hours') target.setHours(target.getHours() - offset);
+        if (rule.triggerUnit === 'days') target.setDate(target.getDate() - offset);
+    } else {
+        // Adiciona tempo (after)
+        if (rule.triggerUnit === 'minutes') target.setMinutes(target.getMinutes() + offset);
+        if (rule.triggerUnit === 'hours') target.setHours(target.getHours() + offset);
+        if (rule.triggerUnit === 'days') target.setDate(target.getDate() + offset);
+    }
+
+    return target;
+}
+
+// === HELPER: Formatar Mensagem ===
+function formatMessage(template, appointment) {
+    let msg = template;
+    const dateStr = new Date(appointment.start).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+
+    msg = msg.replace(/{clientName}/g, appointment.clientName || 'Cliente');
+    msg = msg.replace(/{appointmentTime}/g, dateStr);
+    msg = msg.replace(/{serviceName}/g, appointment.title || 'Agendamento');
+
+    return msg;
+}
+
 function startScheduler() {
-  console.log('⏰ Agendador de Follow-up (Multi-tenant) iniciado...');
+  console.log('⏰ Agendador Inteligente (Follow-up + Notificações) iniciado...');
 
   // Roda a cada minuto
   cron.schedule('* * * * *', async () => {
@@ -14,8 +50,75 @@ function startScheduler() {
       const configs = await BusinessConfig.find({});
 
       for (const config of configs) {
-        // Se não tiver passos configurados ou userId, pula
-        if (!config.followUpSteps || config.followUpSteps.length === 0 || !config.userId) continue;
+        if (!config.userId) continue;
+
+        // ============================================================
+        // A. ENGINE DE NOTIFICAÇÕES DE AGENDAMENTO (NOVO)
+        // ============================================================
+        if (config.notificationRules && config.notificationRules.length > 0) {
+            // Busca agendamentos relevantes (Agendados ou Concluídos recentemente)
+            // Otimização: Pegamos do passado recente até o futuro distante
+            const recentStart = new Date();
+            recentStart.setDate(recentStart.getDate() - 7); // Olha 7 dias pra trás (pra pegar follow-ups "after")
+
+            const appointments = await Appointment.find({
+                userId: config.userId,
+                status: { $in: ['agendado', 'concluido'] },
+                start: { $gte: recentStart }
+            });
+
+            for (const appt of appointments) {
+                for (const rule of config.notificationRules) {
+                    if (!rule.isActive) continue;
+
+                    // Verifica se já enviou esta regra
+                    if (appt.notificationHistory && appt.notificationHistory.get(rule.id)) {
+                        continue;
+                    }
+
+                    const triggerTime = calculateTriggerTime(appt, rule);
+                    const now = new Date();
+
+                    // Se JÁ PASSOU da hora de disparar (com tolerância de, digamos, 1 hora para não disparar coisas muito velhas se o servidor cair)
+                    // Mas para garantir entrega, vamos disparar se now >= triggerTime.
+                    // Para evitar disparar coisas de meses atrás se criarmos a regra hoje, poderiamos checar se triggerTime > now - 1h.
+                    // PROMPT DIZ: "If CurrentTime >= TargetTime AND RuleID not in history"
+
+                    if (now >= triggerTime) {
+                        // Verificação de segurança para não disparar alertas muito antigos (ex: servidor ficou off 1 dia)
+                        // Vamos aceitar disparos com até 24h de atraso. Se for mais que isso, ignora (assumimos que perdeu o timing).
+                        const diffHours = (now - triggerTime) / 1000 / 60 / 60;
+                        if (diffHours > 24) continue;
+
+                        console.log(`🔔 [${config.businessName}] Disparando regra '${rule.name}' para ${appt.clientName}`);
+
+                        const message = formatMessage(rule.messageTemplate, appt);
+
+                        // Envia
+                        await sendUnifiedMessage(
+                            appt.clientPhone,
+                            message,
+                            config.whatsappProvider,
+                            config.userId
+                        );
+
+                        // Marca como enviado
+                        if (!appt.notificationHistory) appt.notificationHistory = new Map();
+                        appt.notificationHistory.set(rule.id, now);
+                        await appt.save();
+
+                        // Salva no histórico de chat também
+                        await saveMessage(appt.clientPhone, 'bot', message, 'text', null, config._id);
+                    }
+                }
+            }
+        }
+
+        // ============================================================
+        // B. SISTEMA ANTIGO DE FOLLOW-UP (CRM / LEADS)
+        // ============================================================
+        // Se não tiver passos configurados, pula parte B
+        if (!config.followUpSteps || config.followUpSteps.length === 0) continue;
 
         // 2. Para cada empresa, busca contatos pendentes
         // Regra: lastResponseTime existe (já falou) AND followUpActive é true
