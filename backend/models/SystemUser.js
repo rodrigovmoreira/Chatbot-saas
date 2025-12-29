@@ -34,6 +34,10 @@ const systemUserSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  isVerified: {
+    type: Boolean,
+    default: false
+  },
   lastLogin: {
     type: Date
   },

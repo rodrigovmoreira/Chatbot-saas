@@ -38,7 +38,13 @@ router.post('/register', async (req, res) => {
     const { name, email, password, company } = req.body;
     if (await SystemUser.findOne({ email })) return res.status(400).json({ message: 'Email existe' });
 
-    const user = await SystemUser.create({ name, email, password, company: company || 'Meu Negócio' });
+    // User is created with isVerified: false by default (from model)
+    const user = await SystemUser.create({
+      name,
+      email,
+      password,
+      company: company || 'Meu Negócio'
+    });
 
     // Cria a configuração inicial padrão
     await BusinessConfig.create({
