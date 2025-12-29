@@ -42,6 +42,8 @@ const Login = () => {
   const cardBg = useColorModeValue('white', 'gray.800');
   const headingColor = useColorModeValue('brand.600', 'brand.200');
 
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+
   const handleAuthSuccess = (response) => {
     const { token, user } = response.data;
     
@@ -182,7 +184,7 @@ try {
                         w="full"
                         variant="outline"
                         leftIcon={<FaGoogle />}
-                        onClick={() => window.location.href = '/api/auth/google'}
+                        onClick={() => window.location.href = `${API_URL}/api/auth/google`}
                       >
                         Continuar com Google
                       </Button>
@@ -244,7 +246,7 @@ try {
                         w="full"
                         variant="outline"
                         leftIcon={<FaGoogle />}
-                        onClick={() => window.location.href = '/api/auth/google'}
+                        onClick={() => window.location.href = `${API_URL}/api/auth/google`}
                       >
                         Continuar com Google
                       </Button>

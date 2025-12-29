@@ -123,7 +123,7 @@ router.get('/google/callback',
     // We pass user info too, url encoded
     const userData = encodeURIComponent(JSON.stringify({ id: user._id, name: user.name, email: user.email }));
 
-    res.redirect(`${frontendUrl}/dashboard?token=${token}&user=${userData}`);
+    res.redirect(`${frontendUrl}/google-callback?token=${token}&user=${userData}`);
   }
 );
 
