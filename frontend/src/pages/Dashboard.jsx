@@ -491,7 +491,7 @@ const Dashboard = () => {
                       ) : (
                         <VStack spacing={4} w="100%">
                           {state.whatsappStatus.qrCode ? (
-                            <Box p={3} border="2px dashed" borderColor="brand.200" borderRadius="md"><QRCodeSVG value={state.whatsappStatus.qrCode} size={180} /></Box>
+                            <Box bg="white" p={4} borderRadius="lg"><QRCodeSVG value={state.whatsappStatus.qrCode} size={180} /></Box>
                           ) : state.whatsappStatus.mode === 'Iniciando...' ? (
                             <VStack py={6}><Spinner size="xl" color="brand.500" thickness="4px" /><Text color="gray.500">Iniciando motor...</Text></VStack>
                           ) : (

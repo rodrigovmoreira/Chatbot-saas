@@ -5,12 +5,12 @@ import {
   Container,
   Flex,
   Heading,
+  HStack,
   SimpleGrid,
   Stack,
   Text,
   useColorModeValue,
   VStack,
-  HStack,
   List,
   ListItem,
   ListIcon,
@@ -23,6 +23,7 @@ import {
 import { CheckIcon, StarIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
 import { FaWhatsapp, FaRobot, FaCalendarCheck, FaImages } from 'react-icons/fa'; // Se não tiver react-icons, avise que troco por ícones padrão.
+import ColorModeToggle from '../components/ColorModeToggle';
 
 const LandingPage = () => {
   const navigate = useNavigate();
@@ -52,6 +53,7 @@ const LandingPage = () => {
             </HStack>
             
             <HStack spacing={4}>
+              <ColorModeToggle />
               <Button variant="ghost" onClick={() => navigate('/login')}>
                 Entrar
               </Button>
