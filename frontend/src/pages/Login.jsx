@@ -10,6 +10,9 @@ import {
   FormControl,
   FormLabel,
   Input,
+  InputGroup,
+  InputRightElement,
+  IconButton,
   Button,
   Text,
   useToast,
@@ -23,9 +26,12 @@ import {
 } from '@chakra-ui/react';
 import { authAPI } from '../services/api';
 import { useApp } from '../context/AppContext';
+import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
 
 const Login = () => {
   const [activeTab, setActiveTab] = useState(0);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { dispatch } = useApp();
@@ -163,12 +169,23 @@ try {
                         
                         <FormControl isRequired>
                           <FormLabel>Senha</FormLabel>
-                          <Input 
-                            name="password"
-                            type="password" 
-                            placeholder="Sua senha"
-                            size="lg"
-                          />
+                          <InputGroup size="lg">
+                            <Input
+                              name="password"
+                              type={showLoginPassword ? 'text' : 'password'}
+                              placeholder="Sua senha"
+                            />
+                            <InputRightElement width="4.5rem">
+                              <IconButton
+                                h="1.75rem"
+                                size="sm"
+                                onClick={() => setShowLoginPassword(!showLoginPassword)}
+                                icon={showLoginPassword ? <ViewOffIcon /> : <ViewIcon />}
+                                aria-label={showLoginPassword ? 'Ocultar senha' : 'Exibir senha'}
+                                variant="ghost"
+                              />
+                            </InputRightElement>
+                          </InputGroup>
                         </FormControl>
                         
                         <Button
@@ -221,12 +238,23 @@ try {
                         
                         <FormControl isRequired>
                           <FormLabel>Senha</FormLabel>
-                          <Input 
-                            name="password"
-                            type="password" 
-                            placeholder="Mínimo 6 caracteres"
-                            size="lg"
-                          />
+                          <InputGroup size="lg">
+                            <Input
+                              name="password"
+                              type={showRegisterPassword ? 'text' : 'password'}
+                              placeholder="Mínimo 6 caracteres"
+                            />
+                            <InputRightElement width="4.5rem">
+                              <IconButton
+                                h="1.75rem"
+                                size="sm"
+                                onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                                icon={showRegisterPassword ? <ViewOffIcon /> : <ViewIcon />}
+                                aria-label={showRegisterPassword ? 'Ocultar senha' : 'Exibir senha'}
+                                variant="ghost"
+                              />
+                            </InputRightElement>
+                          </InputGroup>
                         </FormControl>
                         
                         <Button
