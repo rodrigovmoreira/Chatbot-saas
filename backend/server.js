@@ -20,6 +20,10 @@ const http = require('http');
 const { Server } = require("socket.io");
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
+const passport = require('passport');
+
+// Config do Passport
+require('./config/passport');
 
 // Serviços e Banco de Dados
 const connectDB = require('./services/database');
@@ -63,6 +67,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(cors({ origin: allowedOrigins, credentials: true, methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'] }));
+app.use(passport.initialize());
 
 // ==========================================
 // 🔌 CONEXÃO DOS PLUGINS (ROTAS)
