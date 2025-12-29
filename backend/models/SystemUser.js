@@ -34,6 +34,18 @@ const systemUserSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  isVerified: {
+    type: Boolean,
+    default: false
+  },
+  verificationToken: {
+    type: String,
+    select: false
+  },
+  googleId: {
+    type: String,
+    select: false
+  },
   lastLogin: {
     type: Date
   },

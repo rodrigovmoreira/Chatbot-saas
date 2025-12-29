@@ -10,6 +10,9 @@ import {
   FormControl,
   FormLabel,
   Input,
+  InputGroup,
+  InputRightElement,
+  IconButton,
   Button,
   Text,
   useToast,
@@ -23,9 +26,14 @@ import {
 } from '@chakra-ui/react';
 import { authAPI } from '../services/api';
 import { useApp } from '../context/AppContext';
+import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
+import { FaGoogle } from 'react-icons/fa';
 
 const Login = () => {
   const [activeTab, setActiveTab] = useState(0);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { dispatch } = useApp();
@@ -33,6 +41,8 @@ const Login = () => {
 
   const cardBg = useColorModeValue('white', 'gray.800');
   const headingColor = useColorModeValue('brand.600', 'brand.200');
+
+  const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
   const handleAuthSuccess = (response) => {
     const { token, user } = response.data;
@@ -89,11 +99,31 @@ try {
     setError('');
 
     const formData = new FormData(e.target);
+    const email = formData.get('email');
+    const password = formData.get('password');
+    const confirmPassword = formData.get('confirmPassword');
+    const name = formData.get('name');
+
+    // Strict Email Validation
+    // Allows standard email format including + aliases and longer TLDs
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email)) {
+      setError('Por favor, insira um endereço de email válido.');
+      setLoading(false);
+      return;
+    }
+
+    // Password Match Validation
+    if (password !== confirmPassword) {
+      setError('As senhas não coincidem.');
+      setLoading(false);
+      return;
+    }
+
     const data = {
-      name: formData.get('name'),
-      email: formData.get('email'),
-      company: formData.get('company'),
-      password: formData.get('password')
+      name,
+      email,
+      password
     };
 
     try {
@@ -149,12 +179,24 @@ try {
                 <TabPanels>
                   {/* Login Tab */}
                   <TabPanel px={0}>
-                    <form onSubmit={handleLogin}>
-                      <VStack spacing={4}>
-                        <FormControl isRequired>
-                          <FormLabel>Email</FormLabel>
-                          <Input 
-                            name="email"
+                    <VStack spacing={4}>
+                      <Button
+                        w="full"
+                        variant="outline"
+                        leftIcon={<FaGoogle />}
+                        onClick={() => window.location.href = `${API_URL}/api/auth/google`}
+                      >
+                        Continuar com Google
+                      </Button>
+
+                      <Text fontSize="sm" color="gray.500">ou</Text>
+
+                      <form onSubmit={handleLogin} style={{ width: '100%' }}>
+                        <VStack spacing={4}>
+                          <FormControl isRequired>
+                            <FormLabel>Email</FormLabel>
+                            <Input
+                              name="email"
                             type="email" 
                             placeholder="seu@email.com"
                             size="lg"
@@ -163,84 +205,131 @@ try {
                         
                         <FormControl isRequired>
                           <FormLabel>Senha</FormLabel>
-                          <Input 
-                            name="password"
-                            type="password" 
-                            placeholder="Sua senha"
-                            size="lg"
-                          />
+                          <InputGroup size="lg">
+                            <Input
+                              name="password"
+                              type={showLoginPassword ? 'text' : 'password'}
+                              placeholder="Sua senha"
+                            />
+                            <InputRightElement width="4.5rem">
+                              <IconButton
+                                h="1.75rem"
+                                size="sm"
+                                onClick={() => setShowLoginPassword(!showLoginPassword)}
+                                icon={showLoginPassword ? <ViewOffIcon /> : <ViewIcon />}
+                                aria-label={showLoginPassword ? 'Ocultar senha' : 'Exibir senha'}
+                                variant="ghost"
+                              />
+                            </InputRightElement>
+                          </InputGroup>
                         </FormControl>
                         
-                        <Button
-                          type="submit"
-                          colorScheme="brand"
-                          size="lg"
-                          width="100%"
-                          isLoading={loading}
-                          loadingText="Entrando..."
-                        >
-                          Entrar
-                        </Button>
-                      </VStack>
-                    </form>
+                          <Button
+                            type="submit"
+                            colorScheme="brand"
+                            size="lg"
+                            width="100%"
+                            isLoading={loading}
+                            loadingText="Entrando..."
+                          >
+                            Entrar
+                          </Button>
+                        </VStack>
+                      </form>
+                    </VStack>
                   </TabPanel>
 
                   {/* Register Tab */}
                   <TabPanel px={0}>
-                    <form onSubmit={handleRegister}>
-                      <VStack spacing={4}>
-                        <FormControl isRequired>
-                          <FormLabel>Nome completo</FormLabel>
-                          <Input 
-                            name="name"
-                            type="text" 
-                            placeholder="Seu nome completo"
+                    <VStack spacing={4}>
+                      <Button
+                        w="full"
+                        variant="outline"
+                        leftIcon={<FaGoogle />}
+                        onClick={() => window.location.href = `${API_URL}/api/auth/google`}
+                      >
+                        Continuar com Google
+                      </Button>
+
+                      <Text fontSize="sm" color="gray.500">ou</Text>
+
+                      <form onSubmit={handleRegister} style={{ width: '100%' }}>
+                        <VStack spacing={4}>
+                          <FormControl isRequired>
+                            <FormLabel>Nome completo</FormLabel>
+                            <Input
+                              name="name"
+                              type="text"
+                              placeholder="Seu nome completo"
+                              size="lg"
+                            />
+                          </FormControl>
+
+                          <FormControl isRequired>
+                            <FormLabel>Email</FormLabel>
+                            <Input
+                              name="email"
+                              type="email"
+                              placeholder="seu@email.com"
+                              size="lg"
+                            />
+                          </FormControl>
+
+                          <FormControl isRequired>
+                            <FormLabel>Senha</FormLabel>
+                            <InputGroup size="lg">
+                              <Input
+                                name="password"
+                                type={showRegisterPassword ? 'text' : 'password'}
+                                placeholder="Mínimo 6 caracteres"
+                              />
+                              <InputRightElement width="4.5rem">
+                                <IconButton
+                                  h="1.75rem"
+                                  size="sm"
+                                  onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                                  icon={showRegisterPassword ? <ViewOffIcon /> : <ViewIcon />}
+                                  aria-label={showRegisterPassword ? 'Ocultar senha' : 'Exibir senha'}
+                                  variant="ghost"
+                                />
+                              </InputRightElement>
+                            </InputGroup>
+                          </FormControl>
+
+                          <FormControl isRequired>
+                            <FormLabel>Confirmar Senha</FormLabel>
+                            <InputGroup size="lg">
+                              <Input
+                                name="confirmPassword"
+                                type={showConfirmPassword ? 'text' : 'password'}
+                                placeholder="Confirme sua senha"
+                              />
+                              <InputRightElement width="4.5rem">
+                                <IconButton
+                                  h="1.75rem"
+                                  size="sm"
+                                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                  icon={showConfirmPassword ? <ViewOffIcon /> : <ViewIcon />}
+                                  aria-label={showConfirmPassword ? 'Ocultar senha' : 'Exibir senha'}
+                                  variant="ghost"
+                                />
+                              </InputRightElement>
+                            </InputGroup>
+                          </FormControl>
+
+                          <Button
+                            type="submit"
+                            colorScheme="brand"
                             size="lg"
-                          />
-                        </FormControl>
-                        
-                        <FormControl isRequired>
-                          <FormLabel>Email</FormLabel>
-                          <Input 
-                            name="email"
-                            type="email" 
-                            placeholder="seu@email.com"
-                            size="lg"
-                          />
-                        </FormControl>
-                        
-                        <FormControl>
-                          <FormLabel>Empresa</FormLabel>
-                          <Input 
-                            name="company"
-                            type="text" 
-                            placeholder="Nome da sua empresa"
-                            size="lg"
-                          />
-                        </FormControl>
-                        
-                        <FormControl isRequired>
-                          <FormLabel>Senha</FormLabel>
-                          <Input 
-                            name="password"
-                            type="password" 
-                            placeholder="Mínimo 6 caracteres"
-                            size="lg"
-                          />
-                        </FormControl>
-                        
-                        <Button
-                          type="submit"
-                          colorScheme="brand"
-                          size="lg"
-                          width="100%"
-                          isLoading={loading}
-                          loadingText="Cadastrando..."
-                        >
-                          Criar Conta
-                        </Button>
-                      </VStack>
-                    </form>
+                            width="100%"
+                            isLoading={loading}
+                            loadingText="Cadastrando..."
+                          >
+                            Criar Conta
+                          </Button>
+                        </VStack>
+                      </form>
+                    </VStack>
                   </TabPanel>
                 </TabPanels>
               </Tabs>
