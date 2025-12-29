@@ -28,6 +28,7 @@ import { authAPI } from '../services/api';
 import { useApp } from '../context/AppContext';
 import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
 import { FaGoogle } from 'react-icons/fa';
+import ColorModeToggle from '../components/ColorModeToggle';
 
 const Login = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -145,6 +146,7 @@ try {
       justifyContent="center"
       py={8}
     >
+      <ColorModeToggle position="absolute" top={4} right={4} />
       <Container maxW="md">
         <Card borderRadius="xl" boxShadow="2xl" bg={cardBg}>
           <CardBody p={8}>
