@@ -17,12 +17,12 @@ const rateLimitMap = new Map();
 const RATE_LIMIT_WINDOW = 60 * 1000;
 const MAX_MSGS_PER_WINDOW = 5;
 const COOLDOWN_TIME = 10 * 60 * 1000;
-const HUMAN_DELAY_MIN = 3000;
-const HUMAN_DELAY_MAX = 8000;
+const HUMAN_DELAY_MIN = 5000;
+const HUMAN_DELAY_MAX = 15000;
 
 // === BUFFER DE MENSAGENS ===
 const messageBuffer = new Map();
-const BUFFER_DELAY = 4000;
+const BUFFER_DELAY = 11000;
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
