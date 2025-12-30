@@ -12,8 +12,8 @@ const customPromptSchema = new mongoose.Schema({
     visionSystem: { type: String, default: '' }
   },
   followUpSteps: [{
-    delayMinutes: { type: Number, required: true },
-    message: { type: String, required: true },
+    delayMinutes: { type: Number },
+    message: { type: String },
     stage: { type: Number }
   }],
   createdAt: { type: Date, default: Date.now }
