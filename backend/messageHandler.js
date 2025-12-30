@@ -320,6 +320,7 @@ Você tem acesso total à agenda e ao catálogo visual. Siga este protocolo:
     }
 
     const delay = Math.floor(Math.random() * (HUMAN_DELAY_MAX - HUMAN_DELAY_MIN + 1)) + HUMAN_DELAY_MIN;
+    console.log(`⏱️ Aguardando ${delay}ms antes de responder...`);
     await sleep(delay);
 
     await sendUnifiedMessage(from, finalResponseText, provider, businessConfig.userId);
