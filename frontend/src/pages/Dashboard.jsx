@@ -143,9 +143,7 @@ const Dashboard = () => {
         chatSystem: selected.prompts.chatSystem,
         visionSystem: selected.prompts.visionSystem
       });
-      if (selected.followUpSteps) {
-        setFollowUpSteps(selected.followUpSteps);
-      }
+      setFollowUpSteps(selected.followUpSteps || []);
       setSelectedCustomPrompt(promptId);
       setSelectedPreset(''); // Limpa o seletor de Preset do sistema para não confundir
       toast({ title: 'Modelo carregado! Clique em "Salvar Alterações" para ativar.', status: 'info' });
