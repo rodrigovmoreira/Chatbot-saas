@@ -11,6 +11,11 @@ const customPromptSchema = new mongoose.Schema({
     chatSystem: { type: String, default: '' },
     visionSystem: { type: String, default: '' }
   },
+  followUpSteps: [{
+    delayMinutes: { type: Number, required: true },
+    message: { type: String, required: true },
+    stage: { type: Number }
+  }],
   createdAt: { type: Date, default: Date.now }
 });
 

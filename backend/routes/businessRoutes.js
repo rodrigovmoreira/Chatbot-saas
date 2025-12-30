@@ -121,8 +121,8 @@ router.get('/custom-prompts', authenticateToken, async (req, res) => {
 // POST /api/business/custom-prompts
 router.post('/custom-prompts', authenticateToken, async (req, res) => {
   try {
-    const { name, prompts } = req.body;
-    const newPrompt = await CustomPrompt.create({ userId: req.user.userId, name, prompts });
+    const { name, prompts, followUpSteps } = req.body;
+    const newPrompt = await CustomPrompt.create({ userId: req.user.userId, name, prompts, followUpSteps });
     res.json(newPrompt);
   } catch (error) {
     if (error.code === 11000) return res.status(400).json({ message: 'Nome duplicado.' });

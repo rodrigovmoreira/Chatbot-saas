@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
   Box, Container, Grid, GridItem, Card, CardHeader, CardBody, Heading, Text, Button, VStack, HStack, Stack,
@@ -84,9 +84,11 @@ const Dashboard = () => {
   // 🔄 CARREGAMENTO INICIAL
   // =========================================================
 
-  // 1. Sincroniza Estado Local com Contexto Global
+  const dataLoadedRef = useRef(false);
+
+  // 1. Sincroniza Estado Local com Contexto Global (Apenas UMA vez para evitar sobrescrita)
   useEffect(() => {
-    if (state.businessConfig) {
+    if (state.businessConfig && !dataLoadedRef.current) {
       // Config Gerais
       setConfigForm({
         businessName: state.businessConfig.businessName || '',
@@ -106,6 +108,8 @@ const Dashboard = () => {
           visionSystem: state.businessConfig.prompts.visionSystem || ''
         });
       }
+
+      dataLoadedRef.current = true;
     }
   }, [state.businessConfig]);
 
@@ -139,6 +143,9 @@ const Dashboard = () => {
         chatSystem: selected.prompts.chatSystem,
         visionSystem: selected.prompts.visionSystem
       });
+      if (selected.followUpSteps) {
+        setFollowUpSteps(selected.followUpSteps);
+      }
       setSelectedCustomPrompt(promptId);
       setSelectedPreset(''); // Limpa o seletor de Preset do sistema para não confundir
       toast({ title: 'Modelo carregado! Clique em "Salvar Alterações" para ativar.', status: 'info' });
@@ -156,7 +163,8 @@ const Dashboard = () => {
     try {
       await businessAPI.saveCustomPrompt({
         name: newPromptName,
-        prompts: activePrompts // Salva o que está escrito nos TextAreas agora
+        prompts: activePrompts, // Salva o que está escrito nos TextAreas agora
+        followUpSteps: followUpSteps // Salva também o funil atual
       });
       toast({ title: 'Modelo salvo na sua biblioteca!', status: 'success' });
       fetchCustomPrompts();
