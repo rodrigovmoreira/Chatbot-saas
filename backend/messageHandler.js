@@ -1,4 +1,4 @@
-const axios = require('axios'); // Usaremos Axios direto (padrão DeepSeek/OpenAI)
+const axios = require('axios');
 const { saveMessage, getLastMessages } = require('./services/message');
 const { analyzeImage } = require('./services/visionService');
 const { sendUnifiedMessage } = require('./services/responseService');
@@ -20,6 +20,10 @@ const COOLDOWN_TIME = 10 * 60 * 1000;
 const HUMAN_DELAY_MIN = 3000;
 const HUMAN_DELAY_MAX = 8000;
 
+// === BUFFER DE MENSAGENS ===
+const messageBuffer = new Map();
+const BUFFER_DELAY = 4000;
+
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 // --- FUNÇÃO AUXILIAR: CHAMADA AO DEEPSEEK ---
@@ -37,14 +41,14 @@ async function callDeepSeek(messages) {
                 max_tokens: 500,
                 temperature: 0.5,
                 stream: false,
-                response_format: { type: 'text' } // Garante texto puro (nós fazemos o parse do JSON)
+                response_format: { type: 'text' }
             },
             {
                 headers: {
                     'Authorization': `Bearer ${apiKey}`,
                     'Content-Type': 'application/json'
                 },
-                timeout: 60000 // Timeout maior para garantir
+                timeout: 60000
             }
         );
 
@@ -78,28 +82,19 @@ function isWithinOperatingHours(businessConfig) {
 }
 
 // ==========================================
-// 🚀 HANDLER PRINCIPAL
+// 🚀 PROCESSADOR DE MENSAGENS BUFFERIZADAS
 // ==========================================
-async function handleIncomingMessage(normalizedMsg, activeBusinessId) {
-  const { from, body, name, type, mediaData, provider } = normalizedMsg;
-  if (!body && type === 'text') return;
+async function processBufferedMessages(uniqueKey) {
+  const bufferData = messageBuffer.get(uniqueKey);
+  if (!bufferData) return;
 
-  const uniqueKey = `${activeBusinessId}_${from}`;
+  // Limpa o buffer para novas mensagens
+  messageBuffer.delete(uniqueKey);
 
-  // 1. VERIFICA PAUSA
-  const pauseUntil = humanPauseMap.get(uniqueKey);
-  if (pauseUntil && Date.now() < pauseUntil) {
-    console.log(`🔇 Bot pausado para ${from} (Aguardando Humano)...`);
-    return;
-  }
+  const { messages, from, name, activeBusinessId, provider } = bufferData;
+  const userMessage = messages.join('\n');
 
-  // 2. RATE LIMIT
-  if (!checkRateLimit(uniqueKey)) return;
-
-  console.log(`📩 [${provider}] De: ${name} | Tipo: ${type}`);
-
-  let userMessage = body ? body.trim() : "";
-  let visionResult = null;
+  console.log(`📨 Processando buffer para ${name} (${from}):\n"${userMessage}"`);
 
   try {
     if (!activeBusinessId) return;
@@ -107,19 +102,8 @@ async function handleIncomingMessage(normalizedMsg, activeBusinessId) {
     if (!businessConfig) return;
     if (!businessConfig.prompts) businessConfig.prompts = { chatSystem: "...", visionSystem: "..." };
 
-    // 3. VISÃO (Mantemos o visionService separado, pois DeepSeek V3 é focado em texto)
-    if (type === 'image' && mediaData) {
-      try {
-        const visionPrompt = businessConfig.prompts?.visionSystem || "Descreva esta imagem.";
-        // Nota: O visionService ainda usa Gemini internamente. Se quiser trocar tudo, 
-        // precisaria de um modelo de visão alternativo. Por enquanto, mantemos assim.
-        visionResult = await analyzeImage(mediaData, visionPrompt);
-        if (visionResult) userMessage = `${userMessage}\n\n[VISÃO DA IMAGEM]: ${visionResult}`.trim();
-      } catch (e) { console.error("Erro Visão:", e); }
-    }
-    if (!userMessage) userMessage = `[Arquivo de ${type === 'audio' ? 'Áudio' : 'Mídia'}]`;
-
-    await saveMessage(from, 'user', userMessage, type, visionResult, activeBusinessId);
+    // Salva a mensagem combinada como 'user'
+    await saveMessage(from, 'user', userMessage, 'text', null, activeBusinessId);
 
     // 4. HORÁRIO
     if (!isWithinOperatingHours(businessConfig)) {
@@ -151,7 +135,6 @@ Responda de forma natural usando APENAS a informação oficial.
 Cliente: ${userMessage}`;
 
           try {
-            // Chamada DeepSeek simples para o menu
             finalResponse = await callDeepSeek([
                 { role: "user", content: menuPrompt }
             ]);
@@ -182,7 +165,6 @@ Cliente: ${userMessage}`;
     if (businessConfig.products?.length > 0) {
       catalogContext = "\n--- TABELA DE PREÇOS ---\n" + businessConfig.products.map(p => `- ${p.name}: R$ ${p.price}`).join('\n');
 
-      // Extrair tags únicas para contexto
       const allTags = new Set();
       businessConfig.products.forEach(p => {
           if (p.tags && Array.isArray(p.tags)) {
@@ -196,7 +178,7 @@ Cliente: ${userMessage}`;
       }
     }
 
-    // B. System Prompt (Ajustado para o estilo DeepSeek)
+    // B. System Prompt
     const { instagram, website, portfolio } = businessConfig.socialMedia || {};
 
     const systemInstruction = `
@@ -227,14 +209,13 @@ Você tem acesso total à agenda e ao catálogo visual. Siga este protocolo:
 5. Se for conversa normal, responda apenas o texto.
 `;
 
-    // C. Montagem do Histórico (Formato OpenAI/DeepSeek: role 'user' ou 'assistant')
+    // C. Montagem do Histórico
     const dbHistory = await getLastMessages(from, MAX_HISTORY, activeBusinessId);
     
     const messages = [
         { role: "system", content: systemInstruction }
     ];
 
-    // Adiciona histórico do banco
     dbHistory.reverse().forEach(m => {
         if (m.content && m.content.trim()) {
             messages.push({
@@ -244,18 +225,14 @@ Você tem acesso total à agenda e ao catálogo visual. Siga este protocolo:
         }
     });
 
-    // Adiciona a mensagem atual do usuário
     messages.push({ role: "user", content: userMessage });
 
     let finalResponseText = "";
 
     try {
-      // D. Primeira Chamada ao DeepSeek
       console.log("🤖 Enviando para DeepSeek...");
       const responseText = await callDeepSeek(messages);
 
-      // E. Detectar Ferramenta (JSON)
-      // O DeepSeek pode mandar ```json ... ```, então limpamos isso
       const cleanResponse = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
       const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
 
@@ -299,24 +276,19 @@ Você tem acesso total à agenda e ao catálogo visual. Siga este protocolo:
             const products = await aiTools.searchProducts(businessConfig.userId, command.keywords);
 
             if (products.length > 0) {
-              // Envia as imagens
               let count = 0;
               for (const p of products) {
-                if (count >= 5) break; // Limite de 5 produtos
+                if (count >= 5) break;
 
                 const caption = `${p.name} - R$ ${p.price}\n${p.description || ''}`;
 
                 if (p.imageUrls && p.imageUrls.length > 0) {
-                   // 1. Manda a primeira foto com a legenda
                    await wwebjsService.sendImage(businessConfig.userId, from, p.imageUrls[0], caption);
-
-                   // 2. Manda as outras fotos (se houver) sem legenda
                    for (let i = 1; i < p.imageUrls.length; i++) {
                       await wwebjsService.sendImage(businessConfig.userId, from, p.imageUrls[i], "");
                    }
                    count++;
                 } else {
-                    // Se não tiver imagem, manda só o texto
                     await sendUnifiedMessage(from, caption, provider, businessConfig.userId);
                 }
               }
@@ -326,8 +298,6 @@ Você tem acesso total à agenda e ao catálogo visual. Siga este protocolo:
             }
           }
 
-          // F. Segunda Chamada (Feedback da Ferramenta)
-          // Adicionamos a resposta JSON do bot e o resultado do sistema ao histórico temporário
           messages.push({ role: "assistant", content: cleanResponse });
           messages.push({ role: "user", content: `[SISTEMA]: Resultado da ação: ${toolResult}. Agora responda ao cliente confirmando ou oferecendo outra opção.` });
 
@@ -336,7 +306,7 @@ Você tem acesso total à agenda e ao catálogo visual. Siga este protocolo:
 
         } catch (jsonErr) {
           console.error("Erro JSON IA:", jsonErr);
-          finalResponseText = responseText; // Manda o texto original se falhar o parse
+          finalResponseText = responseText;
         }
       } else {
         finalResponseText = responseText;
@@ -344,11 +314,9 @@ Você tem acesso total à agenda e ao catálogo visual. Siga este protocolo:
 
     } catch (aiErr) {
       console.error("Erro Geração IA:", aiErr);
-      // Fallback em caso de erro da API
       return; 
     }
 
-    // G. Delay Humano e Envio
     const delay = Math.floor(Math.random() * (HUMAN_DELAY_MAX - HUMAN_DELAY_MIN + 1)) + HUMAN_DELAY_MIN;
     await sleep(delay);
 
@@ -356,8 +324,84 @@ Você tem acesso total à agenda e ao catálogo visual. Siga este protocolo:
     await saveMessage(from, 'bot', finalResponseText, 'text', null, activeBusinessId);
 
   } catch (error) {
-    console.error('💥 Erro Handler:', error);
+    console.error('💥 Erro Buffer Process:', error);
   }
+}
+
+// ==========================================
+// 🚀 HANDLER PRINCIPAL (AGORA COM BUFFER)
+// ==========================================
+async function handleIncomingMessage(normalizedMsg, activeBusinessId) {
+  const { from, body, name, type, mediaData, provider } = normalizedMsg;
+  if (!body && type === 'text') return;
+
+  const uniqueKey = `${activeBusinessId}_${from}`;
+
+  // 1. VERIFICA PAUSA
+  const pauseUntil = humanPauseMap.get(uniqueKey);
+  if (pauseUntil && Date.now() < pauseUntil) {
+    console.log(`🔇 Bot pausado para ${from} (Aguardando Humano)...`);
+    return;
+  }
+
+  // 2. RATE LIMIT
+  if (!checkRateLimit(uniqueKey)) return;
+
+  console.log(`📩 [${provider}] De: ${name} | Tipo: ${type}`);
+
+  let textToBuffer = body ? body.trim() : "";
+
+  // 3. PRÉ-PROCESSAMENTO (VISÃO / ÁUDIO)
+  if (type === 'image' && mediaData) {
+    try {
+      const businessConfig = await BusinessConfig.findById(activeBusinessId);
+      const visionPrompt = businessConfig?.prompts?.visionSystem || "Descreva esta imagem.";
+
+      const visionResult = await analyzeImage(mediaData, visionPrompt);
+      const desc = visionResult ? `[VISÃO DA IMAGEM]: ${visionResult}` : "[IMAGEM ENVIADA]";
+      textToBuffer = textToBuffer ? `${textToBuffer}\n${desc}` : desc;
+    } catch (e) {
+        console.error("Erro Visão:", e);
+        textToBuffer = textToBuffer ? `${textToBuffer}\n[IMAGEM COM ERRO]` : "[IMAGEM COM ERRO]";
+    }
+  } else if (type === 'audio') {
+      const audioDesc = "[ÁUDIO ENVIADO]"; // Placeholder conforme requisitos
+      textToBuffer = textToBuffer ? `${textToBuffer}\n${audioDesc}` : audioDesc;
+  } else if (type !== 'text') {
+      // Outros tipos de mídia
+      const mediaDesc = `[Mídia: ${type}]`;
+      textToBuffer = textToBuffer ? `${textToBuffer}\n${mediaDesc}` : mediaDesc;
+  }
+
+  // Se não sobrou nada (ex: texto vazio e sem mídia), ignora
+  if (!textToBuffer) return;
+
+  // 4. ATUALIZA BUFFER
+  let buffer = messageBuffer.get(uniqueKey);
+
+  if (buffer) {
+      clearTimeout(buffer.timer);
+      buffer.messages.push(textToBuffer);
+      // Atualiza metadados se necessário
+      buffer.lastActiveBusinessId = activeBusinessId;
+  } else {
+      buffer = {
+          messages: [textToBuffer],
+          from,
+          name,
+          activeBusinessId,
+          provider,
+          timer: null
+      };
+  }
+
+  // Define novo timer
+  buffer.timer = setTimeout(() => {
+      processBufferedMessages(uniqueKey);
+  }, BUFFER_DELAY);
+
+  messageBuffer.set(uniqueKey, buffer);
+  console.log(`⏳ Mensagem de ${from} bufferizada. (Total: ${buffer.messages.length})`);
 }
 
 module.exports = { handleIncomingMessage };
