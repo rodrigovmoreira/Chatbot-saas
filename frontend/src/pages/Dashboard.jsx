@@ -4,7 +4,7 @@ import {
   Box, Container, Grid, GridItem, Card, CardHeader, CardBody, Heading, Text, Button, VStack, HStack, Stack,
   useToast, Badge, Icon, useColorModeValue, FormControl, FormLabel, Input, Textarea, Checkbox,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
-  useDisclosure, Alert, AlertIcon, Spinner, Select, Tabs, TabList, TabPanels, Tab, TabPanel, Divider, IconButton
+  useDisclosure, Alert, AlertIcon, Spinner, Select, Tabs, TabList, TabPanels, Tab, TabPanel, Divider, IconButton, Tooltip
 } from '@chakra-ui/react';
 import { CheckCircleIcon, WarningTwoIcon, AddIcon, EditIcon, DeleteIcon, StarIcon, TimeIcon, DownloadIcon, ChatIcon } from '@chakra-ui/icons';
 import { useApp } from '../context/AppContext';
@@ -713,8 +713,12 @@ const Dashboard = () => {
                               </Box>
                             </HStack>
                             <HStack>
-                              <Button size="sm" variant="ghost" colorScheme="blue" onClick={() => handleEditFollowUp(idx)}><EditIcon /></Button>
-                              <Button size="sm" variant="ghost" colorScheme="red" onClick={() => handleRemoveFollowUp(idx)}><DeleteIcon /></Button>
+                              <Tooltip label="Editar passo">
+                                <IconButton icon={<EditIcon />} aria-label="Editar passo" size="sm" variant="ghost" colorScheme="blue" onClick={() => handleEditFollowUp(idx)} />
+                              </Tooltip>
+                              <Tooltip label="Excluir passo">
+                                <IconButton icon={<DeleteIcon />} aria-label="Excluir passo" size="sm" variant="ghost" colorScheme="red" onClick={() => handleRemoveFollowUp(idx)} />
+                              </Tooltip>
                             </HStack>
                           </HStack>
                         </CardBody>
@@ -752,8 +756,12 @@ const Dashboard = () => {
                           <HStack justify="space-between" mb={2}>
                             <Badge colorScheme="purple">{idx + 1}. {opt.keyword.split(',')[0]}</Badge>
                             <HStack spacing={1}>
-                              <Icon as={EditIcon} color="blue.400" cursor="pointer" onClick={() => handleEditMenuOption(idx)} boxSize={4} />
-                              <Icon as={DeleteIcon} color="red.300" cursor="pointer" onClick={() => handleRemoveMenuOption(idx)} boxSize={4} />
+                              <Tooltip label="Editar regra">
+                                <IconButton icon={<EditIcon />} aria-label="Editar regra" size="xs" colorScheme="blue" variant="ghost" onClick={() => handleEditMenuOption(idx)} />
+                              </Tooltip>
+                              <Tooltip label="Excluir regra">
+                                <IconButton icon={<DeleteIcon />} aria-label="Excluir regra" size="xs" colorScheme="red" variant="ghost" onClick={() => handleRemoveMenuOption(idx)} />
+                              </Tooltip>
                             </HStack>
                           </HStack>
                           <Text fontWeight="bold" fontSize="xs" mb={1}>{opt.description}</Text>
@@ -799,8 +807,12 @@ const Dashboard = () => {
                           )}
                         </VStack>
                         <HStack>
-                          <Button size="sm" variant="ghost" onClick={() => { setNewProduct(prod); setEditingProductIndex(idx); onProductModalOpen(); }}><EditIcon /></Button>
-                          <Button size="sm" colorScheme="red" variant="ghost" onClick={() => handleRemoveProduct(idx)}><DeleteIcon /></Button>
+                          <Tooltip label="Editar produto">
+                            <IconButton icon={<EditIcon />} aria-label="Editar produto" size="sm" variant="ghost" onClick={() => { setNewProduct(prod); setEditingProductIndex(idx); onProductModalOpen(); }} />
+                          </Tooltip>
+                          <Tooltip label="Excluir produto">
+                            <IconButton icon={<DeleteIcon />} aria-label="Excluir produto" size="sm" colorScheme="red" variant="ghost" onClick={() => handleRemoveProduct(idx)} />
+                          </Tooltip>
                         </HStack>
                       </HStack>
                     ))}
