@@ -39,7 +39,7 @@ async function callDeepSeek(messages) {
                 model: model,
                 messages: messages,
                 max_tokens: 500,
-                temperature: 0.5,
+                temperature: 0.7,
                 stream: false,
                 response_format: { type: 'text' }
             },
@@ -163,7 +163,7 @@ Cliente: ${userMessage}`;
 
     let catalogContext = "";
     if (businessConfig.products?.length > 0) {
-      catalogContext = "\n--- TABELA DE PREÇOS ---\n" + businessConfig.products.map(p => `- ${p.name}: R$ ${p.price}`).join('\n');
+      catalogContext = "REFERENCE ONLY: Use this catalog to answer questions. Do not list these items unless asked.\n\n--- TABELA DE PREÇOS ---\n" + businessConfig.products.map(p => `- ${p.name}: R$ ${p.price}`).join('\n');
 
       const allTags = new Set();
       businessConfig.products.forEach(p => {
@@ -182,6 +182,8 @@ Cliente: ${userMessage}`;
     const { instagram, website, portfolio } = businessConfig.socialMedia || {};
 
     const systemInstruction = `
+Instruction: "CONTEXT AWARENESS: Before answering, check the last message sent by 'assistant' in the history. If you have already explained the business focus or pricing in the last turn, DO NOT repeat it. Answer only the specific new question (e.g., 'No, we don't have that option'). Be direct and conversational."
+
 ${businessConfig.prompts.chatSystem}
 
 --- CONTEXTO ATUAL ---
