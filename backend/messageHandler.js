@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { saveMessage, getLastMessages } = require('./services/message');
 const { analyzeImage } = require('./services/visionService');
+const { transcribeAudio } = require('./services/transcriptionService');
 const { sendUnifiedMessage } = require('./services/responseService');
 const wwebjsService = require('./services/wwebjsService');
 const BusinessConfig = require('./models/BusinessConfig');
@@ -184,6 +185,12 @@ Cliente: ${userMessage}`;
     const systemInstruction = `
 Instruction: "CONTEXT AWARENESS: Before answering, check the last message sent by 'assistant' in the history. If you have already explained the business focus or pricing in the last turn, DO NOT repeat it. Answer only the specific new question (e.g., 'No, we don't have that option'). Be direct and conversational."
 
+--- AUDIO & IMAGE HANDLING ---
+1. If you receive text marked as \`[Transcrição do Áudio]: "..."\`, it means the user sent a voice message that has been converted to text for you.
+   - TREAT THIS AS DIRECT USER INPUT.
+   - DO NOT say "I cannot listen to audio" or "I cannot play messages".
+   - Answer the content of the transcription naturally.
+2. If you receive \`[VISÃO DA IMAGEM]\`, treat it as what the user is showing you.
 ${businessConfig.prompts.chatSystem}
 
 --- CONTEXTO ATUAL ---
@@ -368,8 +375,14 @@ async function handleIncomingMessage(normalizedMsg, activeBusinessId) {
         textToBuffer = textToBuffer ? `${textToBuffer}\n[IMAGEM COM ERRO]` : "[IMAGEM COM ERRO]";
     }
   } else if (type === 'audio') {
-      const audioDesc = "[ÁUDIO ENVIADO]"; // Placeholder conforme requisitos
-      textToBuffer = textToBuffer ? `${textToBuffer}\n${audioDesc}` : audioDesc;
+      try {
+        const transcription = await transcribeAudio(mediaData);
+        const audioDesc = transcription ? `[Transcrição do Áudio]: "${transcription}"` : "[Áudio sem transcrição]";
+        textToBuffer = textToBuffer ? `${textToBuffer}\n${audioDesc}` : audioDesc;
+      } catch (e) {
+        console.error("Erro Transcrição:", e);
+        textToBuffer = "[Erro ao processar áudio]";
+      }
   } else if (type !== 'text') {
       // Outros tipos de mídia
       const mediaDesc = `[Mídia: ${type}]`;
