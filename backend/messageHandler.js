@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { saveMessage, getLastMessages } = require('./services/message');
 const { analyzeImage } = require('./services/visionService');
+const { transcribeAudio } = require('./services/transcriptionService');
 const { sendUnifiedMessage } = require('./services/responseService');
 const wwebjsService = require('./services/wwebjsService');
 const BusinessConfig = require('./models/BusinessConfig');
@@ -368,8 +369,14 @@ async function handleIncomingMessage(normalizedMsg, activeBusinessId) {
         textToBuffer = textToBuffer ? `${textToBuffer}\n[IMAGEM COM ERRO]` : "[IMAGEM COM ERRO]";
     }
   } else if (type === 'audio') {
-      const audioDesc = "[ÁUDIO ENVIADO]"; // Placeholder conforme requisitos
-      textToBuffer = textToBuffer ? `${textToBuffer}\n${audioDesc}` : audioDesc;
+      try {
+        const transcription = await transcribeAudio(mediaData);
+        const audioDesc = transcription ? `[Transcrição do Áudio]: "${transcription}"` : "[Áudio sem transcrição]";
+        textToBuffer = textToBuffer ? `${textToBuffer}\n${audioDesc}` : audioDesc;
+      } catch (e) {
+        console.error("Erro Transcrição:", e);
+        textToBuffer = "[Erro ao processar áudio]";
+      }
   } else if (type !== 'text') {
       // Outros tipos de mídia
       const mediaDesc = `[Mídia: ${type}]`;
