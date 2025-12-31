@@ -114,10 +114,7 @@ router.get('/google/callback',
       sameSite: 'lax'
     });
 
-    // Redirect to frontend dashboard with token in query param (optional, for explicit handling)
-    // Or just let the frontend check the cookie/local storage?
-    // The frontend checks localStorage 'token'. We need to pass it.
-    // We can redirect to a special route like /auth-callback?token=...
+    // Redirect to frontend with token
     const frontendUrl = [
   "http://localhost:3000",
   "https://mindful-happiness-production.up.railway.app"
