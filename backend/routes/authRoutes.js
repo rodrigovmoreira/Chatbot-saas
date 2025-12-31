@@ -118,7 +118,10 @@ router.get('/google/callback',
     // Or just let the frontend check the cookie/local storage?
     // The frontend checks localStorage 'token'. We need to pass it.
     // We can redirect to a special route like /auth-callback?token=...
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const frontendUrl = [
+  "http://localhost:3000",
+  "https://mindful-happiness-production.up.railway.app"
+];
 
     // We pass user info too, url encoded
     const userData = encodeURIComponent(JSON.stringify({ id: user._id, name: user.name, email: user.email }));
