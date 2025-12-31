@@ -294,8 +294,12 @@ const ScheduleTab = () => {
     <Box h="85vh" bg={bg} p={4} borderRadius="md" boxShadow="sm" sx={calendarSx}>
 
       {/* BARRA DE FILTROS DE STATUS */}
-      <HStack mb={4} spacing={4} overflowX="auto" pb={2}>
+      <HStack mb={4} spacing={4} overflowX="auto" pb={2} css={{
+        '&::-webkit-scrollbar': { height: '4px' },
+        '&::-webkit-scrollbar-thumb': { background: '#CBD5E0', borderRadius: '24px' },
+      }}>
         <Button
+          flexShrink={0}
           size="sm"
           variant={filterStatus === 'all' ? 'solid' : 'outline'}
           colorScheme="blue"
@@ -304,6 +308,7 @@ const ScheduleTab = () => {
           Todos
         </Button>
         <Button
+          flexShrink={0}
           size="sm"
           variant={filterStatus === 'scheduled' ? 'solid' : 'outline'}
           colorScheme="blue"
@@ -312,6 +317,7 @@ const ScheduleTab = () => {
           Agendados
         </Button>
         <Button
+          flexShrink={0}
           size="sm"
           variant={filterStatus === 'completed' ? 'solid' : 'outline'}
           colorScheme="green"
@@ -320,6 +326,7 @@ const ScheduleTab = () => {
           Concluídos
         </Button>
         <Button
+          flexShrink={0}
           size="sm"
           variant={filterStatus === 'pending' ? 'solid' : 'outline'}
           colorScheme="orange"
@@ -329,28 +336,32 @@ const ScheduleTab = () => {
         </Button>
       </HStack>
 
-      <Calendar
-        localizer={localizer}
-        events={filteredEvents}
-        startAccessor="start"
-        endAccessor="end"
-        style={{ height: '90%' }}
-        selectable
-        onSelectSlot={handleSelectSlot}
-        onSelectEvent={handleSelectEvent}
-        eventPropGetter={eventStyleGetter}
+      <Box flex="1" overflowX="auto" h="90%">
+        <Box minW="700px" h="100%">
+          <Calendar
+            localizer={localizer}
+            events={filteredEvents}
+            startAccessor="start"
+            endAccessor="end"
+            style={{ height: '100%' }}
+            selectable
+            onSelectSlot={handleSelectSlot}
+            onSelectEvent={handleSelectEvent}
+            eventPropGetter={eventStyleGetter}
 
-        view={view}
-        onView={setView}
-        date={date}
-        onNavigate={setDate}
+            view={view}
+            onView={setView}
+            date={date}
+            onNavigate={setDate}
 
-        messages={{
-          next: "Próximo", previous: "Anterior", today: "Hoje",
-          month: "Mês", week: "Semana", day: "Dia", agenda: "Lista",
-          date: "Data", time: "Hora", event: "Evento", noEventsInRange: "Sem agendamentos."
-        }}
-      />
+            messages={{
+              next: "Próximo", previous: "Anterior", today: "Hoje",
+              month: "Mês", week: "Semana", day: "Dia", agenda: "Lista",
+              date: "Data", time: "Hora", event: "Evento", noEventsInRange: "Sem agendamentos."
+            }}
+          />
+        </Box>
+      </Box>
 
       <Modal isOpen={isOpen} onClose={onClose} size="md">
         <ModalOverlay />

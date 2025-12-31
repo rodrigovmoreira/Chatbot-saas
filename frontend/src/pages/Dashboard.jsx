@@ -4,14 +4,152 @@ import {
   Box, Container, Grid, GridItem, Card, CardHeader, CardBody, Heading, Text, Button, VStack, HStack, Stack,
   useToast, Badge, Icon, useColorModeValue, FormControl, FormLabel, Input, Textarea, Checkbox,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
-  useDisclosure, Alert, AlertIcon, Spinner, Select, Tabs, TabList, TabPanels, Tab, TabPanel, Divider, IconButton, Tooltip
+  useDisclosure, Alert, AlertIcon, Spinner, Select, Divider, IconButton, Tooltip,
+  Flex, Drawer, DrawerBody, DrawerHeader, DrawerOverlay, DrawerContent, DrawerCloseButton
 } from '@chakra-ui/react';
-import { CheckCircleIcon, WarningTwoIcon, AddIcon, EditIcon, DeleteIcon, StarIcon, TimeIcon, DownloadIcon, ChatIcon } from '@chakra-ui/icons';
+import {
+  CheckCircleIcon, WarningTwoIcon, AddIcon, EditIcon, DeleteIcon, StarIcon, TimeIcon,
+  DownloadIcon, ChatIcon, HamburgerIcon, SettingsIcon, InfoIcon, AttachmentIcon
+} from '@chakra-ui/icons';
 import { useApp } from '../context/AppContext';
 import { businessAPI } from '../services/api';
 import { authAPI } from '../services/api';
 import ScheduleTab from '../components/ScheduleTab';
 import ColorModeToggle from '../components/ColorModeToggle';
+
+// --- COMPONENTES DE NAVEGAÇÃO ---
+
+const LinkItems = [
+  { name: 'Conexão & Geral', icon: SettingsIcon, index: 0 },
+  { name: 'Inteligência & Nicho', icon: StarIcon, index: 1 },
+  { name: 'Respostas Rápidas', icon: ChatIcon, index: 2 },
+  { name: 'Catálogo', icon: AttachmentIcon, index: 3 },
+  { name: 'Live Chat', icon: ChatIcon, index: 4, color: 'purple.500' },
+  { name: 'Agendamentos', icon: TimeIcon, index: 5, color: 'blue.500' },
+];
+
+const SidebarContent = ({ onClose, activeTab, setActiveTab, ...rest }) => {
+  const bg = useColorModeValue('white', 'gray.900');
+  const borderRightColor = useColorModeValue('gray.200', 'gray.700');
+
+  return (
+    <Box
+      transition="3s ease"
+      bg={bg}
+      borderRight="1px"
+      borderRightColor={borderRightColor}
+      w={{ base: 'full', lg: 60 }}
+      pos="fixed"
+      h="full"
+      {...rest}
+    >
+      <Flex h="20" alignItems="center" mx="8" justifyContent="space-between">
+        <Text fontSize="2xl" fontFamily="monospace" fontWeight="bold">
+          Painel
+        </Text>
+        <Box display={{ base: 'flex', lg: 'none' }} onClick={onClose}>
+            <Icon as={DeleteIcon} />
+        </Box>
+      </Flex>
+      {LinkItems.map((link) => (
+        <NavItem
+          key={link.name}
+          icon={link.icon}
+          isActive={activeTab === link.index}
+          onClick={() => {
+            setActiveTab(link.index);
+            if (onClose) onClose();
+          }}
+          color={link.color}
+        >
+          {link.name}
+        </NavItem>
+      ))}
+    </Box>
+  );
+};
+
+const NavItem = ({ icon, children, isActive, color, ...rest }) => {
+  const hoverBg = useColorModeValue('brand.500', 'brand.200');
+  const activeBg = useColorModeValue('brand.100', 'gray.700');
+  const activeColor = useColorModeValue('brand.600', 'brand.200');
+
+  return (
+    <Flex
+      align="center"
+      p="4"
+      mx="4"
+      borderRadius="lg"
+      role="group"
+      cursor="pointer"
+      bg={isActive ? activeBg : 'transparent'}
+      color={isActive ? activeColor : 'inherit'}
+      _hover={{
+        bg: hoverBg,
+        color: 'white',
+      }}
+      mb={2}
+      {...rest}
+    >
+      {icon && (
+        <Icon
+          mr="4"
+          fontSize="16"
+          _groupHover={{
+            color: 'white',
+          }}
+          as={icon}
+          color={isActive ? activeColor : (color || 'inherit')}
+        />
+      )}
+      {children}
+    </Flex>
+  );
+};
+
+const MobileNav = ({ onOpen, title, ...rest }) => {
+  const bg = useColorModeValue('white', 'gray.900');
+  const borderBottomColor = useColorModeValue('gray.200', 'gray.700');
+
+  return (
+    <Flex
+      ml={{ base: 0, lg: 60 }}
+      px={{ base: 4, md: 4 }}
+      height="20"
+      alignItems="center"
+      bg={bg}
+      borderBottomWidth="1px"
+      borderBottomColor={borderBottomColor}
+      justifyContent={{ base: 'space-between', md: 'flex-end' }}
+      {...rest}
+    >
+      <IconButton
+        display={{ base: 'flex', lg: 'none' }}
+        onClick={onOpen}
+        variant="outline"
+        aria-label="open menu"
+        icon={<HamburgerIcon />}
+      />
+
+      <Text
+        display={{ base: 'flex', lg: 'none' }}
+        fontSize="xl"
+        fontFamily="monospace"
+        fontWeight="bold"
+        ml={4}
+      >
+        {title}
+      </Text>
+
+      <HStack spacing={{ base: '0', md: '6' }}>
+        <ColorModeToggle />
+      </HStack>
+    </Flex>
+  );
+};
+
+
+// --- COMPONENTE PRINCIPAL ---
 
 const Dashboard = () => {
   const { state, dispatch } = useApp();
@@ -35,6 +173,10 @@ const Dashboard = () => {
   const { isOpen: isProductModalOpen, onOpen: onProductModalOpen, onClose: onProductModalClose } = useDisclosure(); // Modal Produto
   const { isOpen: isFollowUpModalOpen, onOpen: onFollowUpOpen, onClose: onFollowUpClose } = useDisclosure(); // Modal Follow-up
   const { isOpen: isSavePromptOpen, onOpen: onSavePromptOpen, onClose: onSavePromptClose } = useDisclosure(); // Modal Salvar Prompt
+
+  // === ESTADO DE NAVEGAÇÃO SIDEBAR ===
+  const { isOpen: isSidebarOpen, onOpen: onSidebarOpen, onClose: onSidebarClose } = useDisclosure();
+  const [activeTab, setActiveTab] = useState(0);
 
   // === ESTADOS DE DADOS ===
   const [editingHours, setEditingHours] = useState(false);
@@ -438,48 +580,57 @@ const Dashboard = () => {
 
 
   return (
-    <Box minH="100vh" bg={mainBg} p={4}>
-      <Container maxW="1200px">
+    <Box minH="100vh" bg={mainBg}>
+      {/* SIDEBAR PARA DESKTOP */}
+      <SidebarContent
+        display={{ base: 'none', lg: 'block' }}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+      />
 
-        {/* Header Responsivo */}
-        <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" align={{ base: 'start', md: 'center' }} mb={6} bg={headerBg} p={4} borderRadius="lg" boxShadow="sm" spacing={4} >
-          <VStack align="start" spacing={0}>
-            <Heading size="lg" color={useColorModeValue("brand.600", "brand.200")}>Painel de Controle</Heading>
-            <Text color={useColorModeValue("gray.500", "gray.400")} fontSize="sm">
-              Gerenciando: <b>{configForm.businessName || 'Minha Empresa'}</b>
-            </Text>
-          </VStack>
-          <HStack spacing={2} width={{ base: '100%', md: 'auto' }} justify={{ base: 'space-between', md: 'flex-end' }}>
-            <ColorModeToggle />
-            <Button colorScheme="red" variant="ghost" size="sm" onClick={handleLogoutSystem} width={{ base: 'auto', md: 'auto' }} >Sair do Sistema </Button>
-          </HStack>
+      {/* DRAWER PARA MOBILE */}
+      <Drawer
+        autoFocus={false}
+        isOpen={isSidebarOpen}
+        placement="left"
+        onClose={onSidebarClose}
+        returnFocusOnClose={false}
+        onOverlayClick={onSidebarClose}
+        size="full"
+      >
+        <DrawerOverlay />
+        <DrawerContent>
+          <SidebarContent onClose={onSidebarClose} activeTab={activeTab} setActiveTab={setActiveTab} />
+        </DrawerContent>
+      </Drawer>
+
+      {/* CONTEÚDO PRINCIPAL (Área à direita) */}
+      <Box ml={{ base: 0, lg: 60 }} p={{ base: 4, md: 6 }}>
+
+        {/* Navbar Mobile (Hamburger) e Desktop Header Actions */}
+        <MobileNav onOpen={onSidebarOpen} title={LinkItems[activeTab]?.name || 'Painel'} mb={4} />
+
+        {/* HEADER DE AÇÕES RÁPIDAS (Sair) - Agora no MobileNav ou aqui, optei por simplificar */}
+        <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" align={{ base: 'start', md: 'center' }} mb={6} bg={headerBg} p={{ base: 4, md: 6 }} borderRadius="lg" boxShadow="sm" spacing={4} display={{ base: 'none', md: 'flex' }} >
+             <VStack align="start" spacing={0}>
+               <Heading size="lg" color={useColorModeValue("brand.600", "brand.200")}>
+                  {LinkItems[activeTab]?.name}
+               </Heading>
+               <Text color={useColorModeValue("gray.500", "gray.400")} fontSize="sm">
+                 Gerenciando: <b>{configForm.businessName || 'Minha Empresa'}</b>
+               </Text>
+             </VStack>
+             <HStack spacing={2}>
+               <Button colorScheme="red" variant="ghost" size="sm" onClick={handleLogoutSystem}>Sair do Sistema</Button>
+             </HStack>
         </Stack>
 
-        <Tabs variant="soft-rounded" colorScheme="brand" isLazy>
-          <TabList mb={4} bg={headerBg} p={2} borderRadius="lg" boxShadow="sm" overflowX="auto"
-            css={{
-              '&::-webkit-scrollbar': { height: '4px' },
-              '&::-webkit-scrollbar-thumb': { background: '#CBD5E0', borderRadius: '24px' },
-            }}
-            whiteSpace="nowrap"
-          >
-            <Tab fontWeight="bold">🤖 Conexão & Geral</Tab>
-            <Tab fontWeight="bold">🧠 Inteligência & Nicho</Tab>
-            <Tab fontWeight="bold">💬 Respostas Rápidas</Tab>
-            <Tab fontWeight="bold">📦 Catálogo</Tab>
-            <Tab fontWeight="bold" color={useColorModeValue("purple.600", "purple.300")}>
-              <Icon as={ChatIcon} mr={2} /> Live Chat
-            </Tab>
-            <Tab fontWeight="bold" color={useColorModeValue("blue.600", "blue.300")}>
-              <Icon as={TimeIcon} mr={2} /> Agendamentos
-            </Tab>
-          </TabList>
+        {/* --- CONTEÚDO DAS ABAS (Render Condicional) --- */}
 
-          <TabPanels>
-
-            {/* ABA 1: VISÃO GERAL */}
-            <TabPanel px={0}>
-              <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={6}>
+        {/* ABA 0: CONEXÃO & GERAL */}
+        {activeTab === 0 && (
+          <Box>
+              <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={6}>
                 {/* Card WhatsApp */}
                 <GridItem>
                   <Card bg={cardBg} h="100%" boxShadow="md" borderTop="4px solid" borderColor={state.whatsappStatus.isConnected ? "green.400" : "red.400"}>
@@ -555,10 +706,12 @@ const Dashboard = () => {
                   </Card>
                 </GridItem>
               </Grid>
-            </TabPanel>
+          </Box>
+        )}
 
-            {/* ABA 2: INTELIGÊNCIA & NICHO */}
-            <TabPanel px={0}>
+        {/* ABA 1: INTELIGÊNCIA & NICHO */}
+        {activeTab === 1 && (
+          <Box>
               <VStack spacing={6} align="stretch">
 
                 {/* 1. SELEÇÃO DE PRESET DO SISTEMA */}
@@ -569,11 +722,11 @@ const Dashboard = () => {
                         <Heading size="sm" mb={1}>Modelos Padrão (Sistema)</Heading>
                         <Text fontSize="sm" color="gray.600">Use um modelo pronto da plataforma.</Text>
                       </Box>
-                      <HStack>
+                      <HStack direction={{ base: 'column', md: 'row' }} spacing={4}>
                         <Select placeholder="Selecione..." bg={gray50Bg} onChange={(e) => setSelectedPreset(e.target.value)} value={selectedPreset}>
                           {presets.map(p => (<option key={p.key} value={p.key}>{p.icon} {p.name}</option>))}
                         </Select>
-                        <Button colorScheme="blue" onClick={handleApplyPreset} isDisabled={!selectedPreset} leftIcon={<StarIcon />}>Aplicar</Button>
+                        <Button colorScheme="blue" onClick={handleApplyPreset} isDisabled={!selectedPreset} leftIcon={<StarIcon />} width={{ base: 'full', md: 'auto' }}>Aplicar</Button>
                       </HStack>
                     </Grid>
                   </CardBody>
@@ -587,7 +740,7 @@ const Dashboard = () => {
                         <Heading size="sm" mb={1} color={orange800}>Meus Modelos Pessoais</Heading>
                         <Text fontSize="sm" color={orange700}>Carregue suas edições salvas anteriormente.</Text>
                       </Box>
-                      <HStack>
+                      <HStack direction={{ base: 'column', md: 'row' }} spacing={4}>
                         <Select
                           placeholder="Carregar meus prompts..."
                           bg={cardBg}
@@ -680,7 +833,7 @@ const Dashboard = () => {
 
                 {/* 4. FUNIL DE VENDAS (A PARTE QUE TINHA SUMIDO!) */}
                 <Box>
-                  <HStack justify="space-between" mb={4}>
+                  <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" mb={4}>
                     <Box>
                       <Heading size="md">Funil de Vendas (Follow-up)</Heading>
                       <Text fontSize="sm" color="gray.500">Mensagens automáticas para recuperar clientes que pararam de responder.</Text>
@@ -688,14 +841,14 @@ const Dashboard = () => {
                     <Button leftIcon={<AddIcon />} colorScheme="purple" onClick={() => { setEditingFollowUpIndex(null); setNewFollowUp({ delayMinutes: 60, message: '' }); onFollowUpOpen(); }}>
                       Novo Passo
                     </Button>
-                  </HStack>
+                  </Stack>
 
                   <VStack spacing={4} align="stretch">
                     {followUpSteps.map((step, idx) => (
                       <Card key={idx} variant="outline" borderColor="purple.200" bg={purpleBg}>
                         <CardBody>
-                          <HStack justify="space-between" align="start">
-                            <HStack align="start" spacing={4}>
+                          <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" align="start">
+                            <Stack direction={{ base: 'column', md: 'row' }} align="start" spacing={4}>
                               <VStack
                                 bg="purple.500" color="white" borderRadius="full" boxSize="40px"
                                 justify="center" align="center" fontWeight="bold" flexShrink={0}
@@ -711,7 +864,7 @@ const Dashboard = () => {
                                 </HStack>
                                 <Text fontSize="md" color={gray800}>"{step.message}"</Text>
                               </Box>
-                            </HStack>
+                            </Stack>
                             <HStack>
                               <Tooltip label="Editar passo">
                                 <IconButton icon={<EditIcon />} aria-label="Editar passo" size="sm" variant="ghost" colorScheme="blue" onClick={() => handleEditFollowUp(idx)} />
@@ -720,7 +873,7 @@ const Dashboard = () => {
                                 <IconButton icon={<DeleteIcon />} aria-label="Excluir passo" size="sm" variant="ghost" colorScheme="red" onClick={() => handleRemoveFollowUp(idx)} />
                               </Tooltip>
                             </HStack>
-                          </HStack>
+                          </Stack>
                         </CardBody>
                       </Card>
                     ))}
@@ -737,16 +890,18 @@ const Dashboard = () => {
                 </Box>
 
               </VStack>
-            </TabPanel>
+          </Box>
+        )}
 
-            {/* ABA 3: RESPOSTAS RÁPIDAS */}
-            <TabPanel px={0}>
+        {/* ABA 2: RESPOSTAS RÁPIDAS */}
+        {activeTab === 2 && (
+          <Box>
               <Card bg={cardBg} boxShadow="md">
                 <CardHeader>
-                  <HStack justify="space-between">
+                  <Stack direction={{ base: 'column', md: 'row' }} justify="space-between">
                     <Box><Heading size="md">Menu de Respostas</Heading><Text fontSize="sm" color="gray.500">Palavras-chave que o bot responde instantaneamente.</Text></Box>
                     <Button leftIcon={<AddIcon />} colorScheme="green" onClick={() => { setEditingMenuIndex(null); setNewMenuOption({ keyword: '', description: '', response: '', requiresHuman: false, useAI: false }); onOpen(); }}>Nova Regra</Button>
-                  </HStack>
+                  </Stack>
                 </CardHeader>
                 <CardBody>
                   <Grid templateColumns="repeat(auto-fill, minmax(280px, 1fr))" gap={4}>
@@ -777,21 +932,23 @@ const Dashboard = () => {
                   {menuOptions.length > 0 && <Box mt={6} pt={4} textAlign="right"><Button colorScheme="brand" onClick={handleSaveMenu}>Salvar Alterações do Menu</Button></Box>}
                 </CardBody>
               </Card>
-            </TabPanel>
+          </Box>
+        )}
 
-            {/* ABA 4: CATÁLOGO */}
-            <TabPanel px={0}>
+        {/* ABA 3: CATÁLOGO */}
+        {activeTab === 3 && (
+          <Box>
               <Card bg={cardBg} boxShadow="md">
                 <CardHeader>
-                  <HStack justify="space-between">
+                  <Stack direction={{ base: 'column', md: 'row' }} justify="space-between">
                     <Box><Heading size="md">Produtos & Serviços</Heading><Text fontSize="sm" color="gray.500">Para a IA consultar preços e enviar fotos.</Text></Box>
                     <Button leftIcon={<AddIcon />} variant="outline" colorScheme="blue" onClick={() => { setEditingProductIndex(null); setNewProduct({ name: '', price: '', description: '', imageUrls: [], tags: [] }); onProductModalOpen(); }}>Novo Item</Button>
-                  </HStack>
+                  </Stack>
                 </CardHeader>
                 <CardBody>
                   <VStack align="stretch" spacing={3}>
                     {products.map((prod, idx) => (
-                      <HStack key={idx} p={4} borderWidth="1px" borderRadius="md" justify="space-between" bg={gray50Bg} align="start">
+                      <Stack direction={{ base: 'column', md: 'row' }} key={idx} p={4} borderWidth="1px" borderRadius="md" justify="space-between" bg={gray50Bg} align="start">
                          {prod.imageUrls && prod.imageUrls.length > 0 && (
                             <Box w="60px" h="60px" borderRadius="md" overflow="hidden" flexShrink={0}>
                                <img src={prod.imageUrls[0]} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -814,21 +971,23 @@ const Dashboard = () => {
                             <IconButton icon={<DeleteIcon />} aria-label="Excluir produto" size="sm" colorScheme="red" variant="ghost" onClick={() => handleRemoveProduct(idx)} />
                           </Tooltip>
                         </HStack>
-                      </HStack>
+                      </Stack>
                     ))}
                   </VStack>
                   {products.length > 0 && <Box mt={6} pt={4} textAlign="right"><Button colorScheme="brand" onClick={handleSaveProducts}>Salvar Catálogo</Button></Box>}
                 </CardBody>
               </Card>
-            </TabPanel>
+          </Box>
+        )}
 
-            {/* ABA 5: LIVE CHAT (PLACEHOLDER) */}
-            <TabPanel px={0}>
+        {/* ABA 4: LIVE CHAT (PLACEHOLDER) */}
+        {activeTab === 4 && (
+          <Box>
               <Card h="75vh" overflow="hidden" border="1px solid" borderColor="gray.200">
-                <HStack h="100%" spacing={0} align="stretch">
+                <Stack direction={{ base: 'column', md: 'row' }} h="100%" spacing={0} align="stretch">
 
                   {/* LADO ESQUERDO: LISTA DE CONTATOS (MOCKUP) */}
-                  <Box w={{ base: "80px", md: "300px" }} borderRight="1px solid" borderColor={gray50Bg} bg={gray50Bg}>
+                  <Box w={{ base: "100%", md: "300px" }} h={{ base: "40%", md: "100%" }} borderRight="1px solid" borderColor={gray50Bg} bg={gray50Bg} overflowY="auto">
                     <Box p={4} borderBottom="1px solid" borderColor={gray50Bg} bg={cardBg}>
                       <Heading size="sm" color="gray.600">Conversas</Heading>
                     </Box>
@@ -853,7 +1012,7 @@ const Dashboard = () => {
                   </Box>
 
                   {/* LADO DIREITO: CHAT (MOCKUP) */}
-                  <Box flex="1" bg={gray100} position="relative" display="flex" flexDirection="column">
+                  <Box flex="1" bg={gray100} position="relative" display="flex" flexDirection="column" h={{ base: "60%", md: "100%" }}>
 
                     {/* Header do Chat */}
                     <HStack p={4} bg={cardBg} borderBottom="1px solid" borderColor={gray50Bg} justify="space-between">
@@ -889,18 +1048,19 @@ const Dashboard = () => {
                     </Box>
                   </Box>
 
-                </HStack>
+                </Stack>
               </Card>
-            </TabPanel>
+          </Box>
+        )}
 
-            {/* ABA DE AGENDAMENTOS */}
-            <TabPanel px={0}>
+        {/* ABA 5: AGENDAMENTOS */}
+        {activeTab === 5 && (
+          <Box>
               <ScheduleTab />
-            </TabPanel>
+          </Box>
+        )}
 
-          </TabPanels>
-        </Tabs>
-      </Container>
+      </Box>
 
       {/* --- MODAIS --- */}
 
