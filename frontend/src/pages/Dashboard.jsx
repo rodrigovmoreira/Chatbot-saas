@@ -53,7 +53,7 @@ const SidebarContent = ({ onClose, activeTab, setActiveTab, isCollapsed = false,
           </Text>
         )}
         <Box display={{ base: 'flex', lg: 'none' }} onClick={onClose}>
-            <Icon as={DeleteIcon} />
+          <Icon as={DeleteIcon} />
         </Box>
       </Flex>
       <Box flex="1" overflowY="auto">
@@ -82,6 +82,8 @@ const SidebarContent = ({ onClose, activeTab, setActiveTab, isCollapsed = false,
         borderColor={useColorModeValue('gray.200', 'gray.700')}
         justifyContent={isCollapsed ? 'center' : 'space-between'}
         alignItems="center"
+        direction={isCollapsed ? 'column' : 'row'}
+        gap={isCollapsed ? 2 : 0}
       >
         <ColorModeToggle />
         <IconButton
@@ -142,6 +144,7 @@ const MobileNav = ({ onOpen, title, ...rest }) => {
 
   return (
     <Flex
+      display={{ base: 'flex', lg: 'none' }}
       ml={{ base: 0, lg: 60 }}
       px={{ base: 4, md: 4 }}
       height="20"
@@ -536,7 +539,7 @@ const Dashboard = () => {
     // Normaliza tags de string para array se necessário
     let finalTags = newProduct.tags;
     if (typeof finalTags === 'string') {
-        finalTags = finalTags.split(',').map(t => t.trim()).filter(t => t);
+      finalTags = finalTags.split(',').map(t => t.trim()).filter(t => t);
     }
 
     const productToSave = { ...newProduct, tags: finalTags };
@@ -694,433 +697,433 @@ const Dashboard = () => {
         {/* ABA 0: CONEXÃO & GERAL */}
         {activeTab === 0 && (
           <Box>
-              <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={6}>
-                {/* Card WhatsApp */}
-                <GridItem>
-                  <Card bg={cardBg} h="100%" boxShadow="md" borderTop="4px solid" borderColor={state.whatsappStatus.isConnected ? "green.400" : "red.400"}>
-                    <CardHeader><Heading size="md">Status do WhatsApp</Heading></CardHeader>
-                    <CardBody display="flex" flexDirection="column" alignItems="center" justifyContent="center">
-                      {state.whatsappStatus.isConnected ? (
-                        <VStack spacing={4}>
-                          <Icon as={CheckCircleIcon} color="green.500" boxSize={16} />
-                          <Box textAlign="center">
-                            <Text fontWeight="bold" fontSize="lg" color="green.600">Sistema Online</Text>
-                            <Text fontSize="sm" color="gray.500">O robô está respondendo seus clientes.</Text>
-                          </Box>
-                          <Button colorScheme="red" variant="outline" onClick={handleLogoutWhatsApp}>Desconectar Sessão</Button>
-                        </VStack>
-                      ) : (
-                        <VStack spacing={4} w="100%">
-                          {state.whatsappStatus.qrCode ? (
-                            <Box bg="white" p={4} borderRadius="lg"><QRCodeSVG value={state.whatsappStatus.qrCode} size={180} /></Box>
-                          ) : state.whatsappStatus.mode === 'Iniciando...' ? (
-                            <VStack py={6}><Spinner size="xl" color="brand.500" thickness="4px" /><Text color="gray.500">Iniciando motor...</Text></VStack>
-                          ) : (
-                            <VStack py={4}>
-                              <Icon as={WarningTwoIcon} color="orange.400" boxSize={12} />
-                              <Text fontWeight="bold" color="gray.600">Sessão Desligada</Text>
-                              <Button size="lg" colorScheme="green" onClick={handleStartWhatsApp} width="full">Ligar Robô</Button>
-                            </VStack>
-                          )}
-                        </VStack>
-                      )}
-                    </CardBody>
-                  </Card>
-                </GridItem>
-                {/* Card Configs */}
-                <GridItem>
-                  <Card bg={cardBg} h="100%" boxShadow="md">
-                    <CardHeader>
-                      <HStack justify="space-between"><Heading size="md">Dados da Empresa</Heading><Button size="xs" onClick={() => setEditingHours(!editingHours)} leftIcon={<EditIcon />}>{editingHours ? 'Cancelar' : 'Editar'}</Button></HStack>
-                    </CardHeader>
-                    <CardBody>
-                      <VStack spacing={4} align="stretch">
-                        <FormControl>
-                          <FormLabel fontSize="xs" fontWeight="bold" color="gray.500">NOME FANTASIA</FormLabel>
-                          <Input isDisabled={!editingHours} value={configForm.businessName} onChange={e => setConfigForm({ ...configForm, businessName: e.target.value })} />
-                        </FormControl>
-                        <HStack>
-                          <FormControl><FormLabel fontSize="xs" fontWeight="bold" color="gray.500">ABERTURA</FormLabel><Input type="time" isDisabled={!editingHours} value={configForm.operatingHours.opening} onChange={e => setConfigForm({ ...configForm, operatingHours: { ...configForm.operatingHours, opening: e.target.value } })} /></FormControl>
-                          <FormControl><FormLabel fontSize="xs" fontWeight="bold" color="gray.500">FECHAMENTO</FormLabel><Input type="time" isDisabled={!editingHours} value={configForm.operatingHours.closing} onChange={e => setConfigForm({ ...configForm, operatingHours: { ...configForm.operatingHours, closing: e.target.value } })} /></FormControl>
-                        </HStack>
-                        <FormControl>
-                          <FormLabel fontSize="xs" fontWeight="bold" color="gray.500">MENSAGEM DE AUSÊNCIA</FormLabel>
-                          <Textarea isDisabled={!editingHours} value={configForm.awayMessage} onChange={e => setConfigForm({ ...configForm, awayMessage: e.target.value })} rows={3} />
-                        </FormControl>
-
-                        <Divider />
-
-                        <Heading size="sm" pt={2} color="gray.600">Links & Redes Sociais</Heading>
-                        <FormControl>
-                           <FormLabel fontSize="xs" fontWeight="bold" color="gray.500">INSTAGRAM</FormLabel>
-                           <Input isDisabled={!editingHours} placeholder="@seu_negocio" value={configForm.socialMedia.instagram} onChange={e => setConfigForm({...configForm, socialMedia: {...configForm.socialMedia, instagram: e.target.value}})} />
-                        </FormControl>
-                        <FormControl>
-                           <FormLabel fontSize="xs" fontWeight="bold" color="gray.500">WEBSITE</FormLabel>
-                           <Input isDisabled={!editingHours} placeholder="https://..." value={configForm.socialMedia.website} onChange={e => setConfigForm({...configForm, socialMedia: {...configForm.socialMedia, website: e.target.value}})} />
-                        </FormControl>
-                        <FormControl>
-                           <FormLabel fontSize="xs" fontWeight="bold" color="gray.500">PORTFOLIO</FormLabel>
-                           <Input isDisabled={!editingHours} placeholder="Link externo (Drive, Behance...)" value={configForm.socialMedia.portfolio} onChange={e => setConfigForm({...configForm, socialMedia: {...configForm.socialMedia, portfolio: e.target.value}})} />
-                        </FormControl>
-
-                        {editingHours && <Button colorScheme="brand" onClick={handleSaveConfig} width="full">Salvar Alterações</Button>}
+            <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={6}>
+              {/* Card WhatsApp */}
+              <GridItem>
+                <Card bg={cardBg} h="100%" boxShadow="md" borderTop="4px solid" borderColor={state.whatsappStatus.isConnected ? "green.400" : "red.400"}>
+                  <CardHeader><Heading size="md">Status do WhatsApp</Heading></CardHeader>
+                  <CardBody display="flex" flexDirection="column" alignItems="center" justifyContent="center">
+                    {state.whatsappStatus.isConnected ? (
+                      <VStack spacing={4}>
+                        <Icon as={CheckCircleIcon} color="green.500" boxSize={16} />
+                        <Box textAlign="center">
+                          <Text fontWeight="bold" fontSize="lg" color="green.600">Sistema Online</Text>
+                          <Text fontSize="sm" color="gray.500">O robô está respondendo seus clientes.</Text>
+                        </Box>
+                        <Button colorScheme="red" variant="outline" onClick={handleLogoutWhatsApp}>Desconectar Sessão</Button>
                       </VStack>
-                    </CardBody>
-                  </Card>
-                </GridItem>
-              </Grid>
+                    ) : (
+                      <VStack spacing={4} w="100%">
+                        {state.whatsappStatus.qrCode ? (
+                          <Box bg="white" p={4} borderRadius="lg"><QRCodeSVG value={state.whatsappStatus.qrCode} size={180} /></Box>
+                        ) : state.whatsappStatus.mode === 'Iniciando...' ? (
+                          <VStack py={6}><Spinner size="xl" color="brand.500" thickness="4px" /><Text color="gray.500">Iniciando motor...</Text></VStack>
+                        ) : (
+                          <VStack py={4}>
+                            <Icon as={WarningTwoIcon} color="orange.400" boxSize={12} />
+                            <Text fontWeight="bold" color="gray.600">Sessão Desligada</Text>
+                            <Button size="lg" colorScheme="green" onClick={handleStartWhatsApp} width="full">Ligar Robô</Button>
+                          </VStack>
+                        )}
+                      </VStack>
+                    )}
+                  </CardBody>
+                </Card>
+              </GridItem>
+              {/* Card Configs */}
+              <GridItem>
+                <Card bg={cardBg} h="100%" boxShadow="md">
+                  <CardHeader>
+                    <HStack justify="space-between"><Heading size="md">Dados da Empresa</Heading><Button size="xs" onClick={() => setEditingHours(!editingHours)} leftIcon={<EditIcon />}>{editingHours ? 'Cancelar' : 'Editar'}</Button></HStack>
+                  </CardHeader>
+                  <CardBody>
+                    <VStack spacing={4} align="stretch">
+                      <FormControl>
+                        <FormLabel fontSize="xs" fontWeight="bold" color="gray.500">NOME FANTASIA</FormLabel>
+                        <Input isDisabled={!editingHours} value={configForm.businessName} onChange={e => setConfigForm({ ...configForm, businessName: e.target.value })} />
+                      </FormControl>
+                      <HStack>
+                        <FormControl><FormLabel fontSize="xs" fontWeight="bold" color="gray.500">ABERTURA</FormLabel><Input type="time" isDisabled={!editingHours} value={configForm.operatingHours.opening} onChange={e => setConfigForm({ ...configForm, operatingHours: { ...configForm.operatingHours, opening: e.target.value } })} /></FormControl>
+                        <FormControl><FormLabel fontSize="xs" fontWeight="bold" color="gray.500">FECHAMENTO</FormLabel><Input type="time" isDisabled={!editingHours} value={configForm.operatingHours.closing} onChange={e => setConfigForm({ ...configForm, operatingHours: { ...configForm.operatingHours, closing: e.target.value } })} /></FormControl>
+                      </HStack>
+                      <FormControl>
+                        <FormLabel fontSize="xs" fontWeight="bold" color="gray.500">MENSAGEM DE AUSÊNCIA</FormLabel>
+                        <Textarea isDisabled={!editingHours} value={configForm.awayMessage} onChange={e => setConfigForm({ ...configForm, awayMessage: e.target.value })} rows={3} />
+                      </FormControl>
+
+                      <Divider />
+
+                      <Heading size="sm" pt={2} color="gray.600">Links & Redes Sociais</Heading>
+                      <FormControl>
+                        <FormLabel fontSize="xs" fontWeight="bold" color="gray.500">INSTAGRAM</FormLabel>
+                        <Input isDisabled={!editingHours} placeholder="@seu_negocio" value={configForm.socialMedia.instagram} onChange={e => setConfigForm({ ...configForm, socialMedia: { ...configForm.socialMedia, instagram: e.target.value } })} />
+                      </FormControl>
+                      <FormControl>
+                        <FormLabel fontSize="xs" fontWeight="bold" color="gray.500">WEBSITE</FormLabel>
+                        <Input isDisabled={!editingHours} placeholder="https://..." value={configForm.socialMedia.website} onChange={e => setConfigForm({ ...configForm, socialMedia: { ...configForm.socialMedia, website: e.target.value } })} />
+                      </FormControl>
+                      <FormControl>
+                        <FormLabel fontSize="xs" fontWeight="bold" color="gray.500">PORTFOLIO</FormLabel>
+                        <Input isDisabled={!editingHours} placeholder="Link externo (Drive, Behance...)" value={configForm.socialMedia.portfolio} onChange={e => setConfigForm({ ...configForm, socialMedia: { ...configForm.socialMedia, portfolio: e.target.value } })} />
+                      </FormControl>
+
+                      {editingHours && <Button colorScheme="brand" onClick={handleSaveConfig} width="full">Salvar Alterações</Button>}
+                    </VStack>
+                  </CardBody>
+                </Card>
+              </GridItem>
+            </Grid>
           </Box>
         )}
 
         {/* ABA 1: INTELIGÊNCIA & NICHO */}
         {activeTab === 1 && (
           <Box>
-              <VStack spacing={6} align="stretch">
+            <VStack spacing={6} align="stretch">
 
-                {/* 1. SELEÇÃO DE PRESET DO SISTEMA */}
-                <Card bg={cardBg} boxShadow="sm" borderLeft="4px solid" borderColor="blue.500">
+              {/* 1. SELEÇÃO DE PRESET DO SISTEMA */}
+              <Card bg={cardBg} boxShadow="sm" borderLeft="4px solid" borderColor="blue.500">
+                <CardBody>
+                  <Grid templateColumns={{ base: '1fr', md: '2fr 1fr' }} gap={4} alignItems="center">
+                    <Box>
+                      <Heading size="sm" mb={1}>Modelos Padrão (Sistema)</Heading>
+                      <Text fontSize="sm" color="gray.600">Use um modelo pronto da plataforma.</Text>
+                    </Box>
+                    <HStack direction={{ base: 'column', md: 'row' }} spacing={4}>
+                      <Select placeholder="Selecione..." bg={gray50Bg} onChange={(e) => setSelectedPreset(e.target.value)} value={selectedPreset}>
+                        {presets.map(p => (<option key={p.key} value={p.key}>{p.icon} {p.name}</option>))}
+                      </Select>
+                      <Button colorScheme="blue" onClick={handleApplyPreset} isDisabled={!selectedPreset} leftIcon={<StarIcon />} width={{ base: 'full', md: 'auto' }}>Aplicar</Button>
+                    </HStack>
+                  </Grid>
+                </CardBody>
+              </Card>
+
+              {/* 2. MEUS MODELOS SALVOS (O Retângulo Laranja) */}
+              <Card bg={orangeBg} boxShadow="sm" borderLeft="4px solid" borderColor="orange.400">
+                <CardBody>
+                  <Grid templateColumns={{ base: '1fr', md: '2fr 1fr' }} gap={4} alignItems="center">
+                    <Box>
+                      <Heading size="sm" mb={1} color={orange800}>Meus Modelos Pessoais</Heading>
+                      <Text fontSize="sm" color={orange700}>Carregue suas edições salvas anteriormente.</Text>
+                    </Box>
+                    <HStack direction={{ base: 'column', md: 'row' }} spacing={4}>
+                      <Select
+                        placeholder="Carregar meus prompts..."
+                        bg={cardBg}
+                        onChange={(e) => handleLoadCustomPrompt(e.target.value)}
+                        value={selectedCustomPrompt}
+                      >
+                        {customPrompts.map(p => (
+                          <option key={p._id} value={p._id}>📄 {p.name}</option>
+                        ))}
+                      </Select>
+                      {selectedCustomPrompt && (
+                        <IconButton
+                          icon={<DeleteIcon />}
+                          colorScheme="red"
+                          variant="ghost"
+                          onClick={(e) => handleDeleteCustomPrompt(selectedCustomPrompt, e)}
+                          aria-label="Deletar"
+                        />
+                      )}
+                    </HStack>
+                  </Grid>
+                </CardBody>
+              </Card>
+
+              <Divider />
+
+              {/* 3. EDITORES DE TEXTO (CHAT E VISÃO) */}
+              <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={6}>
+                <Card bg={cardBg} boxShadow="sm">
+                  <CardHeader pb={0}><Heading size="sm">🧠 Personalidade (Chat)</Heading></CardHeader>
                   <CardBody>
-                    <Grid templateColumns={{ base: '1fr', md: '2fr 1fr' }} gap={4} alignItems="center">
-                      <Box>
-                        <Heading size="sm" mb={1}>Modelos Padrão (Sistema)</Heading>
-                        <Text fontSize="sm" color="gray.600">Use um modelo pronto da plataforma.</Text>
-                      </Box>
-                      <HStack direction={{ base: 'column', md: 'row' }} spacing={4}>
-                        <Select placeholder="Selecione..." bg={gray50Bg} onChange={(e) => setSelectedPreset(e.target.value)} value={selectedPreset}>
-                          {presets.map(p => (<option key={p.key} value={p.key}>{p.icon} {p.name}</option>))}
-                        </Select>
-                        <Button colorScheme="blue" onClick={handleApplyPreset} isDisabled={!selectedPreset} leftIcon={<StarIcon />} width={{ base: 'full', md: 'auto' }}>Aplicar</Button>
-                      </HStack>
-                    </Grid>
+                    <Textarea
+                      value={activePrompts.chatSystem}
+                      onChange={(e) => setActivePrompts({ ...activePrompts, chatSystem: e.target.value })}
+                      rows={10}
+                      bg={gray50Bg}
+                      fontSize="sm"
+                      placeholder="Instruções para o chat..."
+                    />
                   </CardBody>
                 </Card>
-
-                {/* 2. MEUS MODELOS SALVOS (O Retângulo Laranja) */}
-                <Card bg={orangeBg} boxShadow="sm" borderLeft="4px solid" borderColor="orange.400">
+                <Card bg={cardBg} boxShadow="sm">
+                  <CardHeader pb={0}><Heading size="sm">👁️ Visão (Imagem)</Heading></CardHeader>
                   <CardBody>
-                    <Grid templateColumns={{ base: '1fr', md: '2fr 1fr' }} gap={4} alignItems="center">
-                      <Box>
-                        <Heading size="sm" mb={1} color={orange800}>Meus Modelos Pessoais</Heading>
-                        <Text fontSize="sm" color={orange700}>Carregue suas edições salvas anteriormente.</Text>
-                      </Box>
-                      <HStack direction={{ base: 'column', md: 'row' }} spacing={4}>
-                        <Select
-                          placeholder="Carregar meus prompts..."
-                          bg={cardBg}
-                          onChange={(e) => handleLoadCustomPrompt(e.target.value)}
-                          value={selectedCustomPrompt}
-                        >
-                          {customPrompts.map(p => (
-                            <option key={p._id} value={p._id}>📄 {p.name}</option>
-                          ))}
-                        </Select>
-                        {selectedCustomPrompt && (
-                          <IconButton
-                            icon={<DeleteIcon />}
-                            colorScheme="red"
-                            variant="ghost"
-                            onClick={(e) => handleDeleteCustomPrompt(selectedCustomPrompt, e)}
-                            aria-label="Deletar"
-                          />
-                        )}
-                      </HStack>
-                    </Grid>
+                    <Textarea
+                      value={activePrompts.visionSystem}
+                      onChange={(e) => setActivePrompts({ ...activePrompts, visionSystem: e.target.value })}
+                      rows={10}
+                      bg={gray50Bg}
+                      fontSize="sm"
+                      placeholder="Instruções para análise de imagem..."
+                    />
                   </CardBody>
                 </Card>
+              </Grid>
 
-                <Divider />
+              {/* BOTÕES DE AÇÃO DOS PROMPTS - CORRIGIDO PARA MOBILE */}
+              <Stack direction={{ base: 'column', md: 'row' }} spacing={4} width="100%">
+                <Button
+                  colorScheme="green"
+                  size="lg"
+                  onClick={handleSavePrompts}
+                  flex="2"
+                  boxShadow="md"
+                  width="100%"
+                  whiteSpace="normal"
+                  height="auto"
+                  py={4}
+                >
+                  Salvar Alterações nos Prompts (Ativar)
+                </Button>
 
-                {/* 3. EDITORES DE TEXTO (CHAT E VISÃO) */}
-                <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={6}>
-                  <Card bg={cardBg} boxShadow="sm">
-                    <CardHeader pb={0}><Heading size="sm">🧠 Personalidade (Chat)</Heading></CardHeader>
-                    <CardBody>
-                      <Textarea
-                        value={activePrompts.chatSystem}
-                        onChange={(e) => setActivePrompts({ ...activePrompts, chatSystem: e.target.value })}
-                        rows={10}
-                        bg={gray50Bg}
-                        fontSize="sm"
-                        placeholder="Instruções para o chat..."
-                      />
-                    </CardBody>
-                  </Card>
-                  <Card bg={cardBg} boxShadow="sm">
-                    <CardHeader pb={0}><Heading size="sm">👁️ Visão (Imagem)</Heading></CardHeader>
-                    <CardBody>
-                      <Textarea
-                        value={activePrompts.visionSystem}
-                        onChange={(e) => setActivePrompts({ ...activePrompts, visionSystem: e.target.value })}
-                        rows={10}
-                        bg={gray50Bg}
-                        fontSize="sm"
-                        placeholder="Instruções para análise de imagem..."
-                      />
-                    </CardBody>
-                  </Card>
-                </Grid>
+                <Button
+                  colorScheme="orange"
+                  variant="outline"
+                  size="lg"
+                  onClick={handleOpenSavePromptModal}
+                  flex="1"
+                  leftIcon={<DownloadIcon />}
+                  width="100%"
+                  whiteSpace="normal"
+                  height="auto"
+                  py={4}
+                >
+                  Salvar como Meu Modelo
+                </Button>
+              </Stack>
 
-                {/* BOTÕES DE AÇÃO DOS PROMPTS - CORRIGIDO PARA MOBILE */}
-                <Stack direction={{ base: 'column', md: 'row' }} spacing={4} width="100%">
-                  <Button
-                    colorScheme="green"
-                    size="lg"
-                    onClick={handleSavePrompts}
-                    flex="2"
-                    boxShadow="md"
-                    width="100%"
-                    whiteSpace="normal"
-                    height="auto"
-                    py={4}
-                  >
-                    Salvar Alterações nos Prompts (Ativar)
-                  </Button>
+              <Divider />
 
-                  <Button
-                    colorScheme="orange"
-                    variant="outline"
-                    size="lg"
-                    onClick={handleOpenSavePromptModal}
-                    flex="1"
-                    leftIcon={<DownloadIcon />}
-                    width="100%"
-                    whiteSpace="normal"
-                    height="auto"
-                    py={4}
-                  >
-                    Salvar como Meu Modelo
+              {/* 4. FUNIL DE VENDAS (A PARTE QUE TINHA SUMIDO!) */}
+              <Box>
+                <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" mb={4}>
+                  <Box>
+                    <Heading size="md">Funil de Vendas (Follow-up)</Heading>
+                    <Text fontSize="sm" color="gray.500">Mensagens automáticas para recuperar clientes que pararam de responder.</Text>
+                  </Box>
+                  <Button leftIcon={<AddIcon />} colorScheme="purple" onClick={() => { setEditingFollowUpIndex(null); setNewFollowUp({ delayMinutes: 60, message: '' }); onFollowUpOpen(); }}>
+                    Novo Passo
                   </Button>
                 </Stack>
 
-                <Divider />
-
-                {/* 4. FUNIL DE VENDAS (A PARTE QUE TINHA SUMIDO!) */}
-                <Box>
-                  <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" mb={4}>
-                    <Box>
-                      <Heading size="md">Funil de Vendas (Follow-up)</Heading>
-                      <Text fontSize="sm" color="gray.500">Mensagens automáticas para recuperar clientes que pararam de responder.</Text>
-                    </Box>
-                    <Button leftIcon={<AddIcon />} colorScheme="purple" onClick={() => { setEditingFollowUpIndex(null); setNewFollowUp({ delayMinutes: 60, message: '' }); onFollowUpOpen(); }}>
-                      Novo Passo
-                    </Button>
-                  </Stack>
-
-                  <VStack spacing={4} align="stretch">
-                    {followUpSteps.map((step, idx) => (
-                      <Card key={idx} variant="outline" borderColor="purple.200" bg={purpleBg}>
-                        <CardBody>
-                          <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" align="start">
-                            <Stack direction={{ base: 'column', md: 'row' }} align="start" spacing={4}>
-                              <VStack
-                                bg="purple.500" color="white" borderRadius="full" boxSize="40px"
-                                justify="center" align="center" fontWeight="bold" flexShrink={0}
-                              >
-                                <Text>{idx + 1}</Text>
-                              </VStack>
-                              <Box>
-                                <HStack mb={1}>
-                                  <Icon as={TimeIcon} color="gray.500" />
-                                  <Text fontWeight="bold" fontSize="sm">
-                                    Após {step.delayMinutes >= 60 ? `${(step.delayMinutes / 60).toFixed(1)} horas` : `${step.delayMinutes} minutos`} de silêncio
-                                  </Text>
-                                </HStack>
-                                <Text fontSize="md" color={gray800}>"{step.message}"</Text>
-                              </Box>
-                            </Stack>
-                            <HStack>
-                              <Tooltip label="Editar passo">
-                                <IconButton icon={<EditIcon />} aria-label="Editar passo" size="sm" variant="ghost" colorScheme="blue" onClick={() => handleEditFollowUp(idx)} />
-                              </Tooltip>
-                              <Tooltip label="Excluir passo">
-                                <IconButton icon={<DeleteIcon />} aria-label="Excluir passo" size="sm" variant="ghost" colorScheme="red" onClick={() => handleRemoveFollowUp(idx)} />
-                              </Tooltip>
-                            </HStack>
+                <VStack spacing={4} align="stretch">
+                  {followUpSteps.map((step, idx) => (
+                    <Card key={idx} variant="outline" borderColor="purple.200" bg={purpleBg}>
+                      <CardBody>
+                        <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" align="start">
+                          <Stack direction={{ base: 'column', md: 'row' }} align="start" spacing={4}>
+                            <VStack
+                              bg="purple.500" color="white" borderRadius="full" boxSize="40px"
+                              justify="center" align="center" fontWeight="bold" flexShrink={0}
+                            >
+                              <Text>{idx + 1}</Text>
+                            </VStack>
+                            <Box>
+                              <HStack mb={1}>
+                                <Icon as={TimeIcon} color="gray.500" />
+                                <Text fontWeight="bold" fontSize="sm">
+                                  Após {step.delayMinutes >= 60 ? `${(step.delayMinutes / 60).toFixed(1)} horas` : `${step.delayMinutes} minutos`} de silêncio
+                                </Text>
+                              </HStack>
+                              <Text fontSize="md" color={gray800}>"{step.message}"</Text>
+                            </Box>
                           </Stack>
-                        </CardBody>
-                      </Card>
-                    ))}
-                    {followUpSteps.length === 0 && (
-                      <Alert status="warning" borderRadius="md"><AlertIcon />Seu funil está vazio. O bot não cobrará clientes inativos.</Alert>
-                    )}
-                  </VStack>
-
-                  {followUpSteps.length > 0 && (
-                    <Box mt={4} textAlign="right">
-                      <Button colorScheme="purple" variant="outline" onClick={handleSaveFollowUps}>Salvar Funil de Vendas</Button>
-                    </Box>
+                          <HStack>
+                            <Tooltip label="Editar passo">
+                              <IconButton icon={<EditIcon />} aria-label="Editar passo" size="sm" variant="ghost" colorScheme="blue" onClick={() => handleEditFollowUp(idx)} />
+                            </Tooltip>
+                            <Tooltip label="Excluir passo">
+                              <IconButton icon={<DeleteIcon />} aria-label="Excluir passo" size="sm" variant="ghost" colorScheme="red" onClick={() => handleRemoveFollowUp(idx)} />
+                            </Tooltip>
+                          </HStack>
+                        </Stack>
+                      </CardBody>
+                    </Card>
+                  ))}
+                  {followUpSteps.length === 0 && (
+                    <Alert status="warning" borderRadius="md"><AlertIcon />Seu funil está vazio. O bot não cobrará clientes inativos.</Alert>
                   )}
-                </Box>
+                </VStack>
 
-              </VStack>
+                {followUpSteps.length > 0 && (
+                  <Box mt={4} textAlign="right">
+                    <Button colorScheme="purple" variant="outline" onClick={handleSaveFollowUps}>Salvar Funil de Vendas</Button>
+                  </Box>
+                )}
+              </Box>
+
+            </VStack>
           </Box>
         )}
 
         {/* ABA 2: RESPOSTAS RÁPIDAS */}
         {activeTab === 2 && (
           <Box>
-              <Card bg={cardBg} boxShadow="md">
-                <CardHeader>
-                  <Stack direction={{ base: 'column', md: 'row' }} justify="space-between">
-                    <Box><Heading size="md">Menu de Respostas</Heading><Text fontSize="sm" color="gray.500">Palavras-chave que o bot responde instantaneamente.</Text></Box>
-                    <Button leftIcon={<AddIcon />} colorScheme="green" onClick={() => { setEditingMenuIndex(null); setNewMenuOption({ keyword: '', description: '', response: '', requiresHuman: false, useAI: false }); onOpen(); }}>Nova Regra</Button>
-                  </Stack>
-                </CardHeader>
-                <CardBody>
-                  <Grid templateColumns="repeat(auto-fill, minmax(280px, 1fr))" gap={4}>
-                    {menuOptions.map((opt, idx) => (
-                      <Card key={idx} variant="outline" size="sm">
-                        <CardBody p={3}>
-                          <HStack justify="space-between" mb={2}>
-                            <Badge colorScheme="purple">{idx + 1}. {opt.keyword.split(',')[0]}</Badge>
-                            <HStack spacing={1}>
-                              <Tooltip label="Editar regra">
-                                <IconButton icon={<EditIcon />} aria-label="Editar regra" size="xs" colorScheme="blue" variant="ghost" onClick={() => handleEditMenuOption(idx)} />
-                              </Tooltip>
-                              <Tooltip label="Excluir regra">
-                                <IconButton icon={<DeleteIcon />} aria-label="Excluir regra" size="xs" colorScheme="red" variant="ghost" onClick={() => handleRemoveMenuOption(idx)} />
-                              </Tooltip>
-                            </HStack>
+            <Card bg={cardBg} boxShadow="md">
+              <CardHeader>
+                <Stack direction={{ base: 'column', md: 'row' }} justify="space-between">
+                  <Box><Heading size="md">Menu de Respostas</Heading><Text fontSize="sm" color="gray.500">Palavras-chave que o bot responde instantaneamente.</Text></Box>
+                  <Button leftIcon={<AddIcon />} colorScheme="green" onClick={() => { setEditingMenuIndex(null); setNewMenuOption({ keyword: '', description: '', response: '', requiresHuman: false, useAI: false }); onOpen(); }}>Nova Regra</Button>
+                </Stack>
+              </CardHeader>
+              <CardBody>
+                <Grid templateColumns="repeat(auto-fill, minmax(280px, 1fr))" gap={4}>
+                  {menuOptions.map((opt, idx) => (
+                    <Card key={idx} variant="outline" size="sm">
+                      <CardBody p={3}>
+                        <HStack justify="space-between" mb={2}>
+                          <Badge colorScheme="purple">{idx + 1}. {opt.keyword.split(',')[0]}</Badge>
+                          <HStack spacing={1}>
+                            <Tooltip label="Editar regra">
+                              <IconButton icon={<EditIcon />} aria-label="Editar regra" size="xs" colorScheme="blue" variant="ghost" onClick={() => handleEditMenuOption(idx)} />
+                            </Tooltip>
+                            <Tooltip label="Excluir regra">
+                              <IconButton icon={<DeleteIcon />} aria-label="Excluir regra" size="xs" colorScheme="red" variant="ghost" onClick={() => handleRemoveMenuOption(idx)} />
+                            </Tooltip>
                           </HStack>
-                          <Text fontWeight="bold" fontSize="xs" mb={1}>{opt.description}</Text>
-                          <Text fontSize="xs" color="gray.500" noOfLines={2}>{opt.response}</Text>
-                          <HStack mt={2}>
-                            {opt.requiresHuman && <Badge colorScheme="orange" fontSize="0.6em">Humano</Badge>}
-                            {opt.useAI && <Badge colorScheme="teal" fontSize="0.6em">IA Ativa</Badge>}
-                          </HStack>
-                        </CardBody>
-                      </Card>
-                    ))}
-                  </Grid>
-                  {menuOptions.length > 0 && <Box mt={6} pt={4} textAlign="right"><Button colorScheme="brand" onClick={handleSaveMenu}>Salvar Alterações do Menu</Button></Box>}
-                </CardBody>
-              </Card>
+                        </HStack>
+                        <Text fontWeight="bold" fontSize="xs" mb={1}>{opt.description}</Text>
+                        <Text fontSize="xs" color="gray.500" noOfLines={2}>{opt.response}</Text>
+                        <HStack mt={2}>
+                          {opt.requiresHuman && <Badge colorScheme="orange" fontSize="0.6em">Humano</Badge>}
+                          {opt.useAI && <Badge colorScheme="teal" fontSize="0.6em">IA Ativa</Badge>}
+                        </HStack>
+                      </CardBody>
+                    </Card>
+                  ))}
+                </Grid>
+                {menuOptions.length > 0 && <Box mt={6} pt={4} textAlign="right"><Button colorScheme="brand" onClick={handleSaveMenu}>Salvar Alterações do Menu</Button></Box>}
+              </CardBody>
+            </Card>
           </Box>
         )}
 
         {/* ABA 3: CATÁLOGO */}
         {activeTab === 3 && (
           <Box>
-              <Card bg={cardBg} boxShadow="md">
-                <CardHeader>
-                  <Stack direction={{ base: 'column', md: 'row' }} justify="space-between">
-                    <Box><Heading size="md">Produtos & Serviços</Heading><Text fontSize="sm" color="gray.500">Para a IA consultar preços e enviar fotos.</Text></Box>
-                    <Button leftIcon={<AddIcon />} variant="outline" colorScheme="blue" onClick={() => { setEditingProductIndex(null); setNewProduct({ name: '', price: '', description: '', imageUrls: [], tags: [] }); onProductModalOpen(); }}>Novo Item</Button>
-                  </Stack>
-                </CardHeader>
-                <CardBody>
-                  <VStack align="stretch" spacing={3}>
-                    {products.map((prod, idx) => (
-                      <Stack direction={{ base: 'column', md: 'row' }} key={idx} p={4} borderWidth="1px" borderRadius="md" justify="space-between" bg={gray50Bg} align="start">
-                         {prod.imageUrls && prod.imageUrls.length > 0 && (
-                            <Box w="60px" h="60px" borderRadius="md" overflow="hidden" flexShrink={0}>
-                               <img src={prod.imageUrls[0]} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            </Box>
-                         )}
-                        <VStack align="start" spacing={1} flex={1}>
-                          <HStack><Text fontWeight="bold">{prod.name}</Text><Badge colorScheme="green">R$ {prod.price}</Badge></HStack>
-                          <Text fontSize="sm" color="gray.600">{prod.description}</Text>
-                          {prod.tags && prod.tags.length > 0 && (
-                             <HStack flexWrap="wrap" spacing={1}>
-                                {prod.tags.map((t, i) => <Badge key={i} colorScheme="purple" variant="subtle" fontSize="0.6em">{t}</Badge>)}
-                             </HStack>
-                          )}
-                        </VStack>
-                        <HStack>
-                          <Tooltip label="Editar produto">
-                            <IconButton icon={<EditIcon />} aria-label="Editar produto" size="sm" variant="ghost" onClick={() => { setNewProduct(prod); setEditingProductIndex(idx); onProductModalOpen(); }} />
-                          </Tooltip>
-                          <Tooltip label="Excluir produto">
-                            <IconButton icon={<DeleteIcon />} aria-label="Excluir produto" size="sm" colorScheme="red" variant="ghost" onClick={() => handleRemoveProduct(idx)} />
-                          </Tooltip>
-                        </HStack>
-                      </Stack>
-                    ))}
-                  </VStack>
-                  {products.length > 0 && <Box mt={6} pt={4} textAlign="right"><Button colorScheme="brand" onClick={handleSaveProducts}>Salvar Catálogo</Button></Box>}
-                </CardBody>
-              </Card>
+            <Card bg={cardBg} boxShadow="md">
+              <CardHeader>
+                <Stack direction={{ base: 'column', md: 'row' }} justify="space-between">
+                  <Box><Heading size="md">Produtos & Serviços</Heading><Text fontSize="sm" color="gray.500">Para a IA consultar preços e enviar fotos.</Text></Box>
+                  <Button leftIcon={<AddIcon />} variant="outline" colorScheme="blue" onClick={() => { setEditingProductIndex(null); setNewProduct({ name: '', price: '', description: '', imageUrls: [], tags: [] }); onProductModalOpen(); }}>Novo Item</Button>
+                </Stack>
+              </CardHeader>
+              <CardBody>
+                <VStack align="stretch" spacing={3}>
+                  {products.map((prod, idx) => (
+                    <Stack direction={{ base: 'column', md: 'row' }} key={idx} p={4} borderWidth="1px" borderRadius="md" justify="space-between" bg={gray50Bg} align="start">
+                      {prod.imageUrls && prod.imageUrls.length > 0 && (
+                        <Box w="60px" h="60px" borderRadius="md" overflow="hidden" flexShrink={0}>
+                          <img src={prod.imageUrls[0]} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </Box>
+                      )}
+                      <VStack align="start" spacing={1} flex={1}>
+                        <HStack><Text fontWeight="bold">{prod.name}</Text><Badge colorScheme="green">R$ {prod.price}</Badge></HStack>
+                        <Text fontSize="sm" color="gray.600">{prod.description}</Text>
+                        {prod.tags && prod.tags.length > 0 && (
+                          <HStack flexWrap="wrap" spacing={1}>
+                            {prod.tags.map((t, i) => <Badge key={i} colorScheme="purple" variant="subtle" fontSize="0.6em">{t}</Badge>)}
+                          </HStack>
+                        )}
+                      </VStack>
+                      <HStack>
+                        <Tooltip label="Editar produto">
+                          <IconButton icon={<EditIcon />} aria-label="Editar produto" size="sm" variant="ghost" onClick={() => { setNewProduct(prod); setEditingProductIndex(idx); onProductModalOpen(); }} />
+                        </Tooltip>
+                        <Tooltip label="Excluir produto">
+                          <IconButton icon={<DeleteIcon />} aria-label="Excluir produto" size="sm" colorScheme="red" variant="ghost" onClick={() => handleRemoveProduct(idx)} />
+                        </Tooltip>
+                      </HStack>
+                    </Stack>
+                  ))}
+                </VStack>
+                {products.length > 0 && <Box mt={6} pt={4} textAlign="right"><Button colorScheme="brand" onClick={handleSaveProducts}>Salvar Catálogo</Button></Box>}
+              </CardBody>
+            </Card>
           </Box>
         )}
 
         {/* ABA 4: LIVE CHAT (PLACEHOLDER) */}
         {activeTab === 4 && (
           <Box>
-              <Card h="75vh" overflow="hidden" border="1px solid" borderColor="gray.200">
-                <Stack direction={{ base: 'column', md: 'row' }} h="100%" spacing={0} align="stretch">
+            <Card h="75vh" overflow="hidden" border="1px solid" borderColor="gray.200">
+              <Stack direction={{ base: 'column', md: 'row' }} h="100%" spacing={0} align="stretch">
 
-                  {/* LADO ESQUERDO: LISTA DE CONTATOS (MOCKUP) */}
-                  <Box w={{ base: "100%", md: "300px" }} h={{ base: "40%", md: "100%" }} borderRight="1px solid" borderColor={gray50Bg} bg={gray50Bg} overflowY="auto">
-                    <Box p={4} borderBottom="1px solid" borderColor={gray50Bg} bg={cardBg}>
-                      <Heading size="sm" color="gray.600">Conversas</Heading>
+                {/* LADO ESQUERDO: LISTA DE CONTATOS (MOCKUP) */}
+                <Box w={{ base: "100%", md: "300px" }} h={{ base: "40%", md: "100%" }} borderRight="1px solid" borderColor={gray50Bg} bg={gray50Bg} overflowY="auto">
+                  <Box p={4} borderBottom="1px solid" borderColor={gray50Bg} bg={cardBg}>
+                    <Heading size="sm" color="gray.600">Conversas</Heading>
+                  </Box>
+                  <VStack spacing={0} align="stretch" overflowY="auto">
+                    {/* Item Fake 1 */}
+                    <Box p={4} bg={cardBg} borderBottom="1px solid" borderColor={gray50Bg} cursor="pointer" borderLeft="4px solid" borderLeftColor="green.400">
+                      <Text fontWeight="bold" fontSize="sm" noOfLines={1}>João Silva</Text>
+                      <Text fontSize="xs" color="gray.500" noOfLines={1}>Olá, qual o preço do corte?</Text>
+                      <Badge colorScheme="green" fontSize="0.6em" mt={1}>Online</Badge>
                     </Box>
-                    <VStack spacing={0} align="stretch" overflowY="auto">
-                      {/* Item Fake 1 */}
-                      <Box p={4} bg={cardBg} borderBottom="1px solid" borderColor={gray50Bg} cursor="pointer" borderLeft="4px solid" borderLeftColor="green.400">
-                        <Text fontWeight="bold" fontSize="sm" noOfLines={1}>João Silva</Text>
-                        <Text fontSize="xs" color="gray.500" noOfLines={1}>Olá, qual o preço do corte?</Text>
-                        <Badge colorScheme="green" fontSize="0.6em" mt={1}>Online</Badge>
+                    {/* Item Fake 2 */}
+                    <Box p={4} _hover={{ bg: gray50Bg }} cursor="pointer" borderBottom="1px solid" borderColor={gray50Bg}>
+                      <Text fontWeight="bold" fontSize="sm" noOfLines={1}>Maria Souza</Text>
+                      <Text fontSize="xs" color="gray.500" noOfLines={1}>Obrigado pelo atendimento!</Text>
+                    </Box>
+                    {/* Item Fake 3 */}
+                    <Box p={4} _hover={{ bg: gray50Bg }} cursor="pointer" borderBottom="1px solid" borderColor={gray50Bg}>
+                      <Text fontWeight="bold" fontSize="sm" noOfLines={1}>Pedro Henrique</Text>
+                      <Text fontSize="xs" color="gray.500" noOfLines={1}>Agendado para amanhã?</Text>
+                    </Box>
+                  </VStack>
+                </Box>
+
+                {/* LADO DIREITO: CHAT (MOCKUP) */}
+                <Box flex="1" bg={gray100} position="relative" display="flex" flexDirection="column" h={{ base: "60%", md: "100%" }}>
+
+                  {/* Header do Chat */}
+                  <HStack p={4} bg={cardBg} borderBottom="1px solid" borderColor={gray50Bg} justify="space-between">
+                    <HStack>
+                      <Box bg="gray.300" borderRadius="full" w="40px" h="40px" />
+                      <Box>
+                        <Text fontWeight="bold">João Silva</Text>
+                        <Text fontSize="xs" color="green.500">● Respondendo agora</Text>
                       </Box>
-                      {/* Item Fake 2 */}
-                      <Box p={4} _hover={{ bg: gray50Bg }} cursor="pointer" borderBottom="1px solid" borderColor={gray50Bg}>
-                        <Text fontWeight="bold" fontSize="sm" noOfLines={1}>Maria Souza</Text>
-                        <Text fontSize="xs" color="gray.500" noOfLines={1}>Obrigado pelo atendimento!</Text>
-                      </Box>
-                      {/* Item Fake 3 */}
-                      <Box p={4} _hover={{ bg: gray50Bg }} cursor="pointer" borderBottom="1px solid" borderColor={gray50Bg}>
-                        <Text fontWeight="bold" fontSize="sm" noOfLines={1}>Pedro Henrique</Text>
-                        <Text fontSize="xs" color="gray.500" noOfLines={1}>Agendado para amanhã?</Text>
-                      </Box>
+                    </HStack>
+                    <Button size="sm" colorScheme="orange" variant="outline">Pausar Robô</Button>
+                  </HStack>
+
+                  {/* Área de Mensagens (Vazia/Ilustrativa) */}
+                  <Box flex="1" p={6} overflowY="auto">
+                    <VStack spacing={4}>
+                      <Alert status="info" borderRadius="md">
+                        <Icon as={WarningTwoIcon} mr={2} />
+                        Módulo de Chat ao Vivo em desenvolvimento.
+                      </Alert>
+                      <Text color="gray.400" fontSize="sm" mt={10}>
+                        Selecione uma conversa para visualizar o histórico aqui.
+                      </Text>
                     </VStack>
                   </Box>
 
-                  {/* LADO DIREITO: CHAT (MOCKUP) */}
-                  <Box flex="1" bg={gray100} position="relative" display="flex" flexDirection="column" h={{ base: "60%", md: "100%" }}>
-
-                    {/* Header do Chat */}
-                    <HStack p={4} bg={cardBg} borderBottom="1px solid" borderColor={gray50Bg} justify="space-between">
-                      <HStack>
-                        <Box bg="gray.300" borderRadius="full" w="40px" h="40px" />
-                        <Box>
-                          <Text fontWeight="bold">João Silva</Text>
-                          <Text fontSize="xs" color="green.500">● Respondendo agora</Text>
-                        </Box>
-                      </HStack>
-                      <Button size="sm" colorScheme="orange" variant="outline">Pausar Robô</Button>
+                  {/* Input de Envio */}
+                  <Box p={4} bg={cardBg} borderTop="1px solid" borderColor={gray50Bg}>
+                    <HStack>
+                      <Input placeholder="Digite sua mensagem..." isDisabled />
+                      <IconButton aria-label="Enviar" icon={<ChatIcon />} colorScheme="blue" isDisabled />
                     </HStack>
-
-                    {/* Área de Mensagens (Vazia/Ilustrativa) */}
-                    <Box flex="1" p={6} overflowY="auto">
-                      <VStack spacing={4}>
-                        <Alert status="info" borderRadius="md">
-                          <Icon as={WarningTwoIcon} mr={2} />
-                          Módulo de Chat ao Vivo em desenvolvimento.
-                        </Alert>
-                        <Text color="gray.400" fontSize="sm" mt={10}>
-                          Selecione uma conversa para visualizar o histórico aqui.
-                        </Text>
-                      </VStack>
-                    </Box>
-
-                    {/* Input de Envio */}
-                    <Box p={4} bg={cardBg} borderTop="1px solid" borderColor={gray50Bg}>
-                      <HStack>
-                        <Input placeholder="Digite sua mensagem..." isDisabled />
-                        <IconButton aria-label="Enviar" icon={<ChatIcon />} colorScheme="blue" isDisabled />
-                      </HStack>
-                    </Box>
                   </Box>
+                </Box>
 
-                </Stack>
-              </Card>
+              </Stack>
+            </Card>
           </Box>
         )}
 
         {/* ABA 5: AGENDAMENTOS */}
         {activeTab === 5 && (
           <Box>
-              <ScheduleTab />
+            <ScheduleTab />
           </Box>
         )}
 
@@ -1196,39 +1199,39 @@ const Dashboard = () => {
               <FormControl>
                 <FormLabel>Tags (Palavras-chave separadas por vírgula)</FormLabel>
                 <Input
-                   placeholder="ex: realismo, braço, promoção"
-                   value={Array.isArray(newProduct.tags) ? newProduct.tags.join(', ') : newProduct.tags}
-                   onChange={e => setNewProduct({ ...newProduct, tags: e.target.value })}
+                  placeholder="ex: realismo, braço, promoção"
+                  value={Array.isArray(newProduct.tags) ? newProduct.tags.join(', ') : newProduct.tags}
+                  onChange={e => setNewProduct({ ...newProduct, tags: e.target.value })}
                 />
               </FormControl>
 
               <FormControl>
-                 <FormLabel>Imagens do Produto</FormLabel>
-                 <HStack>
-                    <Input type="file" multiple accept="image/*" onChange={handleImageUpload} p={1} isDisabled={isUploading} />
-                    {isUploading && <Spinner size="sm" />}
-                 </HStack>
-                 {newProduct.imageUrls && newProduct.imageUrls.length > 0 && (
-                    <HStack mt={2} spacing={2} overflowX="auto" py={2}>
-                       {newProduct.imageUrls.map((url, i) => (
-                          <Box key={i} w="60px" h="60px" borderRadius="md" overflow="hidden" border="1px solid gray" position="relative" flexShrink={0}>
-                             <img src={url} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                             <IconButton
-                                icon={<DeleteIcon boxSize={3} />}
-                                size="xs"
-                                colorScheme="red"
-                                position="absolute"
-                                top={0}
-                                right={0}
-                                onClick={() => handleDeleteImage(i)}
-                                aria-label="Remover imagem"
-                                borderRadius="none"
-                                borderBottomLeftRadius="md"
-                             />
-                          </Box>
-                       ))}
-                    </HStack>
-                 )}
+                <FormLabel>Imagens do Produto</FormLabel>
+                <HStack>
+                  <Input type="file" multiple accept="image/*" onChange={handleImageUpload} p={1} isDisabled={isUploading} />
+                  {isUploading && <Spinner size="sm" />}
+                </HStack>
+                {newProduct.imageUrls && newProduct.imageUrls.length > 0 && (
+                  <HStack mt={2} spacing={2} overflowX="auto" py={2}>
+                    {newProduct.imageUrls.map((url, i) => (
+                      <Box key={i} w="60px" h="60px" borderRadius="md" overflow="hidden" border="1px solid gray" position="relative" flexShrink={0}>
+                        <img src={url} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <IconButton
+                          icon={<DeleteIcon boxSize={3} />}
+                          size="xs"
+                          colorScheme="red"
+                          position="absolute"
+                          top={0}
+                          right={0}
+                          onClick={() => handleDeleteImage(i)}
+                          aria-label="Remover imagem"
+                          borderRadius="none"
+                          borderBottomLeftRadius="md"
+                        />
+                      </Box>
+                    ))}
+                  </HStack>
+                )}
               </FormControl>
 
             </VStack>
