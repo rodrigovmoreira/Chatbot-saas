@@ -1,16 +1,16 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
-  Box, Container, Grid, GridItem, Card, CardHeader, CardBody, Heading, Text, Button, VStack, HStack, Stack,
+  Box, Grid, GridItem, Card, CardHeader, CardBody, Heading, Text, Button, VStack, HStack, Stack,
   useToast, Badge, Icon, useColorModeValue, FormControl, FormLabel, Input, Textarea, Checkbox,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
   useDisclosure, Alert, AlertIcon, Spinner, Select, Divider, IconButton, Tooltip,
-  Flex, Drawer, DrawerBody, DrawerHeader, DrawerOverlay, DrawerContent, DrawerCloseButton,
-  Menu, MenuButton, MenuList, MenuItem, Avatar, AvatarBadge
+  Flex, Drawer, DrawerOverlay, DrawerContent,
+  Menu, MenuButton, MenuList, MenuItem, Avatar
 } from '@chakra-ui/react';
 import {
   CheckCircleIcon, WarningTwoIcon, AddIcon, EditIcon, DeleteIcon, StarIcon, TimeIcon,
-  DownloadIcon, ChatIcon, HamburgerIcon, SettingsIcon, InfoIcon, AttachmentIcon,
+  DownloadIcon, ChatIcon, HamburgerIcon, SettingsIcon, AttachmentIcon,
   ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon
 } from '@chakra-ui/icons';
 import { useApp } from '../context/AppContext';
@@ -82,8 +82,6 @@ const SidebarContent = ({ onClose, activeTab, setActiveTab, isCollapsed = false,
         borderColor={useColorModeValue('gray.200', 'gray.700')}
         justifyContent={isCollapsed ? 'center' : 'space-between'}
         alignItems="center"
-        direction={isCollapsed ? 'column' : 'row'}
-        gap={isCollapsed ? 2 : 0}
       >
         <ColorModeToggle />
         <IconButton
@@ -144,7 +142,6 @@ const MobileNav = ({ onOpen, title, ...rest }) => {
 
   return (
     <Flex
-      display={{ base: 'flex', lg: 'none' }}
       ml={{ base: 0, lg: 60 }}
       px={{ base: 4, md: 4 }}
       height="20"
