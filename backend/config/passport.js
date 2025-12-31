@@ -39,7 +39,8 @@ passport.use(
           password: randomPassword,
           googleId: profile.id,
           isVerified: true, // Auto-verify from Google
-          company: 'Meu Negócio' // Default
+          company: 'Meu Negócio', // Default
+          role: 'vendedor' 
         });
 
         // Initialize BusinessConfig
