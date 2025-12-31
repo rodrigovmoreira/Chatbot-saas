@@ -74,11 +74,20 @@ function checkRateLimit(key) {
 function isWithinOperatingHours(businessConfig) {
   if (businessConfig.operatingHours && businessConfig.operatingHours.active === false) return false;
   if (!businessConfig.operatingHours || !businessConfig.operatingHours.opening) return true;
+
+  const timeZone = businessConfig.operatingHours.timezone || 'America/Sao_Paulo';
+
+  // Get current time in target timezone
   const now = new Date();
-  const hours = now.getUTCHours() - 3;
-  const currentHour = hours < 0 ? hours + 24 : hours;
+  const localDateString = now.toLocaleString('en-US', { timeZone, hour12: false });
+  const localDate = new Date(localDateString);
+  const currentHour = localDate.getHours();
+  // const currentMinute = localDate.getMinutes(); // Optional if you need minute precision later
+
   const [openH] = businessConfig.operatingHours.opening.split(':').map(Number);
   const [closeH] = businessConfig.operatingHours.closing.split(':').map(Number);
+
+  // Simple check for hours (handling day wrap if needed, but keeping simple for now)
   return currentHour >= openH && currentHour < closeH;
 }
 
@@ -158,9 +167,23 @@ Cliente: ${userMessage}`;
     // =========================================================================
 
     // A. Contexto Temporal
+    const timeZone = businessConfig.operatingHours?.timezone || 'America/Sao_Paulo';
     const now = new Date();
-    const todayStr = now.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+    // Force timezone in formatting
+    const todayStr = now.toLocaleDateString('pt-BR', {
+        timeZone,
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+
+    const timeStr = now.toLocaleTimeString('pt-BR', {
+        timeZone,
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 
     let catalogContext = "";
     if (businessConfig.products?.length > 0) {
@@ -206,16 +229,21 @@ Site: ${website || 'Não informado'}
 Portfólio: ${portfolio || 'Não informado'}
 
 --- FERRAMENTAS DE AGENDA E CATÁLOGO ---
-Você tem acesso total à agenda e ao catálogo visual. Siga este protocolo:
-1. Se o usuário perguntar disponibilidade, VERIFIQUE a agenda antes de responder.
-2. Para agendar, confirme o nome e o horário.
-3. Se o cliente pedir para ver exemplos, fotos, portfólio ou produtos, USE a busca de catálogo.
-   - Ao buscar produtos, tente identificar categorias gerais (ex: 'promoção', 'opções') na intenção do usuário, não apenas nomes de objetos específicos.
-4. Para executar ações, responda APENAS um JSON puro (sem markdown) no formato:
+Você tem acesso total à agenda e ao catálogo visual.
+CRITICAL PROTOCOL FOR ACTIONS:
+1. **SILENT EXECUTION:** When you have enough information to Schedule, Check Availability, or Search, **DO NOT** write conversational filler like "Just a moment", "I will check", or "Let me see".
+2. **IMMEDIATE JSON:** Output **ONLY** the JSON command immediately. The system will process it and show the result to you.
+3. **Format:**
    - Verificar: {"action": "check", "start": "YYYY-MM-DDTHH:mm", "end": "YYYY-MM-DDTHH:mm"}
    - Agendar: {"action": "book", "clientName": "Nome", "start": "YYYY-MM-DDTHH:mm", "title": "Serviço"}
    - Buscar Fotos: {"action": "search_catalog", "keywords": ["tag1", "tag2"]}
-5. Se for conversa normal, responda apenas o texto.
+
+Example of CORRECT behavior:
+User: "I want 9am tomorrow."
+Assistant: {"action": "book", "clientName": "Rodrigo", "start": "2026-01-01T09:00:00", "title": "Corte"}
+
+Example of WRONG behavior (Do NOT do this):
+Assistant: "Ok, I will schedule that for you. {"action": "book"...}" (Do not add text before JSON)
 `;
 
     // C. Montagem do Histórico
