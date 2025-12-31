@@ -24,7 +24,7 @@ import ColorModeToggle from '../components/ColorModeToggle';
 const LinkItems = [
   { name: 'Conexão & Geral', icon: SettingsIcon, index: 0 },
   { name: 'Inteligência & Nicho', icon: StarIcon, index: 1 },
-  { name: 'Respostas Rápidas', icon: ChatIcon, index: 2 },
+  { name: 'Respostas Rápidas', icon: EditIcon, index: 2 },
   { name: 'Catálogo', icon: AttachmentIcon, index: 3 },
   { name: 'Live Chat', icon: ChatIcon, index: 4, color: 'purple.500' },
   { name: 'Agendamentos', icon: TimeIcon, index: 5, color: 'blue.500' },
