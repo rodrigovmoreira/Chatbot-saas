@@ -5,12 +5,13 @@ import {
   useToast, Badge, Icon, useColorModeValue, FormControl, FormLabel, Input, Textarea, Checkbox,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
   useDisclosure, Alert, AlertIcon, Spinner, Select, Divider, IconButton, Tooltip,
-  Flex, Drawer, DrawerBody, DrawerHeader, DrawerOverlay, DrawerContent, DrawerCloseButton
+  Flex, Drawer, DrawerBody, DrawerHeader, DrawerOverlay, DrawerContent, DrawerCloseButton,
+  Menu, MenuButton, MenuList, MenuItem, Avatar, AvatarBadge
 } from '@chakra-ui/react';
 import {
   CheckCircleIcon, WarningTwoIcon, AddIcon, EditIcon, DeleteIcon, StarIcon, TimeIcon,
   DownloadIcon, ChatIcon, HamburgerIcon, SettingsIcon, InfoIcon, AttachmentIcon,
-  ChevronLeftIcon, ChevronRightIcon
+  ChevronLeftIcon, ChevronRightIcon, ChevronDownIcon
 } from '@chakra-ui/icons';
 import { useApp } from '../context/AppContext';
 import { businessAPI } from '../services/api';
@@ -201,6 +202,7 @@ const Dashboard = () => {
   const { isOpen: isProductModalOpen, onOpen: onProductModalOpen, onClose: onProductModalClose } = useDisclosure(); // Modal Produto
   const { isOpen: isFollowUpModalOpen, onOpen: onFollowUpOpen, onClose: onFollowUpClose } = useDisclosure(); // Modal Follow-up
   const { isOpen: isSavePromptOpen, onOpen: onSavePromptOpen, onClose: onSavePromptClose } = useDisclosure(); // Modal Salvar Prompt
+  const { isOpen: isProfileOpen, onOpen: onProfileOpen, onClose: onProfileClose } = useDisclosure(); // Modal Perfil
 
   // === ESTADO DE NAVEGAÇÃO SIDEBAR ===
   const { isOpen: isSidebarOpen, onOpen: onSidebarOpen, onClose: onSidebarClose } = useDisclosure();
@@ -216,6 +218,9 @@ const Dashboard = () => {
   const [customPrompts, setCustomPrompts] = useState([]);
   const [selectedCustomPrompt, setSelectedCustomPrompt] = useState('');
   const [newPromptName, setNewPromptName] = useState('');
+
+  // Estado do Perfil
+  const [profileData, setProfileData] = useState({ name: '', email: '', company: '', avatarUrl: '' });
 
   // Formulário Configs Gerais
   const [configForm, setConfigForm] = useState({
@@ -283,6 +288,18 @@ const Dashboard = () => {
       dataLoadedRef.current = true;
     }
   }, [state.businessConfig]);
+
+  // Sincroniza dados do Perfil
+  useEffect(() => {
+    if (state.user) {
+      setProfileData({
+        name: state.user.name || '',
+        email: state.user.email || '',
+        company: state.businessConfig?.businessName || state.user.company || 'Minha Empresa',
+        avatarUrl: state.user.avatarUrl || '' // Se houver
+      });
+    }
+  }, [state.user, state.businessConfig]);
 
   // 2. Busca Presets (Nichos)
   useEffect(() => {
@@ -640,6 +657,37 @@ const Dashboard = () => {
 
         {/* Navbar Mobile (Hamburger) e Desktop Header Actions */}
         <MobileNav onOpen={onSidebarOpen} title={LinkItems[activeTab]?.name || 'Painel'} mb={4} />
+
+        {/* HEADER DESKTOP (TopBar) */}
+        <Flex
+          display={{ base: 'none', lg: 'flex' }}
+          justify="space-between"
+          align="center"
+          mb={6}
+          bg={headerBg}
+          p={4}
+          borderRadius="lg"
+          boxShadow="sm"
+        >
+          {/* Lado Esquerdo: Nome da Empresa */}
+          <Heading size="md" color={useColorModeValue("gray.700", "white")}>
+            {profileData.company}
+          </Heading>
+
+          {/* Lado Direito: Menu do Usuário */}
+          <Menu>
+            <MenuButton as={Button} rightIcon={<ChevronDownIcon />} variant="ghost" p={2}>
+              <HStack>
+                <Avatar size="sm" name={profileData.name} src={profileData.avatarUrl} />
+                <Text fontWeight="normal">{profileData.name}</Text>
+              </HStack>
+            </MenuButton>
+            <MenuList>
+              <MenuItem icon={<EditIcon />} onClick={onProfileOpen}>Meu Perfil</MenuItem>
+              <MenuItem icon={<WarningTwoIcon />} onClick={handleLogoutSystem}>Sair</MenuItem>
+            </MenuList>
+          </Menu>
+        </Flex>
 
         {/* --- CONTEÚDO DAS ABAS (Render Condicional) --- */}
 
@@ -1207,6 +1255,61 @@ const Dashboard = () => {
           <ModalFooter>
             <Button variant="ghost" mr={3} onClick={onSavePromptClose}>Cancelar</Button>
             <Button colorScheme="orange" onClick={handleCreateCustomPrompt}>Salvar na Biblioteca</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Modal Perfil (Minha Conta) */}
+      <Modal isOpen={isProfileOpen} onClose={onProfileClose} isCentered size="md">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Minha Conta</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack spacing={6} py={4}>
+              {/* Avatar Section */}
+              <Box position="relative">
+                <Avatar size="2xl" name={profileData.name} src={profileData.avatarUrl} />
+                <IconButton
+                  aria-label="Alterar foto"
+                  icon={<EditIcon />}
+                  size="sm"
+                  colorScheme="brand"
+                  rounded="full"
+                  position="absolute"
+                  bottom={0}
+                  right={0}
+                  boxShadow="md"
+                  onClick={() => toast({ title: "Upload de imagem em breve!", status: "info" })}
+                />
+              </Box>
+
+              {/* Form Fields */}
+              <FormControl>
+                <FormLabel>Nome Completo</FormLabel>
+                <Input
+                  value={profileData.name}
+                  onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Email (Login)</FormLabel>
+                <Input value={profileData.email} isDisabled bg="gray.100" />
+              </FormControl>
+
+              <FormControl>
+                <FormLabel>Nome da Empresa</FormLabel>
+                <Input
+                  value={profileData.company}
+                  onChange={(e) => setProfileData({ ...profileData, company: e.target.value })}
+                />
+              </FormControl>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={onProfileClose}>Cancelar</Button>
+            <Button colorScheme="brand" onClick={() => { onProfileClose(); toast({ title: "Perfil atualizado!", status: "success" }); }}>Salvar</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
