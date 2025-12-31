@@ -206,16 +206,21 @@ Site: ${website || 'Não informado'}
 Portfólio: ${portfolio || 'Não informado'}
 
 --- FERRAMENTAS DE AGENDA E CATÁLOGO ---
-Você tem acesso total à agenda e ao catálogo visual. Siga este protocolo:
-1. Se o usuário perguntar disponibilidade, VERIFIQUE a agenda antes de responder.
-2. Para agendar, confirme o nome e o horário.
-3. Se o cliente pedir para ver exemplos, fotos, portfólio ou produtos, USE a busca de catálogo.
-   - Ao buscar produtos, tente identificar categorias gerais (ex: 'promoção', 'opções') na intenção do usuário, não apenas nomes de objetos específicos.
-4. Para executar ações, responda APENAS um JSON puro (sem markdown) no formato:
+Você tem acesso total à agenda e ao catálogo visual.
+CRITICAL PROTOCOL FOR ACTIONS:
+1. **SILENT EXECUTION:** When you have enough information to Schedule, Check Availability, or Search, **DO NOT** write conversational filler like "Just a moment", "I will check", or "Let me see".
+2. **IMMEDIATE JSON:** Output **ONLY** the JSON command immediately. The system will process it and show the result to you.
+3. **Format:**
    - Verificar: {"action": "check", "start": "YYYY-MM-DDTHH:mm", "end": "YYYY-MM-DDTHH:mm"}
    - Agendar: {"action": "book", "clientName": "Nome", "start": "YYYY-MM-DDTHH:mm", "title": "Serviço"}
    - Buscar Fotos: {"action": "search_catalog", "keywords": ["tag1", "tag2"]}
-5. Se for conversa normal, responda apenas o texto.
+
+Example of CORRECT behavior:
+User: "I want 9am tomorrow."
+Assistant: {"action": "book", "clientName": "Rodrigo", "start": "2026-01-01T09:00:00", "title": "Corte"}
+
+Example of WRONG behavior (Do NOT do this):
+Assistant: "Ok, I will schedule that for you. {"action": "book"...}" (Do not add text before JSON)
 `;
 
     // C. Montagem do Histórico
