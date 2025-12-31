@@ -13,7 +13,7 @@ import { DeleteIcon, ChevronDownIcon, CheckIcon } from '@chakra-ui/icons';
 import { businessAPI } from '../services/api';
 import { useApp } from '../context/AppContext';
 
-// Configura o Moment para Português
+// Configura o Moment para Português 
 moment.locale('pt-br');
 const localizer = momentLocalizer(moment);
 
