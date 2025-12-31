@@ -9,7 +9,8 @@ import {
 } from '@chakra-ui/react';
 import {
   CheckCircleIcon, WarningTwoIcon, AddIcon, EditIcon, DeleteIcon, StarIcon, TimeIcon,
-  DownloadIcon, ChatIcon, HamburgerIcon, SettingsIcon, InfoIcon, AttachmentIcon
+  DownloadIcon, ChatIcon, HamburgerIcon, SettingsIcon, InfoIcon, AttachmentIcon,
+  ChevronLeftIcon, ChevronRightIcon
 } from '@chakra-ui/icons';
 import { useApp } from '../context/AppContext';
 import { businessAPI } from '../services/api';
@@ -28,48 +29,74 @@ const LinkItems = [
   { name: 'Agendamentos', icon: TimeIcon, index: 5, color: 'blue.500' },
 ];
 
-const SidebarContent = ({ onClose, activeTab, setActiveTab, ...rest }) => {
+const SidebarContent = ({ onClose, activeTab, setActiveTab, isCollapsed = false, toggleCollapse, ...rest }) => {
   const bg = useColorModeValue('white', 'gray.900');
   const borderRightColor = useColorModeValue('gray.200', 'gray.700');
 
   return (
-    <Box
-      transition="3s ease"
+    <Flex
+      direction="column"
+      transition="width 0.2s"
       bg={bg}
       borderRight="1px"
       borderRightColor={borderRightColor}
-      w={{ base: 'full', lg: 60 }}
+      w={{ base: 'full', lg: isCollapsed ? 20 : 60 }}
       pos="fixed"
       h="full"
       {...rest}
     >
-      <Flex h="20" alignItems="center" mx="8" justifyContent="space-between">
-        <Text fontSize="2xl" fontFamily="monospace" fontWeight="bold">
-          Painel
-        </Text>
+      <Flex h="20" alignItems="center" mx={isCollapsed ? 0 : 8} justifyContent={isCollapsed ? 'center' : 'space-between'}>
+        {!isCollapsed && (
+          <Text fontSize="2xl" fontFamily="monospace" fontWeight="bold">
+            Painel
+          </Text>
+        )}
         <Box display={{ base: 'flex', lg: 'none' }} onClick={onClose}>
             <Icon as={DeleteIcon} />
         </Box>
       </Flex>
-      {LinkItems.map((link) => (
-        <NavItem
-          key={link.name}
-          icon={link.icon}
-          isActive={activeTab === link.index}
-          onClick={() => {
-            setActiveTab(link.index);
-            if (onClose) onClose();
-          }}
-          color={link.color}
-        >
-          {link.name}
-        </NavItem>
-      ))}
-    </Box>
+      <Box flex="1" overflowY="auto">
+        {LinkItems.map((link) => (
+          <NavItem
+            key={link.name}
+            icon={link.icon}
+            isActive={activeTab === link.index}
+            isCollapsed={isCollapsed}
+            onClick={() => {
+              setActiveTab(link.index);
+              if (onClose) onClose();
+            }}
+            color={link.color}
+          >
+            {link.name}
+          </NavItem>
+        ))}
+      </Box>
+
+      {/* Sidebar Footer */}
+      <Flex
+        p="4"
+        mt="auto"
+        borderTopWidth="1px"
+        borderColor={useColorModeValue('gray.200', 'gray.700')}
+        justifyContent={isCollapsed ? 'center' : 'space-between'}
+        alignItems="center"
+      >
+        <ColorModeToggle />
+        <IconButton
+          display={{ base: 'none', lg: 'flex' }}
+          icon={isCollapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+          onClick={toggleCollapse}
+          variant="ghost"
+          aria-label={isCollapsed ? "Expandir" : "Recolher"}
+          size="sm"
+        />
+      </Flex>
+    </Flex>
   );
 };
 
-const NavItem = ({ icon, children, isActive, color, ...rest }) => {
+const NavItem = ({ icon, children, isActive, color, isCollapsed, ...rest }) => {
   const hoverBg = useColorModeValue('brand.500', 'brand.200');
   const activeBg = useColorModeValue('brand.100', 'gray.700');
   const activeColor = useColorModeValue('brand.600', 'brand.200');
@@ -78,12 +105,13 @@ const NavItem = ({ icon, children, isActive, color, ...rest }) => {
     <Flex
       align="center"
       p="4"
-      mx="4"
+      mx={isCollapsed ? 2 : 4}
       borderRadius="lg"
       role="group"
       cursor="pointer"
       bg={isActive ? activeBg : 'transparent'}
       color={isActive ? activeColor : 'inherit'}
+      justifyContent={isCollapsed ? 'center' : 'flex-start'}
       _hover={{
         bg: hoverBg,
         color: 'white',
@@ -93,7 +121,7 @@ const NavItem = ({ icon, children, isActive, color, ...rest }) => {
     >
       {icon && (
         <Icon
-          mr="4"
+          mr={isCollapsed ? 0 : 4}
           fontSize="16"
           _groupHover={{
             color: 'white',
@@ -102,7 +130,7 @@ const NavItem = ({ icon, children, isActive, color, ...rest }) => {
           color={isActive ? activeColor : (color || 'inherit')}
         />
       )}
-      {children}
+      {!isCollapsed && children}
     </Flex>
   );
 };
@@ -142,7 +170,7 @@ const MobileNav = ({ onOpen, title, ...rest }) => {
       </Text>
 
       <HStack spacing={{ base: '0', md: '6' }}>
-        <ColorModeToggle />
+        {/* ColorModeToggle moved to Sidebar */}
       </HStack>
     </Flex>
   );
@@ -176,6 +204,7 @@ const Dashboard = () => {
 
   // === ESTADO DE NAVEGAÇÃO SIDEBAR ===
   const { isOpen: isSidebarOpen, onOpen: onSidebarOpen, onClose: onSidebarClose } = useDisclosure();
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
 
   // === ESTADOS DE DADOS ===
@@ -583,9 +612,11 @@ const Dashboard = () => {
     <Box minH="100vh" bg={mainBg}>
       {/* SIDEBAR PARA DESKTOP */}
       <SidebarContent
-        display={{ base: 'none', lg: 'block' }}
+        display={{ base: 'none', lg: 'flex' }}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        isCollapsed={isCollapsed}
+        toggleCollapse={() => setIsCollapsed(!isCollapsed)}
       />
 
       {/* DRAWER PARA MOBILE */}
@@ -605,25 +636,10 @@ const Dashboard = () => {
       </Drawer>
 
       {/* CONTEÚDO PRINCIPAL (Área à direita) */}
-      <Box ml={{ base: 0, lg: 60 }} p={{ base: 4, md: 6 }}>
+      <Box ml={{ base: 0, lg: isCollapsed ? 20 : 60 }} p={{ base: 4, md: 6 }} transition="margin-left 0.2s">
 
         {/* Navbar Mobile (Hamburger) e Desktop Header Actions */}
         <MobileNav onOpen={onSidebarOpen} title={LinkItems[activeTab]?.name || 'Painel'} mb={4} />
-
-        {/* HEADER DE AÇÕES RÁPIDAS (Sair) - Agora no MobileNav ou aqui, optei por simplificar */}
-        <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" align={{ base: 'start', md: 'center' }} mb={6} bg={headerBg} p={{ base: 4, md: 6 }} borderRadius="lg" boxShadow="sm" spacing={4} display={{ base: 'none', md: 'flex' }} >
-             <VStack align="start" spacing={0}>
-               <Heading size="lg" color={useColorModeValue("brand.600", "brand.200")}>
-                  {LinkItems[activeTab]?.name}
-               </Heading>
-               <Text color={useColorModeValue("gray.500", "gray.400")} fontSize="sm">
-                 Gerenciando: <b>{configForm.businessName || 'Minha Empresa'}</b>
-               </Text>
-             </VStack>
-             <HStack spacing={2}>
-               <Button colorScheme="red" variant="ghost" size="sm" onClick={handleLogoutSystem}>Sair do Sistema</Button>
-             </HStack>
-        </Stack>
 
         {/* --- CONTEÚDO DAS ABAS (Render Condicional) --- */}
 
