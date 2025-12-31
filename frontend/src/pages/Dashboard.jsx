@@ -82,6 +82,8 @@ const SidebarContent = ({ onClose, activeTab, setActiveTab, isCollapsed = false,
         borderColor={useColorModeValue('gray.200', 'gray.700')}
         justifyContent={isCollapsed ? 'center' : 'space-between'}
         alignItems="center"
+        direction={isCollapsed ? 'column' : 'row'}
+        gap={isCollapsed ? 2 : 0}
       >
         <ColorModeToggle />
         <IconButton
@@ -142,6 +144,7 @@ const MobileNav = ({ onOpen, title, ...rest }) => {
 
   return (
     <Flex
+      display={{ base: 'flex', lg: 'none' }}
       ml={{ base: 0, lg: 60 }}
       px={{ base: 4, md: 4 }}
       height="20"
