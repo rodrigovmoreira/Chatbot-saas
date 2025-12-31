@@ -74,11 +74,20 @@ function checkRateLimit(key) {
 function isWithinOperatingHours(businessConfig) {
   if (businessConfig.operatingHours && businessConfig.operatingHours.active === false) return false;
   if (!businessConfig.operatingHours || !businessConfig.operatingHours.opening) return true;
+
+  const timeZone = businessConfig.operatingHours.timezone || 'America/Sao_Paulo';
+
+  // Get current time in target timezone
   const now = new Date();
-  const hours = now.getUTCHours() - 3;
-  const currentHour = hours < 0 ? hours + 24 : hours;
+  const localDateString = now.toLocaleString('en-US', { timeZone, hour12: false });
+  const localDate = new Date(localDateString);
+  const currentHour = localDate.getHours();
+  // const currentMinute = localDate.getMinutes(); // Optional if you need minute precision later
+
   const [openH] = businessConfig.operatingHours.opening.split(':').map(Number);
   const [closeH] = businessConfig.operatingHours.closing.split(':').map(Number);
+
+  // Simple check for hours (handling day wrap if needed, but keeping simple for now)
   return currentHour >= openH && currentHour < closeH;
 }
 
@@ -158,9 +167,23 @@ Cliente: ${userMessage}`;
     // =========================================================================
 
     // A. Contexto Temporal
+    const timeZone = businessConfig.operatingHours?.timezone || 'America/Sao_Paulo';
     const now = new Date();
-    const todayStr = now.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+    // Force timezone in formatting
+    const todayStr = now.toLocaleDateString('pt-BR', {
+        timeZone,
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+
+    const timeStr = now.toLocaleTimeString('pt-BR', {
+        timeZone,
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 
     let catalogContext = "";
     if (businessConfig.products?.length > 0) {
