@@ -53,7 +53,7 @@ const SidebarContent = ({ onClose, activeTab, setActiveTab, isCollapsed = false,
           </Text>
         )}
         <Box display={{ base: 'flex', lg: 'none' }} onClick={onClose}>
-          <Icon as={DeleteIcon} />
+          <Icon as={ChevronLeftIcon} />
         </Box>
       </Flex>
       <Box flex="1" overflowY="auto">
