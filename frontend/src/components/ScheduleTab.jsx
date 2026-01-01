@@ -9,7 +9,7 @@ import {
   Input, Select, useDisclosure, useToast, VStack, HStack, Text,
   useColorModeValue, Badge, Menu, MenuButton, MenuList, MenuItem
 } from '@chakra-ui/react';
-import { DeleteIcon, ChevronDownIcon, CheckIcon } from '@chakra-ui/icons';
+import { DeleteIcon, ChevronDownIcon, CheckIcon, AddIcon, TimeIcon } from '@chakra-ui/icons';
 import { businessAPI } from '../services/api';
 import { useApp } from '../context/AppContext';
 
@@ -225,6 +225,7 @@ const ScheduleTab = () => {
   };
 
   const bg = useColorModeValue('white', 'gray.800');
+  const cardBg = useColorModeValue('gray.50', 'gray.700'); // Defined at top level
 
   const actionsBg = useColorModeValue("gray.50", "gray.700");
 
@@ -292,6 +293,53 @@ const ScheduleTab = () => {
 
   return (
     <Box h="85vh" bg={bg} p={4} borderRadius="md" boxShadow="sm" sx={calendarSx}>
+
+      {/* MOBILE CARD VIEW */}
+      <Box display={{ base: 'block', md: 'none' }} h="90%" overflowY="auto">
+        <HStack justify="space-between" mb={4}>
+           <Text fontWeight="bold" fontSize="lg">Agenda</Text>
+           <Button leftIcon={<AddIcon />} colorScheme="blue" size="sm" onClick={() => handleSelectSlot({ start: new Date(), end: new Date() })}>
+             Novo
+           </Button>
+        </HStack>
+
+        <VStack spacing={3} align="stretch">
+          {filteredEvents.length === 0 ? (
+             <Text color="gray.500" textAlign="center" mt={10}>Nenhum agendamento encontrado.</Text>
+          ) : (
+             filteredEvents.map((evt, idx) => (
+               <Box
+                 key={idx}
+                 p={4}
+                 bg={cardBg}
+                 borderRadius="md"
+                 boxShadow="sm"
+                 borderLeft="4px solid"
+                 borderLeftColor={
+                    evt.status === 'completed' ? 'green.500' :
+                    evt.status === 'cancelled' ? 'red.500' :
+                    evt.status === 'followup_pending' ? 'orange.500' :
+                    'blue.500'
+                 }
+                 onClick={() => handleSelectEvent(evt)}
+               >
+                 <HStack justify="space-between">
+                    <Text fontWeight="bold">{evt.clientName}</Text>
+                    <Badge colorScheme={statusColors[evt.status]}>{evt.status}</Badge>
+                 </HStack>
+                 <Text fontSize="sm">{evt.title}</Text>
+                 <HStack fontSize="xs" color="gray.500" mt={2}>
+                    <TimeIcon />
+                    <Text>{moment(evt.start).format('DD/MM HH:mm')} - {moment(evt.end).format('HH:mm')}</Text>
+                 </HStack>
+               </Box>
+             ))
+          )}
+        </VStack>
+      </Box>
+
+      {/* DESKTOP CALENDAR VIEW */}
+      <Box display={{ base: 'none', md: 'block' }} h="100%">
 
       {/* BARRA DE FILTROS DE STATUS */}
       <HStack mb={4} spacing={4} overflowX="auto" pb={2} css={{
@@ -361,6 +409,8 @@ const ScheduleTab = () => {
             }}
           />
         </Box>
+      </Box>
+
       </Box>
 
       <Modal isOpen={isOpen} onClose={onClose} size="md">
