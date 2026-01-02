@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import LandingPage from './pages/LandingPage';
 import GoogleCallback from './pages/GoogleCallback';
+import PublicChat from './pages/PublicChat';
 
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
@@ -21,6 +22,7 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Navigate to="/login" replace />} />
             <Route path="/google-callback" element={<GoogleCallback />} />
+            <Route path="/chat/:businessId" element={<PublicChat />} />
             <Route
               path="/dashboard"
               element={
