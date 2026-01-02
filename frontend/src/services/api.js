@@ -73,6 +73,10 @@ export const businessAPI = {
   updateAppointment: (id, data) => api.put(`/api/appointments/${id}`, data), // <--- NOVO
   updateAppointmentStatus: (id, status) => api.patch(`/api/appointments/${id}/status`, { status }), // <--- NOVO
   deleteAppointment: (id) => api.delete(`/api/appointments/${id}`),
+
+  // 6. Admin Chat (NOVO - Fase 3)
+  getConversations: () => api.get('/api/business/conversations'),
+  getMessages: (contactId) => api.get(`/api/business/conversations/${contactId}/messages`),
 };
 
 export default api;

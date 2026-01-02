@@ -4,6 +4,7 @@ const BusinessConfig = require('../models/BusinessConfig');
 const IndustryPreset = require('../models/IndustryPreset');
 const CustomPrompt = require('../models/CustomPrompt');
 const authenticateToken = require('../middleware/auth');
+const messageService = require('../services/message'); // <--- IMPORTEI O SERVICE
 const { upload, bucket } = require('../config/upload'); // Destructuring to get bucket too
 const { deleteFromFirebase } = require('../utils/firebaseHelper');
 const sharp = require('sharp');
@@ -227,7 +228,10 @@ router.post('/upload-image', authenticateToken, upload.single('image'), async (r
       .toBuffer();
 
     // 2. Criar nome único e referência no Storage
-    const filename = `products/${uuidv4()}.jpg`;
+    // SEPARAR AVATARES DE PRODUTOS
+    const type = req.body.type === 'avatar' ? 'avatars' : 'products';
+    const filename = `${type}/${uuidv4()}.jpg`;
+
     const file = bucket.file(filename);
 
     // 3. Upload Stream para Firebase
@@ -264,6 +268,30 @@ router.post('/upload-image', authenticateToken, upload.single('image'), async (r
   } catch (error) {
     console.error('Erro no upload:', error);
     res.status(500).json({ message: 'Erro interno no upload.' });
+  }
+});
+
+// ==========================================
+// 💬 ROTAS DO ADMIN CHAT (Fase 3)
+// ==========================================
+
+// GET /conversations
+router.get('/conversations', authenticateToken, async (req, res) => {
+  try {
+    const conversations = await messageService.getConversations(req.user.userId);
+    res.json(conversations);
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao buscar conversas' });
+  }
+});
+
+// GET /conversations/:contactId/messages
+router.get('/conversations/:contactId/messages', authenticateToken, async (req, res) => {
+  try {
+    const messages = await messageService.getMessagesForContact(req.params.contactId, req.user.userId);
+    res.json(messages);
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao buscar mensagens' });
   }
 });
 

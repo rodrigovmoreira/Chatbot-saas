@@ -147,4 +147,39 @@ async function getLastMessages(identifier, limit = 15, businessId, channel = 'wh
   }
 }
 
-module.exports = { saveMessage, getImageHistory, getLastMessages };
+// === ADMIN CHAT (Fase 3) ===
+
+async function getConversations(businessId) {
+  try {
+    // Busca contatos do negócio ordenados por última interação
+    const contacts = await Contact.find({ businessId })
+      .sort({ lastInteraction: -1 })
+      .select('_id name phone channel lastInteraction sessionId avatarUrl') // Projection
+      .lean();
+
+    return contacts;
+  } catch (error) {
+    console.error('Erro getConversations:', error);
+    return [];
+  }
+}
+
+async function getMessagesForContact(contactId, businessId) {
+  try {
+    // 1. Validar propriedade (Segurança)
+    const contact = await Contact.findOne({ _id: contactId, businessId });
+    if (!contact) throw new Error('Contato não encontrado ou não pertence a este negócio.');
+
+    // 2. Buscar histórico
+    const messages = await Message.find({ contactId: contact._id })
+      .sort({ timestamp: 1 }) // Ordem cronológica para chat
+      .lean();
+
+    return messages;
+  } catch (error) {
+    console.error('Erro getMessagesForContact:', error);
+    throw error;
+  }
+}
+
+module.exports = { saveMessage, getImageHistory, getLastMessages, getConversations, getMessagesForContact };

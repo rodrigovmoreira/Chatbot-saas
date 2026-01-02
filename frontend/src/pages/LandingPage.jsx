@@ -104,7 +104,7 @@ const LandingPage = () => {
                 size="lg"
                 variant="outline"
                 colorScheme="gray"
-                onClick={() => document.getElementById('demo').scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => window.open('/chat/TEST_BUSINESS_ID', '_blank')}
               >
                 Ver Demonstração
               </Button>

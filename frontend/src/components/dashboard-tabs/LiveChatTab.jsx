@@ -1,21 +1,110 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box, Card, Heading, Text, Button, VStack, HStack, Stack,
-  useColorModeValue, Alert, Icon, Input, IconButton, Badge
+  useColorModeValue, Alert, Icon, Input, IconButton, Badge,
+  Avatar, Divider, Modal, ModalOverlay, ModalContent, ModalHeader,
+  ModalCloseButton, ModalBody, ModalFooter, useDisclosure, Code
 } from '@chakra-ui/react';
-import { ChatIcon, WarningTwoIcon } from '@chakra-ui/icons';
+import { ChatIcon, WarningTwoIcon, LinkIcon } from '@chakra-ui/icons';
+import { FaWhatsapp, FaGlobe } from 'react-icons/fa';
+import { businessAPI } from '../../services/api';
+import { useApp } from '../../context/AppContext';
 
 const LiveChatTab = () => {
+  const { state } = useApp();
+  const [conversations, setConversations] = useState([]);
+  const [selectedContact, setSelectedContact] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // Modal de Embed
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
   const cardBg = useColorModeValue('white', 'gray.800');
   const gray50Bg = useColorModeValue('gray.50', 'gray.700');
   const gray100 = useColorModeValue("gray.100", "gray.900");
 
+  const messagesEndRef = useRef(null);
+
+  // 1. Carregar Conversas
+  const loadConversations = async () => {
+    try {
+      const { data } = await businessAPI.getConversations();
+      setConversations(data);
+    } catch (error) {
+      console.error("Erro ao carregar conversas:", error);
+    }
+  };
+
+  useEffect(() => {
+    loadConversations();
+    // Polling de contatos a cada 10s
+    const interval = setInterval(loadConversations, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // 2. Carregar Mensagens ao selecionar
+  useEffect(() => {
+    if (!selectedContact) return;
+
+    const fetchMessages = async () => {
+      try {
+        const { data } = await businessAPI.getMessages(selectedContact._id);
+        setMessages(data);
+        scrollToBottom();
+      } catch (error) {
+        console.error("Erro ao carregar mensagens:", error);
+      }
+    };
+
+    fetchMessages();
+    // Polling de mensagens a cada 5s
+    const interval = setInterval(fetchMessages, 5000);
+    return () => clearInterval(interval);
+  }, [selectedContact]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // Helper de Formatação
+  const formatTime = (isoString) => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const getEmbedCode = () => {
+    const businessId = state.user?.id || 'SEU_ID';
+    const domain = process.env.REACT_APP_API_URL || 'https://SEU-DOMINIO.up.railway.app';
+    // Remove /api se existir para pegar a raiz do frontend, assumindo que /chat está na raiz
+    // Como o user pediu um iframe src específico, vamos construir:
+    // Supondo que o Chat Público rode na rota /chat/:businessId do Frontend
+    // Se o frontend está em domain.com, o src é domain.com/chat/ID
+
+    // O pedido diz: src="https://SEU-DOMINIO.up.railway.app/chat/{businessId}"
+    // Vamos usar window.location.origin para ser dinâmico
+    const origin = window.location.origin;
+    return `<iframe
+  src="${origin}/chat/${businessId}"
+  width="350"
+  height="600"
+  style="border:none; position:fixed; bottom:20px; right:20px; z-index:9999; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 12px;">
+</iframe>`;
+  };
+
   return (
     <Box>
+      <HStack mb={4} justify="flex-end">
+         <Button leftIcon={<LinkIcon />} size="sm" onClick={onOpen} colorScheme="brand">
+            Instalar no Site
+         </Button>
+      </HStack>
+
       <Card h="75vh" overflow="hidden" border="1px solid" borderColor="gray.200">
         <Stack direction={{ base: 'column', md: 'row' }} h="100%" spacing={0} align="stretch">
 
-          {/* LADO ESQUERDO: LISTA DE CONTATOS (MOCKUP) */}
+          {/* LADO ESQUERDO: LISTA DE CONTATOS */}
           <Box
             w={{ base: "100%", md: "300px" }}
             h={{ base: "40%", md: "100%" }}
@@ -27,65 +116,135 @@ const LiveChatTab = () => {
             <Box p={4} borderBottom="1px solid" borderColor={gray50Bg} bg={cardBg}>
               <Heading size="sm" color="gray.600">Conversas</Heading>
             </Box>
-            <VStack spacing={0} align="stretch" overflowY="auto">
-              {/* Item Fake 1 */}
-              <Box p={4} bg={cardBg} borderBottom="1px solid" borderColor={gray50Bg} cursor="pointer" borderLeft="4px solid" borderLeftColor="green.400">
-                <Text fontWeight="bold" fontSize="sm" noOfLines={1}>João Silva</Text>
-                <Text fontSize="xs" color="gray.500" noOfLines={1}>Olá, qual o preço do corte?</Text>
-                <Badge colorScheme="green" fontSize="0.6em" mt={1}>Online</Badge>
-              </Box>
-              {/* Item Fake 2 */}
-              <Box p={4} _hover={{ bg: gray50Bg }} cursor="pointer" borderBottom="1px solid" borderColor={gray50Bg}>
-                <Text fontWeight="bold" fontSize="sm" noOfLines={1}>Maria Souza</Text>
-                <Text fontSize="xs" color="gray.500" noOfLines={1}>Obrigado pelo atendimento!</Text>
-              </Box>
-              {/* Item Fake 3 */}
-              <Box p={4} _hover={{ bg: gray50Bg }} cursor="pointer" borderBottom="1px solid" borderColor={gray50Bg}>
-                <Text fontWeight="bold" fontSize="sm" noOfLines={1}>Pedro Henrique</Text>
-                <Text fontSize="xs" color="gray.500" noOfLines={1}>Agendado para amanhã?</Text>
-              </Box>
+            <VStack spacing={0} align="stretch">
+              {conversations.length === 0 && (
+                 <Text p={4} fontSize="sm" color="gray.500">Nenhuma conversa ainda.</Text>
+              )}
+              {conversations.map((contact) => (
+                <Box
+                  key={contact._id}
+                  p={4}
+                  bg={selectedContact?._id === contact._id ? 'brand.50' : cardBg}
+                  borderBottom="1px solid"
+                  borderColor={gray50Bg}
+                  cursor="pointer"
+                  borderLeft={selectedContact?._id === contact._id ? "4px solid" : "4px solid transparent"}
+                  borderLeftColor="brand.500"
+                  _hover={{ bg: 'gray.100' }}
+                  onClick={() => setSelectedContact(contact)}
+                >
+                  <HStack justify="space-between" mb={1}>
+                    <HStack>
+                       {contact.channel === 'whatsapp'
+                         ? <Icon as={FaWhatsapp} color="green.500" />
+                         : <Icon as={FaGlobe} color="blue.500" />
+                       }
+                       <Text fontWeight="bold" fontSize="sm" noOfLines={1}>{contact.name || contact.phone}</Text>
+                    </HStack>
+                    <Text fontSize="xs" color="gray.500">{formatTime(contact.lastInteraction)}</Text>
+                  </HStack>
+                  <Text fontSize="xs" color="gray.500" noOfLines={1}>
+                    {contact.phone || contact.sessionId}
+                  </Text>
+                </Box>
+              ))}
             </VStack>
           </Box>
 
-          {/* LADO DIREITO: CHAT (MOCKUP) */}
+          {/* LADO DIREITO: CHAT */}
           <Box flex="1" bg={gray100} position="relative" display="flex" flexDirection="column" h={{ base: "60%", md: "100%" }}>
 
-            {/* Header do Chat */}
-            <HStack p={4} bg={cardBg} borderBottom="1px solid" borderColor={gray50Bg} justify="space-between">
-              <HStack>
-                <Box bg="gray.300" borderRadius="full" w="40px" h="40px" />
-                <Box>
-                  <Text fontWeight="bold">João Silva</Text>
-                  <Text fontSize="xs" color="green.500">● Respondendo agora</Text>
+            {selectedContact ? (
+              <>
+                {/* Header do Chat */}
+                <HStack p={4} bg={cardBg} borderBottom="1px solid" borderColor={gray50Bg} justify="space-between">
+                  <HStack>
+                    <Avatar size="sm" name={selectedContact.name} src={selectedContact.avatarUrl} />
+                    <Box>
+                      <Text fontWeight="bold">{selectedContact.name || 'Visitante'}</Text>
+                      <Text fontSize="xs" color="gray.500">
+                         via {selectedContact.channel === 'whatsapp' ? 'WhatsApp' : 'Web Chat'}
+                      </Text>
+                    </Box>
+                  </HStack>
+                  {/* Futuro: Botão de Pausar Robô */}
+                </HStack>
+
+                {/* Área de Mensagens */}
+                <Box flex="1" p={4} overflowY="auto" bgImage="linear-gradient(to bottom, #f0f2f5, #e1e5ea)">
+                  <VStack spacing={3} align="stretch">
+                    {messages.map((msg, index) => {
+                       const isMe = msg.role === 'bot' || msg.role === 'system'; // Bot = Direita (Verde), User = Esquerda (Branco)
+                       // Ajuste: No Admin, "Eu" sou o Bot/Empresa. O "Outro" é o User.
+                       // Então msg.role === 'bot' -> Right. msg.role === 'user' -> Left.
+
+                       return (
+                         <HStack key={index} justify={isMe ? 'flex-end' : 'flex-start'} align="flex-start">
+                           {!isMe && <Avatar size="xs" name={selectedContact.name} mr={2} mt={1} />}
+                           <Box
+                             bg={isMe ? 'brand.100' : 'white'}
+                             color="black"
+                             px={4} py={2}
+                             borderRadius="lg"
+                             boxShadow="sm"
+                             maxW="70%"
+                             borderTopLeftRadius={!isMe ? 0 : 'lg'}
+                             borderTopRightRadius={isMe ? 0 : 'lg'}
+                           >
+                             <Text fontSize="sm" whiteSpace="pre-wrap">{msg.content}</Text>
+                             <Text fontSize="10px" color="gray.500" textAlign="right" mt={1}>
+                               {formatTime(msg.timestamp)}
+                             </Text>
+                           </Box>
+                         </HStack>
+                       );
+                    })}
+                    <div ref={messagesEndRef} />
+                  </VStack>
                 </Box>
-              </HStack>
-              <Button size="sm" colorScheme="orange" variant="outline">Pausar Robô</Button>
-            </HStack>
 
-            {/* Área de Mensagens (Vazia/Ilustrativa) */}
-            <Box flex="1" p={6} overflowY="auto">
-              <VStack spacing={4}>
-                <Alert status="info" borderRadius="md">
-                  <Icon as={WarningTwoIcon} mr={2} />
-                  Módulo de Chat ao Vivo em desenvolvimento.
-                </Alert>
-                <Text color="gray.400" fontSize="sm" mt={10}>
-                  Selecione uma conversa para visualizar o histórico aqui.
-                </Text>
+                {/* Input (Desativado por enquanto, pois é apenas visualização) */}
+                <Box p={4} bg={cardBg} borderTop="1px solid" borderColor={gray50Bg}>
+                   <Alert status="info" size="sm" borderRadius="md">
+                      <Icon as={WarningTwoIcon} mr={2} />
+                      Modo somente leitura. A intervenção humana será adicionada em breve.
+                   </Alert>
+                </Box>
+              </>
+            ) : (
+              <VStack justify="center" h="100%" spacing={4}>
+                 <Icon as={ChatIcon} boxSize={12} color="gray.300" />
+                 <Text color="gray.500">Selecione uma conversa para iniciar o atendimento.</Text>
               </VStack>
-            </Box>
+            )}
 
-            {/* Input de Envio */}
-            <Box p={4} bg={cardBg} borderTop="1px solid" borderColor={gray50Bg}>
-              <HStack>
-                <Input placeholder="Digite sua mensagem..." isDisabled size={{ base: 'lg', md: 'md' }} />
-                <IconButton aria-label="Enviar" icon={<ChatIcon />} colorScheme="blue" isDisabled size={{ base: 'lg', md: 'md' }} />
-              </HStack>
-            </Box>
           </Box>
 
         </Stack>
       </Card>
+
+      {/* Modal de Instalação */}
+      <Modal isOpen={isOpen} onClose={onClose} size="lg">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Instalar Widget no Site</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text mb={4}>Copie o código abaixo e cole no HTML do seu site (antes de fechar a tag `&lt;/body&gt;`):</Text>
+            <Box bg="gray.900" p={4} borderRadius="md" color="green.300" overflowX="auto">
+               <Code display="block" whiteSpace="pre" bg="transparent" color="inherit">
+                  {getEmbedCode()}
+               </Code>
+            </Box>
+          </ModalBody>
+          <ModalFooter>
+             <Button colorScheme="blue" onClick={() => { navigator.clipboard.writeText(getEmbedCode()); onClose(); }}>
+                Copiar Código
+             </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
     </Box>
   );
 };
