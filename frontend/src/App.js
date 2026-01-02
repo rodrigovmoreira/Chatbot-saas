@@ -12,6 +12,11 @@ const ProtectedRoute = ({ children }) => {
   return token ? children : <Navigate to="/login" />;
 };
 
+const PublicOnlyRoute = ({ children }) => {
+  const token = localStorage.getItem('token');
+  return token ? <Navigate to="/dashboard" replace /> : children;
+};
+
 function App() {
   return (
     <AppProvider>
@@ -19,8 +24,16 @@ function App() {
         <div className="App">
           <Routes>
             <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Navigate to="/login" replace />} />
+            <Route path="/login" element={
+              <PublicOnlyRoute>
+                <Login />
+              </PublicOnlyRoute>
+            } />
+            <Route path="/register" element={
+              <PublicOnlyRoute>
+                <Navigate to="/login" replace />
+              </PublicOnlyRoute>
+            } />
             <Route path="/google-callback" element={<GoogleCallback />} />
             <Route path="/chat/:businessId" element={<PublicChat />} />
             <Route
