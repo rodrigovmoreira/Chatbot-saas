@@ -1,32 +1,8 @@
 const mongoose = require('mongoose');
 const Contact = require('../models/Contact');
+const Message = require('../models/Message');
 
-const messageSchema = new mongoose.Schema({
-  contactId: { type: mongoose.Schema.Types.ObjectId, ref: 'Contact', required: true },
-  phone: { type: String, required: true },
-  role: { type: String, enum: ['user', 'bot', 'agent'], required: true },
-  content: { type: String, required: true }, 
-
-  messageType: {
-    type: String,
-    enum: ['text', 'image', 'audio', 'document', 'video'],
-    default: 'text'
-  },
-
-  aiAnalysis: {
-    isAnalyzed: { type: Boolean, default: false },
-    description: { type: String }, 
-    detectedIntent: { type: String },
-    confidenceScore: { type: Number },
-    modelUsed: { type: String }
-  },
-
-  timestamp: { type: Date, default: Date.now }
-});
-
-const Message = mongoose.models.ChatMessage || mongoose.model('ChatMessage', messageSchema);
-
-async function saveMessage(phone, role, content, messageType = 'text', visionResult = null, businessId) {
+async function saveMessage(identifier, role, content, messageType = 'text', visionResult = null, businessId, channel = 'whatsapp') {
   try {
     if (!businessId) {
       console.error("❌ ERRO GRAVE: Tentativa de salvar mensagem sem businessId!");
@@ -34,16 +10,34 @@ async function saveMessage(phone, role, content, messageType = 'text', visionRes
     }
 
     // 1. Busca ou Cria contato
-    let contact = await Contact.findOne({ phone, businessId });
+    let query = { businessId };
+    if (channel === 'web') {
+        query.sessionId = identifier;
+    } else {
+        query.phone = identifier;
+    }
+
+    let contact = await Contact.findOne(query);
 
     if (!contact) {
-      contact = await Contact.create({
-        phone,
+      // Create new contact
+      const newContactData = {
         businessId,
         totalMessages: 0,
         followUpStage: 0,
-        followUpActive: false // Começa inativo até a primeira interação
-      });
+        followUpActive: false,
+        channel
+      };
+
+      if (channel === 'web') {
+          newContactData.sessionId = identifier;
+          newContactData.name = 'Visitante Web';
+      } else {
+          newContactData.phone = identifier;
+          // Name defaults to Visitante if not provided (handled by Schema default or update later)
+      }
+
+      contact = await Contact.create(newContactData);
     }
 
     // 2. Atualiza estatísticas básicas
@@ -58,14 +52,14 @@ async function saveMessage(phone, role, content, messageType = 'text', visionRes
       // Ação: O cliente quebrou o silêncio. Paramos de perseguir.
       contact.followUpStage = 0; 
       contact.followUpActive = false; // Desativa o scheduler para este contato
-      console.log(`👤 [${phone}] Cliente respondeu. Follow-up pausado.`);
+      console.log(`👤 [${identifier}] Cliente respondeu. Follow-up pausado.`);
     } 
     else if (role === 'bot') {
       // CENÁRIO: Bot falou (resposta da IA ou mensagem automática)
       // Ação: Começamos a contar o tempo para o cliente responder.
       contact.followUpActive = true; // Ativa o scheduler
       contact.lastResponseTime = new Date(); // O relógio começa AGORA
-      console.log(`🤖 [${phone}] Bot respondeu. Follow-up armado.`);
+      console.log(`🤖 [${identifier}] Bot respondeu. Follow-up armado.`);
     }
 
     // Salva as alterações no Contato
@@ -74,11 +68,17 @@ async function saveMessage(phone, role, content, messageType = 'text', visionRes
     // 4. Cria o registro da mensagem no histórico
     const msgData = {
       contactId: contact._id,
-      phone,
       role,
       content,
-      messageType
+      messageType,
+      channel
     };
+
+    if (channel === 'web') {
+        msgData.sessionId = identifier;
+    } else {
+        msgData.phone = identifier;
+    }
 
     if (visionResult) {
       msgData.aiAnalysis = {
@@ -95,10 +95,18 @@ async function saveMessage(phone, role, content, messageType = 'text', visionRes
   }
 }
 
-async function getImageHistory(phone, businessId) {
+async function getImageHistory(identifier, businessId, channel = 'whatsapp') {
   try {
     if (!businessId) return [];
-    const contact = await Contact.findOne({ phone, businessId });
+
+    let query = { businessId };
+    if (channel === 'web') {
+        query.sessionId = identifier;
+    } else {
+        query.phone = identifier;
+    }
+
+    const contact = await Contact.findOne(query);
     if (!contact) return [];
 
     return await Message.find({
@@ -115,10 +123,18 @@ async function getImageHistory(phone, businessId) {
   }
 }
 
-async function getLastMessages(phone, limit = 15, businessId) {
+async function getLastMessages(identifier, limit = 15, businessId, channel = 'whatsapp') {
   try {
     if (!businessId) return [];
-    const contact = await Contact.findOne({ phone, businessId });
+
+    let query = { businessId };
+    if (channel === 'web') {
+        query.sessionId = identifier;
+    } else {
+        query.phone = identifier;
+    }
+
+    const contact = await Contact.findOne(query);
     if (!contact) return [];
 
     return await Message.find({ contactId: contact._id })
