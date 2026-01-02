@@ -1,16 +1,19 @@
 import {
-  Box,  Button,  Container,  Flex,  Heading,  HStack,  SimpleGrid,  Stack,  Text,  useColorModeValue,  VStack,
-  List,  ListItem,  ListIcon,  Card,  CardBody,  CardHeader,  Avatar,  Icon,  Image,
+  Box, Button, Container, Flex, Heading, HStack, SimpleGrid, Stack, Text, useColorModeValue, VStack,
+  List, ListItem, ListIcon, Card, CardBody, CardHeader, Avatar, Icon, Image,
 } from '@chakra-ui/react';
 import { CheckIcon, StarIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
-import { FaWhatsapp, FaRobot, FaCalendarCheck, FaImages } from 'react-icons/fa';
+import { FaWhatsapp, FaRobot, FaCalendarCheck, FaImages, FaCommentDots, FaTimes } from 'react-icons/fa';
 import ColorModeToggle from '../components/ColorModeToggle';
+import React, { useState } from 'react';
+
 
 const LandingPage = () => {
   const navigate = useNavigate();
   const bg = useColorModeValue('gray.50', 'gray.900');
   const brandColor = 'brand.600';
+  const [showChat, setShowChat] = useState(false);
 
   return (
     <Box bg={bg} minH="100vh">
@@ -304,6 +307,52 @@ const LandingPage = () => {
             &copy; {new Date().getFullYear()} CalangoBot Tecnologia. Todos os direitos reservados.
           </Text>
         </Container>
+      </Box>
+      
+      {/* WIDGET FLUTUANTE DE CHAT */}
+      <Box position="fixed" bottom="20px" right="20px" zIndex={9999} display="flex" flexDirection="column" alignItems="flex-end">
+
+        {/* O IFRAME (Só aparece se showChat for true) */}
+        {showChat && (
+          <Box
+            mb={4}
+            borderRadius="xl"
+            overflow="hidden"
+            boxShadow="0 4px 12px rgba(0,0,0,0.15)"
+            bg="white"
+            // Animação simples de entrada
+            animation="fadeIn 0.3s ease-in-out"
+            sx={{
+              '@keyframes fadeIn': {
+                '0%': { opacity: 0, transform: 'translateY(20px)' },
+                '100%': { opacity: 1, transform: 'translateY(0)' },
+              }
+            }}
+          >
+            <iframe
+              src="https://mindful-happiness-production.up.railway.app/chat/6941d6f2f638ac7dd55e0713"
+              width="350"
+              height="600"
+              style={{ border: 'none' }} // React usa objeto para style, não string
+              title="CalangoBot Demo"
+            />
+          </Box>
+        )}
+
+        {/* O BOTÃO REDONDO (Abre/Fecha) */}
+        <Button
+          onClick={() => setShowChat(!showChat)}
+          colorScheme="brand"
+          size="lg"
+          borderRadius="full"
+          w="60px"
+          h="60px"
+          boxShadow="xl"
+          _hover={{ transform: 'scale(1.05)' }}
+          transition="all 0.2s"
+        >
+          <Icon as={showChat ? FaTimes : FaCommentDots} w={6} h={6} />
+        </Button>
       </Box>
     </Box>
   );
