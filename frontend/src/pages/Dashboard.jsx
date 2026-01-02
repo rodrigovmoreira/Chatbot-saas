@@ -153,6 +153,11 @@ const MobileNav = ({ onOpen, title, ...rest }) => {
       borderBottomWidth="1px"
       borderBottomColor={borderBottomColor}
       justifyContent={{ base: 'space-between', md: 'flex-end' }}
+      pos="fixed"
+      top="0"
+      left="0"
+      right="0"
+      zIndex="10"
       {...rest}
     >
       <IconButton
@@ -662,7 +667,12 @@ const Dashboard = () => {
       </Drawer>
 
       {/* CONTEÚDO PRINCIPAL (Área à direita) */}
-      <Box ml={{ base: 0, lg: isCollapsed ? 20 : 60 }} p={{ base: 4, md: 6 }} transition="margin-left 0.2s">
+      <Box
+        ml={{ base: 0, lg: isCollapsed ? 20 : 60 }}
+        p={{ base: 4, md: 6 }}
+        pt={{ base: 24, lg: 6 }}
+        transition="margin-left 0.2s"
+      >
 
         {/* Navbar Mobile (Hamburger) e Desktop Header Actions */}
         <MobileNav onOpen={onSidebarOpen} title={LinkItems[activeTab]?.name || 'Painel'} mb={4} />
@@ -977,7 +987,7 @@ const Dashboard = () => {
                 </Stack>
               </CardHeader>
               <CardBody>
-                <Grid templateColumns="repeat(auto-fill, minmax(280px, 1fr))" gap={4}>
+                <Grid templateColumns={{ base: '1fr', md: 'repeat(auto-fill, minmax(280px, 1fr))' }} gap={4}>
                   {menuOptions.map((opt, idx) => (
                     <Card key={idx} variant="outline" size="sm">
                       <CardBody p={3}>
@@ -1060,7 +1070,14 @@ const Dashboard = () => {
               <Stack direction={{ base: 'column', md: 'row' }} h="100%" spacing={0} align="stretch">
 
                 {/* LADO ESQUERDO: LISTA DE CONTATOS (MOCKUP) */}
-                <Box w={{ base: "100%", md: "300px" }} h={{ base: "40%", md: "100%" }} borderRight="1px solid" borderColor={gray50Bg} bg={gray50Bg} overflowY="auto">
+                <Box
+                  w={{ base: "100%", md: "300px" }}
+                  h={{ base: "40%", md: "100%" }}
+                  borderRight="1px solid"
+                  borderColor={gray50Bg}
+                  bg={gray50Bg}
+                  overflowY="auto"
+                >
                   <Box p={4} borderBottom="1px solid" borderColor={gray50Bg} bg={cardBg}>
                     <Heading size="sm" color="gray.600">Conversas</Heading>
                   </Box>
@@ -1115,8 +1132,8 @@ const Dashboard = () => {
                   {/* Input de Envio */}
                   <Box p={4} bg={cardBg} borderTop="1px solid" borderColor={gray50Bg}>
                     <HStack>
-                      <Input placeholder="Digite sua mensagem..." isDisabled />
-                      <IconButton aria-label="Enviar" icon={<ChatIcon />} colorScheme="blue" isDisabled />
+                      <Input placeholder="Digite sua mensagem..." isDisabled size={{ base: 'lg', md: 'md' }} />
+                      <IconButton aria-label="Enviar" icon={<ChatIcon />} colorScheme="blue" isDisabled size={{ base: 'lg', md: 'md' }} />
                     </HStack>
                   </Box>
                 </Box>
@@ -1145,9 +1162,9 @@ const Dashboard = () => {
           <ModalCloseButton />
           <ModalBody>
             <VStack spacing={4}>
-              <FormControl><FormLabel fontSize="sm" fontWeight="bold">Descrição Interna</FormLabel><Input placeholder="Ex: Chave Pix" value={newMenuOption.description} onChange={e => setNewMenuOption({ ...newMenuOption, description: e.target.value })} /></FormControl>
-              <FormControl isRequired><FormLabel fontSize="sm" fontWeight="bold">Palavras-Chave (separadas por vírgula)</FormLabel><Textarea placeholder="pix, pagamento, conta" value={newMenuOption.keyword} onChange={e => setNewMenuOption({ ...newMenuOption, keyword: e.target.value })} rows={2} /></FormControl>
-              <FormControl isRequired><FormLabel fontSize="sm" fontWeight="bold">Resposta Oficial</FormLabel><Textarea placeholder="Chave: 123..." value={newMenuOption.response} onChange={e => setNewMenuOption({ ...newMenuOption, response: e.target.value })} rows={4} /></FormControl>
+              <FormControl><FormLabel fontSize="sm" fontWeight="bold">Descrição Interna</FormLabel><Input placeholder="Ex: Chave Pix" value={newMenuOption.description} onChange={e => setNewMenuOption({ ...newMenuOption, description: e.target.value })} size={{ base: 'lg', md: 'md' }} /></FormControl>
+              <FormControl isRequired><FormLabel fontSize="sm" fontWeight="bold">Palavras-Chave (separadas por vírgula)</FormLabel><Textarea placeholder="pix, pagamento, conta" value={newMenuOption.keyword} onChange={e => setNewMenuOption({ ...newMenuOption, keyword: e.target.value })} rows={2} size={{ base: 'lg', md: 'md' }} /></FormControl>
+              <FormControl isRequired><FormLabel fontSize="sm" fontWeight="bold">Resposta Oficial</FormLabel><Textarea placeholder="Chave: 123..." value={newMenuOption.response} onChange={e => setNewMenuOption({ ...newMenuOption, response: e.target.value })} rows={4} size={{ base: 'lg', md: 'md' }} /></FormControl>
               <Box w="100%" bg={gray50Bg} p={3} borderRadius="md" border="1px dashed" borderColor={gray200}>
                 <Text fontSize="xs" fontWeight="bold" mb={2}>COMPORTAMENTO</Text>
                 <VStack align="start">
@@ -1172,14 +1189,14 @@ const Dashboard = () => {
               <FormControl isRequired>
                 <FormLabel>Tempo de Espera (em Minutos)</FormLabel>
                 <HStack>
-                  <Input type="number" value={newFollowUp.delayMinutes} onChange={e => setNewFollowUp({ ...newFollowUp, delayMinutes: parseInt(e.target.value) })} />
+                  <Input type="number" value={newFollowUp.delayMinutes} onChange={e => setNewFollowUp({ ...newFollowUp, delayMinutes: parseInt(e.target.value) })} size={{ base: 'lg', md: 'md' }} />
                   <Text fontSize="sm" color="gray.500">minutos</Text>
                 </HStack>
                 <Text fontSize="xs" color="gray.400">Ex: 60 = 1 hora; 1440 = 24 horas.</Text>
               </FormControl>
               <FormControl isRequired>
                 <FormLabel>Mensagem de Cobrança</FormLabel>
-                <Textarea placeholder="Ex: E aí, ainda tem interesse?" value={newFollowUp.message} onChange={e => setNewFollowUp({ ...newFollowUp, message: e.target.value })} rows={4} />
+                <Textarea placeholder="Ex: E aí, ainda tem interesse?" value={newFollowUp.message} onChange={e => setNewFollowUp({ ...newFollowUp, message: e.target.value })} rows={4} size={{ base: 'lg', md: 'md' }} />
               </FormControl>
             </VStack>
           </ModalBody>
@@ -1198,9 +1215,9 @@ const Dashboard = () => {
           <ModalCloseButton />
           <ModalBody>
             <VStack spacing={4}>
-              <FormControl isRequired><FormLabel>Nome</FormLabel><Input value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} /></FormControl>
-              <FormControl isRequired><FormLabel>Preço</FormLabel><Input type="number" value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: e.target.value })} /></FormControl>
-              <FormControl><FormLabel>Detalhes</FormLabel><Textarea value={newProduct.description} onChange={e => setNewProduct({ ...newProduct, description: e.target.value })} /></FormControl>
+              <FormControl isRequired><FormLabel>Nome</FormLabel><Input value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} size={{ base: 'lg', md: 'md' }} /></FormControl>
+              <FormControl isRequired><FormLabel>Preço</FormLabel><Input type="number" value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: e.target.value })} size={{ base: 'lg', md: 'md' }} /></FormControl>
+              <FormControl><FormLabel>Detalhes</FormLabel><Textarea value={newProduct.description} onChange={e => setNewProduct({ ...newProduct, description: e.target.value })} size={{ base: 'lg', md: 'md' }} /></FormControl>
 
               <FormControl>
                 <FormLabel>Tags (Palavras-chave separadas por vírgula)</FormLabel>
@@ -1208,6 +1225,7 @@ const Dashboard = () => {
                   placeholder="ex: realismo, braço, promoção"
                   value={Array.isArray(newProduct.tags) ? newProduct.tags.join(', ') : newProduct.tags}
                   onChange={e => setNewProduct({ ...newProduct, tags: e.target.value })}
+                  size={{ base: 'lg', md: 'md' }}
                 />
               </FormControl>
 
@@ -1257,7 +1275,7 @@ const Dashboard = () => {
               <Text fontSize="sm" color="gray.600">Dê um nome para salvar a configuração atual de prompts na sua biblioteca pessoal.</Text>
               <FormControl isRequired>
                 <FormLabel>Nome do Modelo</FormLabel>
-                <Input placeholder="Ex: Tatuador Agressivo v2" value={newPromptName} onChange={e => setNewPromptName(e.target.value)} />
+                <Input placeholder="Ex: Tatuador Agressivo v2" value={newPromptName} onChange={e => setNewPromptName(e.target.value)} size={{ base: 'lg', md: 'md' }} />
               </FormControl>
             </VStack>
           </ModalBody>
@@ -1299,12 +1317,13 @@ const Dashboard = () => {
                 <Input
                   value={profileData.name}
                   onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                  size={{ base: 'lg', md: 'md' }}
                 />
               </FormControl>
 
               <FormControl>
                 <FormLabel>Email (Login)</FormLabel>
-                <Input value={profileData.email} isDisabled bg="gray.100" />
+                <Input value={profileData.email} isDisabled bg="gray.100" size={{ base: 'lg', md: 'md' }} />
               </FormControl>
 
               <FormControl>
@@ -1312,6 +1331,7 @@ const Dashboard = () => {
                 <Input
                   value={profileData.company}
                   onChange={(e) => setProfileData({ ...profileData, company: e.target.value })}
+                  size={{ base: 'lg', md: 'md' }}
                 />
               </FormControl>
             </VStack>
