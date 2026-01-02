@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Box, Card, Heading, Text, Button, VStack, HStack, Stack,
-  useColorModeValue, Alert, Icon, Input, IconButton, Badge,
-  Avatar, Divider, Modal, ModalOverlay, ModalContent, ModalHeader,
+  useColorModeValue, Alert, Icon,
+  Avatar, Modal, ModalOverlay, ModalContent, ModalHeader,
   ModalCloseButton, ModalBody, ModalFooter, useDisclosure, Code
 } from '@chakra-ui/react';
 import { ChatIcon, WarningTwoIcon, LinkIcon } from '@chakra-ui/icons';
@@ -15,7 +15,6 @@ const LiveChatTab = () => {
   const [conversations, setConversations] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(false);
 
   // Modal de Embed
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -81,14 +80,6 @@ const LiveChatTab = () => {
       return "<!-- Carregando ID do Negócio... -->";
     }
 
-    const domain = process.env.REACT_APP_API_URL || 'https://SEU-DOMINIO.up.railway.app';
-    // Remove /api se existir para pegar a raiz do frontend, assumindo que /chat está na raiz
-    // Como o user pediu um iframe src específico, vamos construir:
-    // Supondo que o Chat Público rode na rota /chat/:businessId do Frontend
-    // Se o frontend está em domain.com, o src é domain.com/chat/ID
-
-    // O pedido diz: src="https://SEU-DOMINIO.up.railway.app/chat/{businessId}"
-    // Vamos usar window.location.origin para ser dinâmico
     const origin = window.location.origin;
     return `<iframe
   src="${origin}/chat/${businessId}"
