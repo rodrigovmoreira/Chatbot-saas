@@ -144,4 +144,34 @@ router.post('/logout', authenticateToken, async (req, res) => {
   }
 });
 
+// ROTA: /api/auth/update (Atualizar Perfil)
+router.put('/update', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { name, avatarUrl } = req.body;
+
+    const user = await SystemUser.findById(userId);
+    if (!user) return res.status(404).json({ message: 'Usuário não encontrado' });
+
+    if (name) user.name = name;
+    if (avatarUrl !== undefined) user.avatarUrl = avatarUrl;
+
+    await user.save();
+
+    res.json({
+      message: 'Perfil atualizado com sucesso',
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        company: user.company,
+        avatarUrl: user.avatarUrl
+      }
+    });
+  } catch (error) {
+    console.error('Erro ao atualizar perfil:', error);
+    res.status(500).json({ message: 'Erro ao atualizar perfil' });
+  }
+});
+
 module.exports = router;

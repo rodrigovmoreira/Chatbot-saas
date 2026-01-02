@@ -10,7 +10,7 @@ import {
   EditIcon, WarningTwoIcon, ChevronDownIcon
 } from '@chakra-ui/icons';
 import { useApp } from '../context/AppContext';
-import { authAPI } from '../services/api';
+import { authAPI, businessAPI } from '../services/api';
 import ScheduleTab from '../components/ScheduleTab';
 
 // Imported Components
@@ -22,8 +22,9 @@ import CatalogTab from '../components/dashboard-tabs/CatalogTab';
 import LiveChatTab from '../components/dashboard-tabs/LiveChatTab';
 
 const Dashboard = () => {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const toast = useToast();
+  const fileInputRef = React.useRef();
 
   // Colors
   const mainBg = useColorModeValue('gray.50', 'gray.900');
@@ -65,6 +66,39 @@ const Dashboard = () => {
         localStorage.removeItem('user');
         window.location.href = '/login';
       }
+    }
+  };
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      const response = await businessAPI.uploadImage(formData);
+      setProfileData(prev => ({ ...prev, avatarUrl: response.data.imageUrl }));
+      toast({ title: 'Avatar enviado!', status: 'success' });
+    } catch (error) {
+      console.error('Erro ao enviar avatar:', error);
+      toast({ title: 'Erro ao enviar imagem', status: 'error' });
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      const { data } = await authAPI.updateUser({
+        name: profileData.name,
+        avatarUrl: profileData.avatarUrl
+      });
+
+      dispatch({ type: 'SET_USER', payload: data.user });
+      toast({ title: "Perfil atualizado!", status: "success" });
+      onProfileClose();
+    } catch (error) {
+      console.error('Erro ao salvar perfil:', error);
+      toast({ title: 'Erro ao atualizar perfil', status: 'error' });
     }
   };
 
@@ -164,6 +198,13 @@ const Dashboard = () => {
             <VStack spacing={6} py={4}>
               <Box position="relative">
                 <Avatar size="2xl" name={profileData.name} src={profileData.avatarUrl} />
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  hidden
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                />
                 <IconButton
                   aria-label="Alterar foto"
                   icon={<EditIcon />}
@@ -174,7 +215,7 @@ const Dashboard = () => {
                   bottom={0}
                   right={0}
                   boxShadow="md"
-                  onClick={() => toast({ title: "Upload de imagem em breve!", status: "info" })}
+                  onClick={() => fileInputRef.current.click()}
                 />
               </Box>
 
@@ -195,7 +236,7 @@ const Dashboard = () => {
           </ModalBody>
           <ModalFooter>
             <Button variant="ghost" mr={3} onClick={onProfileClose}>Cancelar</Button>
-            <Button colorScheme="brand" onClick={() => { onProfileClose(); toast({ title: "Perfil atualizado!", status: "success" }); }}>Salvar</Button>
+            <Button colorScheme="brand" onClick={handleSaveProfile}>Salvar</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
