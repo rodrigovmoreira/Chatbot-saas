@@ -37,6 +37,7 @@ export const authAPI = {
   login: (data) => api.post('/api/auth/login', data),
   register: (data) => api.post('/api/auth/register', data),
   logout: () => api.post('/api/auth/logout'),
+  updateUser: (data) => api.put('/api/auth/update', data),
 };
 
 // --- Rotas de Negócio (Dashboard) ---
