@@ -32,6 +32,7 @@ async function saveMessage(identifier, role, content, messageType = 'text', visi
       if (channel === 'web') {
           newContactData.sessionId = identifier;
           newContactData.name = 'Visitante Web';
+          delete newContactData.phone; // Garantir que não envia null
       } else {
           newContactData.phone = identifier;
           // Name defaults to Visitante if not provided (handled by Schema default or update later)
