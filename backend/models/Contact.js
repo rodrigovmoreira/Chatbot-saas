@@ -9,8 +9,17 @@ const contactSchema = new mongoose.Schema({
     index: true 
   },
 
-  phone: { type: String, required: true },
-  name: { type: String },
+  // Identificadores (Um dos dois deve existir)
+  phone: { type: String }, // Optional
+  sessionId: { type: String }, // For Web Users
+
+  channel: {
+    type: String,
+    enum: ['whatsapp', 'web'],
+    default: 'whatsapp'
+  },
+
+  name: { type: String, default: 'Visitante' },
   
   // === CAMPOS DO FUNIL (Faltavam estes!) ===
   followUpStage: { type: Number, default: 0 },
@@ -29,7 +38,15 @@ const contactSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-// Índice Composto
-contactSchema.index({ businessId: 1, phone: 1 }, { unique: true });
+// Índices Parciais para Unicidade
+contactSchema.index({ businessId: 1, phone: 1 }, {
+  unique: true,
+  partialFilterExpression: { phone: { $exists: true } }
+});
+
+contactSchema.index({ businessId: 1, sessionId: 1 }, {
+  unique: true,
+  partialFilterExpression: { sessionId: { $exists: true } }
+});
 
 module.exports = mongoose.model('Contact', contactSchema);

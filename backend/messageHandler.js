@@ -101,21 +101,36 @@ async function processBufferedMessages(uniqueKey) {
   // Limpa o buffer para novas mensagens
   messageBuffer.delete(uniqueKey);
 
-  const { messages, from, name, activeBusinessId, provider } = bufferData;
+  const { messages, from, name, activeBusinessId, provider, channel, resolve } = bufferData;
   const userMessage = messages.join('\n');
 
   try {
-    if (!activeBusinessId) return;
+    if (!activeBusinessId) {
+        if (resolve) resolve({ success: false, error: 'No active business ID' });
+        return;
+    }
     const businessConfig = await BusinessConfig.findById(activeBusinessId);
-    if (!businessConfig) return;
+    if (!businessConfig) {
+        if (resolve) resolve({ success: false, error: 'Business config not found' });
+        return;
+    }
     if (!businessConfig.prompts) businessConfig.prompts = { chatSystem: "...", visionSystem: "..." };
 
     // Salva a mensagem combinada como 'user'
-    await saveMessage(from, 'user', userMessage, 'text', null, activeBusinessId);
+    await saveMessage(from, 'user', userMessage, 'text', null, activeBusinessId, channel);
 
     // 4. HORÁRIO
     if (!isWithinOperatingHours(businessConfig)) {
-      await sendUnifiedMessage(from, businessConfig.awayMessage, provider, businessConfig.userId);
+      const awayMsg = businessConfig.awayMessage;
+
+      // FIX: Save the away message to history so conversation isn't empty
+      await saveMessage(from, 'bot', awayMsg, 'text', null, activeBusinessId, channel);
+
+      if (channel === 'web' && resolve) {
+          resolve({ text: awayMsg });
+      } else {
+          await sendUnifiedMessage(from, awayMsg, provider, businessConfig.userId);
+      }
       return;
     }
 
@@ -152,8 +167,12 @@ Cliente: ${userMessage}`;
           humanPauseMap.set(uniqueKey, Date.now() + HUMAN_PAUSE_TIME);
         }
 
-        await sendUnifiedMessage(from, finalResponse, provider, businessConfig.userId);
-        await saveMessage(from, 'bot', finalResponse, 'text', null, activeBusinessId);
+        if (channel === 'web' && resolve) {
+            resolve({ text: finalResponse });
+        } else {
+            await sendUnifiedMessage(from, finalResponse, provider, businessConfig.userId);
+        }
+        await saveMessage(from, 'bot', finalResponse, 'text', null, activeBusinessId, channel);
         return;
       }
     }
@@ -243,7 +262,7 @@ Assistant: "Ok, I will schedule that for you. {"action": "book"...}" (Do not add
 `;
 
     // C. Montagem do Histórico
-    const dbHistory = await getLastMessages(from, MAX_HISTORY, activeBusinessId);
+    const dbHistory = await getLastMessages(from, MAX_HISTORY, activeBusinessId, channel);
     
     const messages = [
         { role: "system", content: systemInstruction }
@@ -310,13 +329,22 @@ Assistant: "Ok, I will schedule that for you. {"action": "book"...}" (Do not add
                 const caption = `${p.name} - R$ ${p.price}\n${p.description || ''}`;
 
                 if (p.imageUrls && p.imageUrls.length > 0) {
-                   await wwebjsService.sendImage(businessConfig.userId, from, p.imageUrls[0], caption);
-                   for (let i = 1; i < p.imageUrls.length; i++) {
-                      await wwebjsService.sendImage(businessConfig.userId, from, p.imageUrls[i], "");
+                   if (channel === 'web') {
+                       // For web, we might just append links or JSON logic.
+                       // For now, let's just append the info to the text response
+                       // Or maybe we can handle rich responses later.
+                       // For MVP, just return text description.
+                   } else {
+                       await wwebjsService.sendImage(businessConfig.userId, from, p.imageUrls[0], caption);
+                       for (let i = 1; i < p.imageUrls.length; i++) {
+                          await wwebjsService.sendImage(businessConfig.userId, from, p.imageUrls[i], "");
+                       }
                    }
                    count++;
                 } else {
-                    await sendUnifiedMessage(from, caption, provider, businessConfig.userId);
+                    if (channel !== 'web') {
+                        await sendUnifiedMessage(from, caption, provider, businessConfig.userId);
+                    }
                 }
               }
               toolResult = `Encontrei ${products.length} produtos e já enviei ${count} com fotos para o cliente.`;
@@ -340,17 +368,24 @@ Assistant: "Ok, I will schedule that for you. {"action": "book"...}" (Do not add
 
     } catch (aiErr) {
       console.error("Erro Geração IA:", aiErr);
+      if (resolve) resolve({ success: false, error: 'AI Error' });
       return; 
     }
 
-    const delay = Math.floor(Math.random() * (HUMAN_DELAY_MAX - HUMAN_DELAY_MIN + 1)) + HUMAN_DELAY_MIN;
-    await sleep(delay);
+    if (channel !== 'web') {
+        const delay = Math.floor(Math.random() * (HUMAN_DELAY_MAX - HUMAN_DELAY_MIN + 1)) + HUMAN_DELAY_MIN;
+        await sleep(delay);
+        await sendUnifiedMessage(from, finalResponseText, provider, businessConfig.userId);
+    } else {
+        // For web, no artificial delay needed (or maybe small one?)
+        if (resolve) resolve({ text: finalResponseText });
+    }
 
-    await sendUnifiedMessage(from, finalResponseText, provider, businessConfig.userId);
-    await saveMessage(from, 'bot', finalResponseText, 'text', null, activeBusinessId);
+    await saveMessage(from, 'bot', finalResponseText, 'text', null, activeBusinessId, channel);
 
   } catch (error) {
     console.error('💥 Erro Buffer Process:', error);
+    if (resolve) resolve({ success: false, error: error.message });
   }
 }
 
@@ -358,7 +393,8 @@ Assistant: "Ok, I will schedule that for you. {"action": "book"...}" (Do not add
 // 🚀 HANDLER PRINCIPAL (AGORA COM BUFFER)
 // ==========================================
 async function handleIncomingMessage(normalizedMsg, activeBusinessId) {
-  const { from, body, name, type, mediaData, provider } = normalizedMsg;
+  const { from, body, name, type, mediaData, provider, channel = 'whatsapp' } = normalizedMsg;
+
   if (!body && type === 'text') return;
 
   const uniqueKey = `${activeBusinessId}_${from}`;
@@ -366,11 +402,13 @@ async function handleIncomingMessage(normalizedMsg, activeBusinessId) {
   // 1. VERIFICA PAUSA
   const pauseUntil = humanPauseMap.get(uniqueKey);
   if (pauseUntil && Date.now() < pauseUntil) {
-    return;
+    return { text: "Atendimento pausado para intervenção humana." };
   }
 
   // 2. RATE LIMIT
-  if (!checkRateLimit(uniqueKey)) return;
+  if (!checkRateLimit(uniqueKey)) {
+      return { error: "Rate limit exceeded" };
+  }
 
   let textToBuffer = body ? body.trim() : "";
 
@@ -403,16 +441,20 @@ async function handleIncomingMessage(normalizedMsg, activeBusinessId) {
   }
 
   // Se não sobrou nada (ex: texto vazio e sem mídia), ignora
-  if (!textToBuffer) return;
+  if (!textToBuffer) return { error: "Empty message" };
 
   // 4. ATUALIZA BUFFER
   let buffer = messageBuffer.get(uniqueKey);
 
+  // For Web, we want to return the result of this batch.
+  let responsePromise = null;
+
   if (buffer) {
       clearTimeout(buffer.timer);
       buffer.messages.push(textToBuffer);
-      // Atualiza metadados se necessário
       buffer.lastActiveBusinessId = activeBusinessId;
+      // Do NOT overwrite promise/resolve. The original request waits for the result.
+      // Subsequent requests in the same burst return null (immediate ack).
   } else {
       buffer = {
           messages: [textToBuffer],
@@ -420,16 +462,34 @@ async function handleIncomingMessage(normalizedMsg, activeBusinessId) {
           name,
           activeBusinessId,
           provider,
-          timer: null
+          channel,
+          timer: null,
+          resolve: null // Will be set for Web
       };
+
+      if (channel === 'web') {
+          // We create a promise ONLY for the first message that initializes the buffer
+          responsePromise = new Promise((resolve) => {
+              buffer.resolve = resolve;
+          });
+      }
   }
 
   // Define novo timer
+  // For web, maybe shorter buffer? Or same?
+  // User might type multiple sentences. 11s is long for a chat.
+  // Maybe 2-3 seconds for web?
+  const delay = channel === 'web' ? 3000 : BUFFER_DELAY;
+
   buffer.timer = setTimeout(() => {
       processBufferedMessages(uniqueKey);
-  }, BUFFER_DELAY);
+  }, delay);
 
   messageBuffer.set(uniqueKey, buffer);
+
+  if (channel === 'web') {
+      return responsePromise;
+  }
 }
 
 module.exports = { handleIncomingMessage };

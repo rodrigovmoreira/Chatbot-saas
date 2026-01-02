@@ -123,13 +123,15 @@ describe('Message Flow Integration Test', () => {
     await Promise.resolve();
 
     // 7. Verify "saveMessage" was called for the user input
+    // Now it includes channel as the last argument, defaulting to 'whatsapp' if missing or explicit
     expect(saveMessage).toHaveBeenCalledWith(
       mockFrom,
       'user',
       'Olá',
       'text',
       null,
-      mockBusinessId
+      mockBusinessId,
+      'whatsapp'
     );
 
     // 7. Verify DeepSeek was called
