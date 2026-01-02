@@ -122,6 +122,10 @@ async function processBufferedMessages(uniqueKey) {
     // 4. HORÁRIO
     if (!isWithinOperatingHours(businessConfig)) {
       const awayMsg = businessConfig.awayMessage;
+
+      // FIX: Save the away message to history so conversation isn't empty
+      await saveMessage(from, 'bot', awayMsg, 'text', null, activeBusinessId, channel);
+
       if (channel === 'web' && resolve) {
           resolve({ text: awayMsg });
       } else {

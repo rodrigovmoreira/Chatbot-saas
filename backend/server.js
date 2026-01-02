@@ -95,7 +95,16 @@ app.post('/api/webhook', async (req, res) => {
     res.status(200).send('<Response></Response>');
     if (req.body.Body || req.body.NumMedia) {
       const normalizedMsg = adaptTwilioMessage(req.body);
-      await handleIncomingMessage(normalizedMsg, null);
+
+      // FIX: Fallback to first BusinessConfig for Webhooks if ID is missing
+      // In production, this should map the 'To' number to a BusinessConfig
+      let businessConfig = await BusinessConfig.findOne();
+
+      if (businessConfig) {
+         await handleIncomingMessage(normalizedMsg, businessConfig._id);
+      } else {
+         console.error('❌ Webhook Ignorado: Nenhuma BusinessConfig encontrada.');
+      }
     }
   } catch (error) {
     console.error('💥 Erro Webhook:', error);
