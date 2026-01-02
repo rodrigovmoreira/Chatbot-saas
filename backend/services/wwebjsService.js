@@ -13,25 +13,7 @@ const initializeWWebJS = async (io) => {
   ioInstance = io;
   console.log('🔄 Serviço WWebJS Multi-tenant iniciado...');
   
-  // 🔴 COMENTE OU APAGUE ESTA LINHA ABAIXO:
-  // await restoreSessions(); 
-  
   console.log('🛡️ Modo Econômico: Sessões iniciam apenas manualmente.');
-};
-
-const restoreSessions = async () => {
-  try {
-    const configs = await BusinessConfig.find({ whatsappProvider: 'wwebjs' });
-    for (const config of configs) {
-      if (config.userId) {
-        startSession(config.userId.toString()).catch(err =>
-          console.error(`Erro ao restaurar sessão de ${config.businessName}:`, err)
-        );
-      }
-    }
-  } catch (error) {
-    console.error('Erro ao restaurar sessões:', error);
-  }
 };
 
 const startSession = async (userId) => {
