@@ -192,15 +192,6 @@ const Dashboard = () => {
                 <FormLabel>Email (Login)</FormLabel>
                 <Input value={profileData.email} isDisabled bg="gray.100" size={{ base: 'lg', md: 'md' }} />
               </FormControl>
-
-              <FormControl>
-                <FormLabel>Nome da Empresa</FormLabel>
-                <Input
-                  value={profileData.company}
-                  onChange={(e) => setProfileData({ ...profileData, company: e.target.value })}
-                  size={{ base: 'lg', md: 'md' }}
-                />
-              </FormControl>
             </VStack>
           </ModalBody>
           <ModalFooter>
