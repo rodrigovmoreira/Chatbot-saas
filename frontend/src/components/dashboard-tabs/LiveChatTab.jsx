@@ -75,7 +75,12 @@ const LiveChatTab = () => {
   };
 
   const getEmbedCode = () => {
-    const businessId = state.user?.id || 'SEU_ID';
+    const businessId = state.businessConfig?._id;
+
+    if (!businessId) {
+      return "<!-- Carregando ID do Negócio... -->";
+    }
+
     const domain = process.env.REACT_APP_API_URL || 'https://SEU-DOMINIO.up.railway.app';
     // Remove /api se existir para pegar a raiz do frontend, assumindo que /chat está na raiz
     // Como o user pediu um iframe src específico, vamos construir:
@@ -95,10 +100,11 @@ const LiveChatTab = () => {
 
   return (
     <Box>
-      <HStack mb={4} justify="flex-end">
-         <Button leftIcon={<LinkIcon />} size="sm" onClick={onOpen} colorScheme="brand">
-            Instalar no Site
-         </Button>
+      <HStack mb={4} justify="space-between">
+        <Text fontSize="xs" color="gray.400">Debug ID: {state.businessConfig?._id || 'N/A'}</Text>
+        <Button leftIcon={<LinkIcon />} size="sm" onClick={onOpen} colorScheme="brand">
+          Instalar no Site
+        </Button>
       </HStack>
 
       <Card h="75vh" overflow="hidden" border="1px solid" borderColor="gray.200">
