@@ -21,7 +21,7 @@ import axios from 'axios';
 
 // Create a standalone axios instance to avoid auth interceptors
 const publicApi = axios.create({
-  // FIX: Override broken env var 'http://localhotst:3000' if detected, or just use hardcoded backend port for this file
+  // Fallback to hardcoded backend port if env var is missing or contains typo 'localhotst'
   baseURL: (process.env.REACT_APP_API_URL && !process.env.REACT_APP_API_URL.includes('localhotst'))
     ? process.env.REACT_APP_API_URL
     : 'http://localhost:3001',
