@@ -94,6 +94,7 @@ const Dashboard = () => {
       });
 
       dispatch({ type: 'SET_USER', payload: data.user });
+      localStorage.setItem('user', JSON.stringify(data.user));
       toast({ title: "Perfil atualizado!", status: "success" });
       onProfileClose();
     } catch (error) {
