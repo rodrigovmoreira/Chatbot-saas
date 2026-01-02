@@ -52,4 +52,7 @@ const appointmentSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+// Optimization for Scheduler (frequent query by user, status, and date range)
+appointmentSchema.index({ userId: 1, status: 1, start: 1 });
+
 module.exports = mongoose.model('Appointment', appointmentSchema);
