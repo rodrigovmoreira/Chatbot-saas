@@ -47,4 +47,19 @@ router.post('/send', async (req, res) => {
   }
 });
 
+// GET Public Business Info (for the chat header)
+router.get('/config/:businessId', async (req, res) => {
+  try {
+    const { businessId } = req.params;
+    const businessConfig = await BusinessConfig.findById(businessId).select('businessName operatingHours');
+    if (!businessConfig) {
+      return res.status(404).json({ error: 'Business not found' });
+    }
+    res.json(businessConfig);
+  } catch (error) {
+    console.error('Error fetching business config:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 module.exports = router;
