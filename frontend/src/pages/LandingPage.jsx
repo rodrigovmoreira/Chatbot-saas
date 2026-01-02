@@ -19,6 +19,7 @@ import {
   CardHeader,
   Avatar,
   Icon,
+  Image,
 } from '@chakra-ui/react';
 import { CheckIcon, StarIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
@@ -45,11 +46,11 @@ const LandingPage = () => {
         <Container maxW="container.xl">
           <Flex justify="space-between" align="center">
             <HStack>
-                {/* Logo Placeholder */}
-                <Icon as={FaRobot} w={6} h={6} color={brandColor} />
-                <Heading size="md" color={brandColor}>
+              {/* Logo Placeholder */}
+              <Icon as={FaRobot} w={6} h={6} color={brandColor} />
+              <Heading size="md" color={brandColor}>
                 CalangoBot
-                </Heading>
+              </Heading>
             </HStack>
 
             <HStack spacing={4}>
@@ -90,23 +91,23 @@ const LandingPage = () => {
               Agendamento automático, envio de catálogo visual e respostas inteligentes 24 horas por dia para o seu negócio nunca parar de vender.
             </Text>
             <Stack direction={{ base: 'column', sm: 'row' }} spacing={4} w="100%">
-                <Button
+              <Button
                 size="lg"
                 colorScheme="brand"
                 leftIcon={<FaWhatsapp />}
                 onClick={() => navigate('/login')}
                 px={8}
-                >
+              >
                 Começar Agora
-                </Button>
-                <Button
+              </Button>
+              <Button
                 size="lg"
                 variant="outline"
                 colorScheme="gray"
                 onClick={() => document.getElementById('demo').scrollIntoView({ behavior: 'smooth' })}
-                >
+              >
                 Ver Demonstração
-                </Button>
+              </Button>
             </Stack>
           </VStack>
 
@@ -136,19 +137,19 @@ const LandingPage = () => {
                 <ChatMessage isUser>Vocês têm esse tênis no tamanho 42?</ChatMessage>
 
                 <ChatMessage>
-                    <VStack align="start" spacing={2}>
-                        <Box h="120px" w="100%" bg="gray.200" borderRadius="md" display="flex" alignItems="center" justifyContent="center">
-                            <Icon as={FaImages} boxSize={8} color="gray.400" />
-                        </Box>
-                        <Text>Sim! Temos o <b>Tênis Emerald Runner</b> em estoque. Olha a foto dele acima 👆</Text>
-                    </VStack>
+                  <VStack align="start" spacing={2}>
+                    <Box h="120px" w="100%" bg="gray.200" borderRadius="md" display="flex" alignItems="center" justifyContent="center">
+                      <Icon as={FaImages} boxSize={8} color="gray.400" />
+                    </Box>
+                    <Text>Sim! Temos o <b>Tênis Emerald Runner</b> em estoque. Olha a foto dele acima 👆</Text>
+                  </VStack>
                 </ChatMessage>
 
                 <ChatMessage isUser>Top! Posso agendar pra provar amanhã às 14h?</ChatMessage>
 
                 <ChatMessage>
-                    ✅ <b>Agendamento confirmado!</b><br/>
-                    Te espero amanhã às 14:00. Já reservei o modelo pra você.
+                  ✅ <b>Agendamento confirmado!</b><br />
+                  Te espero amanhã às 14:00. Já reservei o modelo pra você.
                 </ChatMessage>
 
               </CardBody>
@@ -160,17 +161,17 @@ const LandingPage = () => {
       {/* Parceiros / Confiança */}
       <Box borderTopWidth={1} borderBottomWidth={1} borderColor={useColorModeValue('gray.100', 'gray.700')} py={8} bg={useColorModeValue('white', 'gray.800')}>
         <Container maxW="container.xl">
-            <Text textAlign="center" color="gray.500" mb={6} fontSize="sm" fontWeight="bold" textTransform="uppercase">
-                Empresas que confiam na nossa tecnologia
-            </Text>
-            <SimpleGrid columns={{ base: 2, md: 5 }} spacing={10} opacity={0.6} filter="grayscale(100%)">
-                {/* Substitua por imagens reais de logos */}
-                <PartnerPlaceholder name="Barbearia Silva" />
-                <PartnerPlaceholder name="Clínica Bem Estar" />
-                <PartnerPlaceholder name="Imobiliária Top" />
-                <PartnerPlaceholder name="Studio Tattoo" />
-                <PartnerPlaceholder name="Advocacia" />
-            </SimpleGrid>
+          <Text textAlign="center" color="gray.500" mb={6} fontSize="sm" fontWeight="bold" textTransform="uppercase">
+            Empresas que confiam na nossa tecnologia
+          </Text>
+          <SimpleGrid columns={{ base: 2, md: 5 }} spacing={10} opacity={0.6} filter="grayscale(100%)">
+            {/* Substitua por imagens reais de logos */}
+            <PartnerPlaceholder name="Barbearia Silva" />
+            <PartnerPlaceholder name="Clínica Bem Estar" />
+            <PartnerPlaceholder name="Imobiliária Top" />
+            <PartnerPlaceholder name="Studio Tattoo" />
+            <PartnerPlaceholder name="Advocacia" />
+          </SimpleGrid>
         </Container>
       </Box>
 
@@ -210,10 +211,26 @@ const LandingPage = () => {
           </VStack>
 
           <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8}>
-            <ScreenshotPlaceholder title="Dashboard Intuitivo" desc="Acompanhe atendimentos e métricas" />
-            <ScreenshotPlaceholder title="Gestão de Produtos" desc="Cadastre fotos e preços facilmente" />
-            <ScreenshotPlaceholder title="Agenda Visual" desc="Controle total dos seus horários" />
-            <ScreenshotPlaceholder title="Configuração de IA" desc="Personalize a personalidade do seu robô" />
+            <ScreenshotPlaceholder
+              title="Dashboard Intuitivo"
+              desc="Acompanhe atendimentos e métricas"
+              src="/Dashboard-intuitivo.png"
+            />
+            <ScreenshotPlaceholder
+              title="Gestão de Produtos"
+              desc="Cadastre fotos e preços facilmente"
+              src="/Gestao-de-produtos.png"
+            />
+            <ScreenshotPlaceholder
+              title="Agenda Visual"
+              desc="Controle total dos seus horários"
+              src="/Agenda-visual.png"
+            />
+            <ScreenshotPlaceholder
+              title="Configuração de IA"
+              desc="Personalize a personalidade do seu robô"
+              src="/Configuracao-de-IA.png"
+            />
           </SimpleGrid>
         </Container>
       </Box>
@@ -222,49 +239,49 @@ const LandingPage = () => {
       <Container maxW="container.xl" py={20}>
         <Heading textAlign="center" mb={12}>O que nossos clientes dizem</Heading>
         <SimpleGrid columns={{ base: 1, md: 3 }} spacing={8}>
-            <TestimonialCard
-                name="Carlos Mendes"
-                role="Tatuador"
-                text="Antes eu perdia 2 horas por dia respondendo orçamento. Agora o CalangoBot faz tudo e já agenda. Minha agenda lotou!"
-            />
-            <TestimonialCard
-                name="Ana Souza"
-                role="Dona de Clínica"
-                text="A função de enviar fotos dos procedimentos automaticamente é incrível. Os clientes adoram a rapidez."
-            />
-            <TestimonialCard
-                name="Imobiliária Nova"
-                role="Corretores"
-                text="O melhor investimento do ano. O robô atende fim de semana e feriado, não perdemos mais nenhum lead."
-            />
+          <TestimonialCard
+            name="Carlos Mendes"
+            role="Tatuador"
+            text="Antes eu perdia 2 horas por dia respondendo orçamento. Agora o CalangoBot faz tudo e já agenda. Minha agenda lotou!"
+          />
+          <TestimonialCard
+            name="Ana Souza"
+            role="Dona de Clínica"
+            text="A função de enviar fotos dos procedimentos automaticamente é incrível. Os clientes adoram a rapidez."
+          />
+          <TestimonialCard
+            name="Imobiliária Nova"
+            role="Corretores"
+            text="O melhor investimento do ano. O robô atende fim de semana e feriado, não perdemos mais nenhum lead."
+          />
         </SimpleGrid>
       </Container>
 
       {/* Pricing Section */}
       <Box bg={useColorModeValue('white', 'gray.800')} py={20}>
         <Container maxW="container.xl">
-            <VStack spacing={4} mb={10}>
+          <VStack spacing={4} mb={10}>
             <Heading textAlign="center">Planos Simples e Transparentes</Heading>
             <Text color="gray.500" fontSize="lg">Escolha o plano ideal para o tamanho do seu negócio</Text>
-            </VStack>
-            <SimpleGrid columns={{ base: 1, md: 3 }} spacing={10}>
+          </VStack>
+          <SimpleGrid columns={{ base: 1, md: 3 }} spacing={10}>
             <PricingCard
-                title="Iniciante"
-                price="Grátis"
-                features={['Respostas Básicas de IA', 'Agendamento Manual', '5 Produtos no Catálogo', 'Suporte por Email']}
+              title="Iniciante"
+              price="Grátis"
+              features={['Respostas Básicas de IA', 'Agendamento Manual', '5 Produtos no Catálogo', 'Suporte por Email']}
             />
             <PricingCard
-                title="Profissional"
-                price="R$ 97/mês"
-                highlight
-                features={['IA Contextual Avançada', 'Agendamento 100% Automático', '50 Produtos no Catálogo', 'Suporte Prioritário', 'Múltiplos Atendentes']}
+              title="Profissional"
+              price="R$ 97/mês"
+              highlight
+              features={['IA Contextual Avançada', 'Agendamento 100% Automático', '50 Produtos no Catálogo', 'Suporte Prioritário', 'Múltiplos Atendentes']}
             />
             <PricingCard
-                title="Empresarial"
-                price="R$ 297/mês"
-                features={['Treinamento de IA Personalizado', 'Agendamentos Ilimitados', 'Catálogo Ilimitado', 'API de Integração', 'Gerente de Conta']}
+              title="Empresarial"
+              price="R$ 297/mês"
+              features={['Treinamento de IA Personalizado', 'Agendamentos Ilimitados', 'Catálogo Ilimitado', 'API de Integração', 'Gerente de Conta']}
             />
-            </SimpleGrid>
+          </SimpleGrid>
         </Container>
       </Box>
 
@@ -273,33 +290,33 @@ const LandingPage = () => {
         <Container maxW="container.xl">
           <SimpleGrid columns={{ base: 1, md: 4 }} spacing={8}>
             <VStack align="start">
-                <HStack>
-                    <Icon as={FaRobot} color={brandColor} />
-                    <Heading size="md">CalangoBot</Heading>
-                </HStack>
-                <Text color="gray.400" fontSize="sm">
-                    A revolução do atendimento automático para pequenos e médios negócios.
-                </Text>
+              <HStack>
+                <Icon as={FaRobot} color={brandColor} />
+                <Heading size="md">CalangoBot</Heading>
+              </HStack>
+              <Text color="gray.400" fontSize="sm">
+                A revolução do atendimento automático para pequenos e médios negócios.
+              </Text>
             </VStack>
 
             <VStack align="start">
-                <Text fontWeight="bold" mb={2}>Produto</Text>
-                <Button variant="link" color="gray.400" size="sm">Funcionalidades</Button>
-                <Button variant="link" color="gray.400" size="sm">Preços</Button>
-                <Button variant="link" color="gray.400" size="sm">Integrações</Button>
+              <Text fontWeight="bold" mb={2}>Produto</Text>
+              <Button variant="link" color="gray.400" size="sm">Funcionalidades</Button>
+              <Button variant="link" color="gray.400" size="sm">Preços</Button>
+              <Button variant="link" color="gray.400" size="sm">Integrações</Button>
             </VStack>
 
             <VStack align="start">
-                <Text fontWeight="bold" mb={2}>Suporte</Text>
-                <Button variant="link" color="gray.400" size="sm">Central de Ajuda</Button>
-                <Button variant="link" color="gray.400" size="sm">Comunidade</Button>
-                <Button variant="link" color="gray.400" size="sm">Status</Button>
+              <Text fontWeight="bold" mb={2}>Suporte</Text>
+              <Button variant="link" color="gray.400" size="sm">Central de Ajuda</Button>
+              <Button variant="link" color="gray.400" size="sm">Comunidade</Button>
+              <Button variant="link" color="gray.400" size="sm">Status</Button>
             </VStack>
 
             <VStack align="start">
-                <Text fontWeight="bold" mb={2}>Legal</Text>
-                <Button variant="link" color="gray.400" size="sm">Privacidade</Button>
-                <Button variant="link" color="gray.400" size="sm">Termos de Uso</Button>
+              <Text fontWeight="bold" mb={2}>Legal</Text>
+              <Button variant="link" color="gray.400" size="sm">Privacidade</Button>
+              <Button variant="link" color="gray.400" size="sm">Termos de Uso</Button>
             </VStack>
           </SimpleGrid>
           <Text textAlign="center" color="gray.500" fontSize="sm" mt={12}>
@@ -314,21 +331,21 @@ const LandingPage = () => {
 // --- Componentes Auxiliares ---
 
 const ChatMessage = ({ isUser, children }) => (
-    <Flex justify={isUser ? "flex-end" : "flex-start"}>
-        <Box
-        bg={isUser ? "#dcf8c6" : "white"}
-        color="black"
-        p={2}
-        px={3}
-        borderRadius="lg"
-        borderTopRightRadius={isUser ? "0" : "lg"}
-        borderTopLeftRadius={isUser ? "lg" : "0"}
-        maxW="85%"
-        boxShadow="sm"
-        >
-        <Text fontSize="sm">{children}</Text>
-        </Box>
-    </Flex>
+  <Flex justify={isUser ? "flex-end" : "flex-start"}>
+    <Box
+      bg={isUser ? "#dcf8c6" : "white"}
+      color="black"
+      p={2}
+      px={3}
+      borderRadius="lg"
+      borderTopRightRadius={isUser ? "0" : "lg"}
+      borderTopLeftRadius={isUser ? "lg" : "0"}
+      maxW="85%"
+      boxShadow="sm"
+    >
+      <Text fontSize="sm">{children}</Text>
+    </Box>
+  </Flex>
 );
 
 const FeatureCard = ({ icon, title, text }) => {
@@ -365,9 +382,9 @@ const PricingCard = ({ title, price, features, highlight }) => {
       position="relative"
     >
       {highlight && (
-          <Box position="absolute" top="-12px" left="50%" transform="translateX(-50%)" bg="brand.500" color="white" px={3} py={1} borderRadius="full" fontSize="xs" fontWeight="bold">
-              MAIS POPULAR
-          </Box>
+        <Box position="absolute" top="-12px" left="50%" transform="translateX(-50%)" bg="brand.500" color="white" px={3} py={1} borderRadius="full" fontSize="xs" fontWeight="bold">
+          MAIS POPULAR
+        </Box>
       )}
       <CardHeader textAlign="center">
         <Heading size="md">{title}</Heading>
@@ -396,38 +413,73 @@ const PricingCard = ({ title, price, features, highlight }) => {
 };
 
 const PartnerPlaceholder = ({ name }) => (
-    <Flex align="center" justify="center" h="50px" bg="gray.100" borderRadius="md" fontWeight="bold" color="gray.400">
-        {name}
-    </Flex>
+  <Flex align="center" justify="center" h="50px" bg="gray.100" borderRadius="md" fontWeight="bold" color="gray.400">
+    {name}
+  </Flex>
 );
 
-const ScreenshotPlaceholder = ({ title, desc }) => (
-    <Box bg="gray.200" h="250px" borderRadius="xl" display="flex" flexDirection="column" align="center" justify="center" position="relative" overflow="hidden" group>
-        <Icon as={FaImages} w={12} h={12} color="gray.400" mb={4} />
-        <Text fontWeight="bold" color="gray.600">{title}</Text>
-        <Text fontSize="sm" color="gray.500">{desc}</Text>
-        <Box position="absolute" inset="0" bg="blackAlpha.600" opacity={0} _hover={{ opacity: 1 }} transition="0.3s" display="flex" align="center" justify="center" color="white" fontWeight="bold" cursor="pointer">
-            Ver Print Ampliado
-        </Box>
+const ScreenshotPlaceholder = ({ title, desc, src }) => (
+  <Box
+    bg="white"
+    borderRadius="xl"
+    overflow="hidden"
+    boxShadow="lg"
+    border="1px solid"
+    borderColor="gray.100"
+    transition="all 0.3s"
+    _hover={{ transform: 'translateY(-5px)', boxShadow: 'xl' }}
+    group
+  >
+    {/* Área da Imagem */}
+    <Box h="250px" w="100%" position="relative" bg="gray.100">
+      <Image
+        src={src}
+        alt={title}
+        objectFit="cover"
+        objectPosition="top" // Foca no topo da imagem (onde geralmente está o cabeçalho)
+        w="100%"
+        h="100%"
+      />
+
+      {/* Overlay opcional ao passar o mouse */}
+      <Box
+        position="absolute"
+        inset="0"
+        bg="blackAlpha.400"
+        opacity={0}
+        _groupHover={{ opacity: 1 }}
+        transition="0.3s"
+      />
     </Box>
+
+    {/* Descrição */}
+    <Box p={5} textAlign="center" bg={useColorModeValue('white', 'gray.700')}>
+      <Text fontWeight="bold" fontSize="lg" mb={1} color={useColorModeValue('gray.700', 'white')}>
+        {title}
+      </Text>
+      <Text fontSize="sm" color="gray.500">
+        {desc}
+      </Text>
+    </Box>
+  </Box>
 );
 
 const TestimonialCard = ({ name, role, text }) => (
-    <Stack bg={useColorModeValue('white', 'gray.700')} p={6} borderRadius="xl" boxShadow="lg" spacing={4}>
-        <Text color="gray.500" fontStyle="italic">"{text}"</Text>
-        <HStack spacing={4}>
-            <Avatar name={name} src={`https://i.pravatar.cc/150?u=${name}`} />
-            <Box>
-                <Text fontWeight="bold">{name}</Text>
-                <Text fontSize="sm" color="gray.500">{role}</Text>
-            </Box>
-            <Flex flex={1} justify="flex-end">
-                {[...Array(5)].map((_, i) => (
-                    <StarIcon key={i} color="yellow.400" />
-                ))}
-            </Flex>
-        </HStack>
-    </Stack>
+  <Stack bg={useColorModeValue('white', 'gray.700')} p={6} borderRadius="xl" boxShadow="lg" spacing={4}>
+    <Text color="gray.500" fontStyle="italic">"{text}"</Text>
+    <HStack spacing={4}>
+      <Avatar name={name} src={`https://i.pravatar.cc/150?u=${name}`} />
+      <Box>
+        <Text fontWeight="bold">{name}</Text>
+        <Text fontSize="sm" color="gray.500">{role}</Text>
+      </Box>
+      <Flex flex={1} justify="flex-end">
+        {[...Array(5)].map((_, i) => (
+          <StarIcon key={i} color="yellow.400" />
+        ))}
+      </Flex>
+    </HStack>
+  </Stack>
 );
 
 export default LandingPage;

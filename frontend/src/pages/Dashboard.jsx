@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box, Flex, Heading, Text, Button, VStack, HStack,
   useToast, useColorModeValue, FormControl, FormLabel, Input,
@@ -39,7 +39,6 @@ const Dashboard = () => {
 
   // Profile Data
   const [profileData, setProfileData] = useState({ name: '', email: '', company: '', avatarUrl: '' });
-  const dataLoadedRef = useRef(false);
 
   // Sync Profile
   useEffect(() => {
