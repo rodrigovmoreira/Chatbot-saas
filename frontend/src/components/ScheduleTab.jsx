@@ -6,7 +6,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import {
   Box, Button, Modal, ModalOverlay, ModalContent, ModalHeader,
   ModalFooter, ModalBody, ModalCloseButton, FormControl, FormLabel,
-  Input, Select, useDisclosure, useToast, VStack, HStack, Text,
+  Input, Select, useDisclosure, useToast, VStack, HStack, Stack, Text,
   useColorModeValue, Badge, Menu, MenuButton, MenuList, MenuItem
 } from '@chakra-ui/react';
 import { DeleteIcon, ChevronDownIcon, CheckIcon, AddIcon, TimeIcon } from '@chakra-ui/icons';
@@ -451,16 +451,18 @@ const ScheduleTab = () => {
                   placeholder="Digite aqui o título ou serviço"
                   value={newEvent.title}
                   onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                  size={{ base: 'lg', md: 'md' }}
                 />
               </FormControl>
 
-              <HStack w="100%">
+              <Stack direction={{ base: 'column', md: 'row' }} w="100%" spacing={4}>
                 <FormControl isRequired>
                   <FormLabel>Nome Cliente</FormLabel>
                   <Input
                     placeholder="João Silva"
                     value={newEvent.clientName}
                     onChange={(e) => setNewEvent({ ...newEvent, clientName: e.target.value })}
+                    size={{ base: 'lg', md: 'md' }}
                   />
                 </FormControl>
                 <FormControl isRequired>
@@ -469,17 +471,19 @@ const ScheduleTab = () => {
                     placeholder="11999999999"
                     value={newEvent.clientPhone}
                     onChange={(e) => setNewEvent({ ...newEvent, clientPhone: e.target.value })}
+                    size={{ base: 'lg', md: 'md' }}
                   />
                 </FormControl>
-              </HStack>
+              </Stack>
 
-              <HStack w="100%">
+              <Stack direction={{ base: 'column', md: 'row' }} w="100%" spacing={4}>
                 <FormControl isRequired>
                   <FormLabel>Início</FormLabel>
                   <Input
                     type="datetime-local"
                     value={formatForInput(newEvent.start)}
                     onChange={(e) => setNewEvent({ ...newEvent, start: new Date(e.target.value) })}
+                    size={{ base: 'lg', md: 'md' }}
                   />
                 </FormControl>
                 <FormControl isRequired>
@@ -488,9 +492,10 @@ const ScheduleTab = () => {
                     type="datetime-local"
                     value={formatForInput(newEvent.end)}
                     onChange={(e) => setNewEvent({ ...newEvent, end: new Date(e.target.value) })}
+                    size={{ base: 'lg', md: 'md' }}
                   />
                 </FormControl>
-              </HStack>
+              </Stack>
 
               {/* CORREÇÃO AQUI: Substituído FormHelperText por Text */}
               {state.businessConfig?.operatingHours && (
