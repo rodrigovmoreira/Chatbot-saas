@@ -81,30 +81,22 @@ export const AppProvider = ({ children }) => {
     // Só conecta se tivermos um usuário logado
     if (!state.user || !state.user.id) return;
 
-    console.log('🔌 Iniciando conexão Socket para usuário:', state.user.id);
-
     const socket = io(process.env.REACT_APP_API_URL || 'http://localhost:3001', {
       withCredentials: true,
       transports: ['websocket', 'polling']
     });
 
     socket.on('connect', () => {
-      console.log('✅ Socket Conectado! ID:', socket.id);
-      
       // --- O PULO DO GATO ---
       // Emitimos o join_session imediatamente após conectar
-      console.log(`🗣️ Solicitando entrada na sala: ${state.user.id}`);
       socket.emit('join_session', state.user.id);
     });
 
     socket.on('wwebjs_qr', (qr) => {
-      console.log('📸 QR Code recebido via Socket!');
       dispatch({ type: 'SET_QR_CODE', payload: qr });
     });
 
     socket.on('wwebjs_status', (status) => {
-      console.log('🔄 Status WWebJS recebido:', status);
-      
       let isConnected = false;
       let mode = 'Desconectado';
 
@@ -124,7 +116,6 @@ export const AppProvider = ({ children }) => {
     });
 
     return () => {
-      console.log('🔌 Desconectando Socket...');
       socket.disconnect();
     };
   }, [state.user]); // Executa sempre que o usuário muda (Login/Logout)

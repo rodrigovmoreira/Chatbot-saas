@@ -45,8 +45,6 @@ function formatMessage(template, appointment, timezone = 'America/Sao_Paulo') {
 }
 
 function startScheduler() {
-  console.log('⏰ Agendador Inteligente (Follow-up + Notificações) iniciado...');
-
   // Roda a cada minuto
   cron.schedule('* * * * *', async () => {
     try {
@@ -93,8 +91,6 @@ function startScheduler() {
                         // Vamos aceitar disparos com até 24h de atraso. Se for mais que isso, ignora (assumimos que perdeu o timing).
                         const diffHours = (now - triggerTime) / 1000 / 60 / 60;
                         if (diffHours > 24) continue;
-
-                        console.log(`🔔 [${config.businessName}] Disparando regra '${rule.name}' para ${appt.clientName}`);
 
                         const tz = config.operatingHours?.timezone || 'America/Sao_Paulo';
                         const message = formatMessage(rule.messageTemplate, appt, tz);
@@ -151,8 +147,6 @@ function startScheduler() {
 
           // 3. VERIFICA SE É HORA DE DISPARAR
           if (minutesSinceLastMsg >= nextStep.delayMinutes) {
-            console.log(`🎣 [${config.businessName}] Disparando Estágio ${nextStep.stage} para: ${contact.phone}`);
-
             // === A CORREÇÃO ESTÁ AQUI ===
             // Passamos config.userId para que o WWebJS saiba qual sessão usar
             await sendUnifiedMessage(

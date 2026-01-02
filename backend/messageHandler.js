@@ -104,8 +104,6 @@ async function processBufferedMessages(uniqueKey) {
   const { messages, from, name, activeBusinessId, provider } = bufferData;
   const userMessage = messages.join('\n');
 
-  console.log(`📨 Processando buffer para ${name} (${from}):\n"${userMessage}"`);
-
   try {
     if (!activeBusinessId) return;
     const businessConfig = await BusinessConfig.findById(activeBusinessId);
@@ -132,7 +130,6 @@ async function processBufferedMessages(uniqueKey) {
       });
 
       if (matchedOption) {
-        console.log(`⚡ Resposta Rápida: "${matchedOption.description}"`);
         let finalResponse = matchedOption.response;
 
         if (matchedOption.useAI) {
@@ -152,7 +149,6 @@ Cliente: ${userMessage}`;
         }
 
         if (matchedOption.requiresHuman) {
-          console.log(`🛑 Atendimento Humano solicitado.`);
           humanPauseMap.set(uniqueKey, Date.now() + HUMAN_PAUSE_TIME);
         }
 
@@ -267,7 +263,6 @@ Assistant: "Ok, I will schedule that for you. {"action": "book"...}" (Do not add
     let finalResponseText = "";
 
     try {
-      console.log("🤖 Enviando para DeepSeek...");
       const responseText = await callDeepSeek(messages);
 
       const cleanResponse = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -279,7 +274,6 @@ Assistant: "Ok, I will schedule that for you. {"action": "book"...}" (Do not add
           let toolResult = "";
 
           if (command.action === 'check') {
-            console.log(`🔍 IA verificando agenda: ${command.start}`);
             const endT = command.end || new Date(new Date(command.start).getTime() + 60 * 60000).toISOString();
             const check = await aiTools.checkAvailability(businessConfig.userId, command.start, endT);
             toolResult = check.available 
@@ -288,7 +282,6 @@ Assistant: "Ok, I will schedule that for you. {"action": "book"...}" (Do not add
           }
 
           if (command.action === 'book') {
-            console.log(`📅 IA tentando agendar: ${command.start} para ${command.clientName}`);
             const endT = command.end || new Date(new Date(command.start).getTime() + 60 * 60000).toISOString();
 
             const booking = await aiTools.createAppointmentByAI(businessConfig.userId, {
@@ -299,8 +292,6 @@ Assistant: "Ok, I will schedule that for you. {"action": "book"...}" (Do not add
               end: endT
             });
 
-            console.log("📅 Resultado do agendamento:", booking);
-
             if (booking.success) {
                 toolResult = `SUCESSO: Agendamento salvo no banco de dados (ID: ${booking.data._id}). Pode confirmar ao cliente.`;
             } else {
@@ -309,7 +300,6 @@ Assistant: "Ok, I will schedule that for you. {"action": "book"...}" (Do not add
           }
 
           if (command.action === 'search_catalog') {
-            console.log(`🖼️ IA buscando catálogo: ${command.keywords}`);
             const products = await aiTools.searchProducts(businessConfig.userId, command.keywords);
 
             if (products.length > 0) {
@@ -338,7 +328,6 @@ Assistant: "Ok, I will schedule that for you. {"action": "book"...}" (Do not add
           messages.push({ role: "assistant", content: cleanResponse });
           messages.push({ role: "user", content: `[SISTEMA]: Resultado da ação: ${toolResult}. Agora responda ao cliente confirmando ou oferecendo outra opção.` });
 
-          console.log("🤖 Enviando resultado da ferramenta para DeepSeek...");
           finalResponseText = await callDeepSeek(messages);
 
         } catch (jsonErr) {
@@ -355,7 +344,6 @@ Assistant: "Ok, I will schedule that for you. {"action": "book"...}" (Do not add
     }
 
     const delay = Math.floor(Math.random() * (HUMAN_DELAY_MAX - HUMAN_DELAY_MIN + 1)) + HUMAN_DELAY_MIN;
-    console.log(`⏱️ Aguardando ${delay}ms antes de responder...`);
     await sleep(delay);
 
     await sendUnifiedMessage(from, finalResponseText, provider, businessConfig.userId);
@@ -378,14 +366,11 @@ async function handleIncomingMessage(normalizedMsg, activeBusinessId) {
   // 1. VERIFICA PAUSA
   const pauseUntil = humanPauseMap.get(uniqueKey);
   if (pauseUntil && Date.now() < pauseUntil) {
-    console.log(`🔇 Bot pausado para ${from} (Aguardando Humano)...`);
     return;
   }
 
   // 2. RATE LIMIT
   if (!checkRateLimit(uniqueKey)) return;
-
-  console.log(`📩 [${provider}] De: ${name} | Tipo: ${type}`);
 
   let textToBuffer = body ? body.trim() : "";
 
@@ -445,7 +430,6 @@ async function handleIncomingMessage(normalizedMsg, activeBusinessId) {
   }, BUFFER_DELAY);
 
   messageBuffer.set(uniqueKey, buffer);
-  console.log(`⏳ Mensagem de ${from} bufferizada. (Total: ${buffer.messages.length})`);
 }
 
 module.exports = { handleIncomingMessage };

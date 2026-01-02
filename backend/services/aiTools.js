@@ -97,8 +97,6 @@ const searchProducts = async (userId, keywords = []) => {
         // Normaliza keywords para lowercase e trim
         const searchTerms = keywords.map(k => k.trim().toLowerCase()).filter(k => k.length > 0);
 
-        console.log(`🔎 Buscando produtos com termos: [${searchTerms.join(', ')}]`);
-
         if (searchTerms.length === 0) return [];
 
         // Filtra os produtos com Fuzzy Match (parcial)

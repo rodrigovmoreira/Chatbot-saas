@@ -11,25 +11,19 @@ let ioInstance;
 
 const initializeWWebJS = async (io) => {
   ioInstance = io;
-  console.log('🔄 Serviço WWebJS Multi-tenant iniciado...');
-  
-  console.log('🛡️ Modo Econômico: Sessões iniciam apenas manualmente.');
 };
 
 const startSession = async (userId) => {
   // 1. BLINDAGEM CONTRA DUPLICIDADE
   if (sessions.has(userId)) {
-    console.log(`⚠️ Sessão para ${userId} já existe na memória. Retornando instância atual.`);
     return sessions.get(userId);
   }
 
   // Se o status diz que está iniciando, aborta para não criar condição de corrida
   if (statuses.get(userId) === 'initializing') {
-    console.log(`⚠️ Sessão para ${userId} já está em processo de inicialização.`);
     return;
   }
 
-  console.log(`🚀 Iniciando motor WWebJS para UserID: ${userId}`);
   updateStatus(userId, 'initializing');
 
   const config = await BusinessConfig.findOne({ userId });
@@ -64,20 +58,17 @@ const startSession = async (userId) => {
   sessions.set(userId, client);
 
   client.on('qr', (qr) => {
-    console.log(`📸 QR Code gerado para ${config.businessName}`);
     qrCodes.set(userId, qr);
     updateStatus(userId, 'qrcode');
     if (ioInstance) ioInstance.to(userId).emit('wwebjs_qr', qr);
   });
 
   client.on('ready', () => {
-    console.log(`✅ Sessão PRONTA para: ${config.businessName}`);
     updateStatus(userId, 'ready');
     qrCodes.delete(userId);
   });
 
   client.on('authenticated', () => {
-    console.log(`🔐 Autenticado: ${config.businessName}`);
     updateStatus(userId, 'authenticated');
     qrCodes.delete(userId);
   });
@@ -99,7 +90,6 @@ const startSession = async (userId) => {
   });
 
   client.on('disconnected', async (reason) => {
-    console.log(`⚠️ Sessão desconectada (${config.businessName}):`, reason);
     await stopSession(userId); // Usa a função centralizada de stop
   });
 
@@ -117,8 +107,6 @@ const stopSession = async (userId) => {
   const client = sessions.get(userId.toString());
   
   if (client) {
-    console.log(`🛑 Encerrando sessão de ${userId}...`);
-    
     // Atualiza status para evitar que o usuário tente reconectar enquanto fecha
     updateStatus(userId, 'disconnecting');
 
@@ -132,7 +120,6 @@ const stopSession = async (userId) => {
     try {
         // Força o fechamento do navegador (Libera RAM)
         await client.destroy();
-        console.log(`✅ Navegador destruído para ${userId}`);
     } catch (e) {
         console.warn(`⚠️ Erro ao destruir cliente (não crítico): ${e.message}`);
     }
@@ -140,7 +127,6 @@ const stopSession = async (userId) => {
 
   // 3. LIMPEZA DE MEMÓRIA (Essencial para não vazar memória)
   cleanupSession(userId);
-  console.log(`🧹 Memória limpa para ${userId}`);
 };
 
 const cleanupSession = (userId) => {
@@ -168,7 +154,6 @@ const sendWWebJSMessage = async (userId, to, message) => {
     if (!formattedNumber.includes('@c.us')) formattedNumber = `${formattedNumber}@c.us`;
 
     await client.sendMessage(formattedNumber, message);
-    console.log(`📤 Mensagem enviada por ${userId} para ${formattedNumber}`);
     return true;
   } catch (error) {
     console.error(`💥 Erro envio WWebJS (User ${userId}):`, error.message);
@@ -195,7 +180,6 @@ const sendImage = async (userId, to, imageUrl, caption) => {
 
     // Envia com legenda (se houver)
     await client.sendMessage(formattedNumber, media, { caption: caption || "" });
-    console.log(`🖼️ Imagem enviada por ${userId} para ${formattedNumber}`);
     return true;
 
   } catch (error) {
@@ -205,13 +189,11 @@ const sendImage = async (userId, to, imageUrl, caption) => {
 };
 
 const closeAllSessions = async () => {
-  console.log(`🛑 Fechando ${sessions.size} sessões ativas...`);
   for (const [userId, client] of sessions.entries()) {
     try {
       // No shutdown do servidor, usamos destroy() em vez de logout()
       // para não perder a conexão (QR Code) na próxima reinicialização
       await client.destroy();
-      console.log(`-> Sessão ${userId} fechada.`);
     } catch (e) {
       console.error(`-> Erro ao fechar ${userId}:`, e.message);
     }
