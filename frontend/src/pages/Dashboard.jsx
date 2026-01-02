@@ -30,7 +30,7 @@ const LinkItems = [
   { name: 'Agendamentos', icon: TimeIcon, index: 5, color: 'blue.500' },
 ];
 
-const SidebarContent = ({ onClose, activeTab, setActiveTab, isCollapsed = false, toggleCollapse, ...rest }) => {
+const SidebarContent = ({ onClose, activeTab, setActiveTab, isCollapsed = false, toggleCollapse, pos = 'fixed', ...rest }) => {
   const bg = useColorModeValue('white', 'gray.900');
   const borderRightColor = useColorModeValue('gray.200', 'gray.700');
 
@@ -42,7 +42,7 @@ const SidebarContent = ({ onClose, activeTab, setActiveTab, isCollapsed = false,
       borderRight="1px"
       borderRightColor={borderRightColor}
       w={{ base: 'full', lg: isCollapsed ? 20 : 60 }}
-      pos="fixed"
+      pos={pos}
       h="full"
       {...rest}
     >
@@ -647,11 +647,17 @@ const Dashboard = () => {
         onClose={onSidebarClose}
         returnFocusOnClose={false}
         onOverlayClick={onSidebarClose}
-        size="full"
+        size="xs"
       >
         <DrawerOverlay />
         <DrawerContent>
-          <SidebarContent onClose={onSidebarClose} activeTab={activeTab} setActiveTab={setActiveTab} />
+          <SidebarContent
+            onClose={onSidebarClose}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            pos="relative"
+            w="full"
+          />
         </DrawerContent>
       </Drawer>
 
@@ -789,12 +795,12 @@ const Dashboard = () => {
                       <Heading size="sm" mb={1}>Modelos Padrão (Sistema)</Heading>
                       <Text fontSize="sm" color="gray.600">Use um modelo pronto da plataforma.</Text>
                     </Box>
-                    <HStack direction={{ base: 'column', md: 'row' }} spacing={4}>
+                    <Stack direction={{ base: 'column', md: 'row' }} spacing={4}>
                       <Select placeholder="Selecione..." bg={gray50Bg} onChange={(e) => setSelectedPreset(e.target.value)} value={selectedPreset}>
                         {presets.map(p => (<option key={p.key} value={p.key}>{p.icon} {p.name}</option>))}
                       </Select>
                       <Button colorScheme="blue" onClick={handleApplyPreset} isDisabled={!selectedPreset} leftIcon={<StarIcon />} width={{ base: 'full', md: 'auto' }}>Aplicar</Button>
-                    </HStack>
+                    </Stack>
                   </Grid>
                 </CardBody>
               </Card>
@@ -807,7 +813,7 @@ const Dashboard = () => {
                       <Heading size="sm" mb={1} color={orange800}>Meus Modelos Pessoais</Heading>
                       <Text fontSize="sm" color={orange700}>Carregue suas edições salvas anteriormente.</Text>
                     </Box>
-                    <HStack direction={{ base: 'column', md: 'row' }} spacing={4}>
+                    <Stack direction={{ base: 'column', md: 'row' }} spacing={4}>
                       <Select
                         placeholder="Carregar meus prompts..."
                         bg={cardBg}
@@ -827,7 +833,7 @@ const Dashboard = () => {
                           aria-label="Deletar"
                         />
                       )}
-                    </HStack>
+                    </Stack>
                   </Grid>
                 </CardBody>
               </Card>
