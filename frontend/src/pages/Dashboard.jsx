@@ -141,11 +141,10 @@ const Dashboard = () => {
       <Box
         ml={{ base: 0, lg: isCollapsed ? 20 : 60 }}
         p={{ base: 4, md: 6 }}
-        pt={{ base: 24, lg: 6 }}
+        pt={{ base: 4, lg: 6 }}
         transition="margin-left 0.2s"
       >
 
-        {/* Navbar Mobile (Hamburger) e Desktop Header Actions */}
         {/* Navbar Mobile Customizada (Com Avatar e Menu) */}
         <Flex
           display={{ base: 'flex', lg: 'none' }} // Só aparece no Mobile
