@@ -1,25 +1,6 @@
-import React from 'react';
 import {
-  Box,
-  Button,
-  Container,
-  Flex,
-  Heading,
-  HStack,
-  SimpleGrid,
-  Stack,
-  Text,
-  useColorModeValue,
-  VStack,
-  List,
-  ListItem,
-  ListIcon,
-  Card,
-  CardBody,
-  CardHeader,
-  Avatar,
-  Icon,
-  Image,
+  Box,  Button,  Container,  Flex,  Heading,  HStack,  SimpleGrid,  Stack,  Text,  useColorModeValue,  VStack,
+  List,  ListItem,  ListIcon,  Card,  CardBody,  CardHeader,  Avatar,  Icon,  Image,
 } from '@chakra-ui/react';
 import { CheckIcon, StarIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
