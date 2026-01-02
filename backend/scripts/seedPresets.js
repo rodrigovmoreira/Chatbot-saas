@@ -3,7 +3,7 @@ const path = require('path');
 const mongoose = require('mongoose');
 
 // 1. RESOLUÇÃO DE CAMINHO
-const envPath = path.join(__dirname, '..', '.env');
+const envPath = path.join(__dirname, '..', '..', '.env');
 console.log('🔍 Procurando arquivo .env em:', envPath);
 
 // 2. CARREGA AS VARIÁVEIS
