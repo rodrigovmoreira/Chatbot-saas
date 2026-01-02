@@ -4,6 +4,7 @@ const BusinessConfig = require('../models/BusinessConfig');
 const IndustryPreset = require('../models/IndustryPreset');
 const CustomPrompt = require('../models/CustomPrompt');
 const authenticateToken = require('../middleware/auth');
+const messageService = require('../services/message'); // <--- IMPORTEI O SERVICE
 const { upload, bucket } = require('../config/upload'); // Destructuring to get bucket too
 const { deleteFromFirebase } = require('../utils/firebaseHelper');
 const sharp = require('sharp');
@@ -227,7 +228,10 @@ router.post('/upload-image', authenticateToken, upload.single('image'), async (r
       .toBuffer();
 
     // 2. Criar nome único e referência no Storage
-    const filename = `products/${uuidv4()}.jpg`;
+    // SEPARAR AVATARES DE PRODUTOS
+    const type = req.body.type === 'avatar' ? 'avatars' : 'products';
+    const filename = `${type}/${uuidv4()}.jpg`;
+
     const file = bucket.file(filename);
 
     // 3. Upload Stream para Firebase
@@ -264,6 +268,40 @@ router.post('/upload-image', authenticateToken, upload.single('image'), async (r
   } catch (error) {
     console.error('Erro no upload:', error);
     res.status(500).json({ message: 'Erro interno no upload.' });
+  }
+});
+
+// ==========================================
+// 💬 ROTAS DO ADMIN CHAT (Fase 3)
+// ==========================================
+
+// GET /conversations
+router.get('/conversations', authenticateToken, async (req, res) => {
+  try {
+    // Busca a config do usuário para pegar o ID do Negócio
+    const config = await BusinessConfig.findOne({ userId: req.user.userId });
+    if (!config) return res.json([]); // Se não tem negócio, não tem conversas
+
+    // Passa o ID do Negócio, pois os Contatos estão vinculados a ele
+    const conversations = await messageService.getConversations(config._id);
+    res.json(conversations);
+  } catch (error) {
+    console.error('Erro GET /conversations:', error);
+    res.status(500).json({ message: 'Erro ao buscar conversas' });
+  }
+});
+
+// GET /conversations/:contactId/messages
+router.get('/conversations/:contactId/messages', authenticateToken, async (req, res) => {
+  try {
+    const config = await BusinessConfig.findOne({ userId: req.user.userId });
+    if (!config) return res.status(404).json({ message: 'Negócio não encontrado' });
+
+    const messages = await messageService.getMessagesForContact(req.params.contactId, config._id);
+    res.json(messages);
+  } catch (error) {
+    console.error('Erro GET /messages:', error);
+    res.status(500).json({ message: 'Erro ao buscar mensagens' });
   }
 });
 

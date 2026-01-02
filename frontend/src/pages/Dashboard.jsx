@@ -75,6 +75,7 @@ const Dashboard = () => {
 
     const formData = new FormData();
     formData.append('image', file);
+    formData.append('type', 'avatar'); // <--- AVISO: É um avatar, não produto!
 
     try {
       const response = await businessAPI.uploadImage(formData);
@@ -94,6 +95,7 @@ const Dashboard = () => {
       });
 
       dispatch({ type: 'SET_USER', payload: data.user });
+      localStorage.setItem('user', JSON.stringify(data.user));
       toast({ title: "Perfil atualizado!", status: "success" });
       onProfileClose();
     } catch (error) {

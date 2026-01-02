@@ -28,7 +28,7 @@ router.post('/login', async (req, res) => {
       sameSite: 'lax'
     });
 
-    res.json({ token, user: { id: user._id, name: user.name, email: user.email } });
+    res.json({ token, user: { id: user._id, name: user.name, email: user.email, avatarUrl: user.avatarUrl } });
   } catch (error) {
     console.error('Erro login:', error);
     res.status(500).json({ message: 'Erro interno' });
@@ -121,7 +121,7 @@ router.get('/google/callback',
 ];
 
     // We pass user info too, url encoded
-    const userData = encodeURIComponent(JSON.stringify({ id: user._id, name: user.name, email: user.email }));
+    const userData = encodeURIComponent(JSON.stringify({ id: user._id, name: user.name, email: user.email, avatarUrl: user.avatarUrl }));
 
     res.redirect(`${frontendUrl}/google-callback?token=${token}&user=${userData}`);
   }
@@ -154,7 +154,11 @@ router.put('/update', authenticateToken, async (req, res) => {
     if (!user) return res.status(404).json({ message: 'Usuário não encontrado' });
 
     if (name) user.name = name;
-    if (avatarUrl !== undefined) user.avatarUrl = avatarUrl;
+    if (avatarUrl !== undefined) {
+      user.avatarUrl = avatarUrl;
+      // Sync with BusinessConfig
+      await BusinessConfig.findOneAndUpdate({ userId: user._id }, { avatarUrl });
+    }
 
     await user.save();
 

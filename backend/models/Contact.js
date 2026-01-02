@@ -41,7 +41,7 @@ const contactSchema = new mongoose.Schema({
 // Índices Parciais para Unicidade
 contactSchema.index({ businessId: 1, phone: 1 }, {
   unique: true,
-  partialFilterExpression: { phone: { $exists: true } }
+  partialFilterExpression: { phone: { $type: "string" } }
 });
 
 contactSchema.index({ businessId: 1, sessionId: 1 }, {
