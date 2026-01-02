@@ -8,7 +8,6 @@ const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 // Função auxiliar para baixar imagem (Twilio)
 async function downloadImage(mediaUrl) {
-    console.log('🌐 Baixando imagem da URL (Twilio)...');
     try {
         const response = await axios({
             method: 'GET',
@@ -31,8 +30,6 @@ async function downloadImage(mediaUrl) {
  * Analisa imagem usando a SDK @google/genai (Nova)
  */
 async function analyzeImage(mediaInput, customPrompt) {
-    console.log("👁️ VisionService Iniciado.");
-
     try {
         let imagePart;
 
@@ -60,8 +57,6 @@ async function analyzeImage(mediaInput, customPrompt) {
             { text: promptText } // O texto entra como outro objeto
         ];
 
-        console.log("🚀 Enviando para API Gemini (Via genAI.models.generateContent)...");
-
         // 3. Chamada Correta para a SDK @google/genai
         const response = await genAI.models.generateContent({
             model: "gemini-2.5-flash", // Ou "gemini-2.0-flash-exp" se tiver acesso
@@ -76,7 +71,6 @@ async function analyzeImage(mediaInput, customPrompt) {
         // Por segurança, verificamos se é função ou propriedade.
         const finalText = typeof response.text === 'function' ? response.text() : response.text;
 
-        console.log("✅ Resposta Gemini:", finalText ? finalText.substring(0, 30) + "..." : "Vazia");
         return finalText;
 
     } catch (error) {

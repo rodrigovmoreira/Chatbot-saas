@@ -131,7 +131,6 @@ router.get('/google/callback',
 router.post('/logout', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    console.log(`🚪 Usuário ${userId} fazendo logout. Encerrando bot...`);
 
     // Encerra sessão do WhatsApp para economizar recursos
     await stopSession(userId);

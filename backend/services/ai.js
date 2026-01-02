@@ -6,8 +6,6 @@ const axios = require('axios');
  * @param {string} systemPrompt - A personalidade e regras do bot (Contexto)
  */
 async function generateAIResponse(userMessage, systemPrompt) {
-  console.time('⏳ Tempo IA');
-  
   try {
     if (!process.env.DEEPSEEK_API_KEY) {
       console.error('❌ DEEPSEEK_API_KEY não configurada');
@@ -48,14 +46,10 @@ async function generateAIResponse(userMessage, systemPrompt) {
 
     const aiResponse = response.data.choices[0].message.content.trim();
     
-    console.log('✅ Resposta IA gerada.');
-    console.timeEnd('⏳ Tempo IA');
-
     return aiResponse;
 
   } catch (error) {
     console.error('💥 ERRO IA:', error.message);
-    console.timeEnd('⏳ Tempo IA');
     // Retorna null para o handler tratar com mensagem de erro genérica se quiser
     return null; 
   }

@@ -102,11 +102,8 @@ app.post('/api/webhook', async (req, res) => {
 // SOCKET.IO (MULTI-TENANT)
 // ==========================================
 io.on('connection', (socket) => {
-  console.log('🔌 Cliente conectado ao Socket:', socket.id);
-
   socket.on('join_session', (userId) => {
     if (!userId) return;
-    console.log(`👤 Socket ${socket.id} entrou na sala: ${userId}`);
     socket.join(userId);
 
     // Envia estado atual imediato

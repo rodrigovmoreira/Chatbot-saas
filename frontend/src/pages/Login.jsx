@@ -76,7 +76,6 @@ const Login = () => {
 
 try {
       const response = await authAPI.login(data);
-      console.log("Login sucesso:", response); // Log para debug
       handleAuthSuccess(response);
     } catch (error) {
       console.error("Erro Login:", error); // Log detalhado
