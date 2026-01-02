@@ -278,9 +278,15 @@ router.post('/upload-image', authenticateToken, upload.single('image'), async (r
 // GET /conversations
 router.get('/conversations', authenticateToken, async (req, res) => {
   try {
-    const conversations = await messageService.getConversations(req.user.userId);
+    // Busca a config do usuário para pegar o ID do Negócio
+    const config = await BusinessConfig.findOne({ userId: req.user.userId });
+    if (!config) return res.json([]); // Se não tem negócio, não tem conversas
+
+    // Passa o ID do Negócio, pois os Contatos estão vinculados a ele
+    const conversations = await messageService.getConversations(config._id);
     res.json(conversations);
   } catch (error) {
+    console.error('Erro GET /conversations:', error);
     res.status(500).json({ message: 'Erro ao buscar conversas' });
   }
 });
@@ -288,9 +294,13 @@ router.get('/conversations', authenticateToken, async (req, res) => {
 // GET /conversations/:contactId/messages
 router.get('/conversations/:contactId/messages', authenticateToken, async (req, res) => {
   try {
-    const messages = await messageService.getMessagesForContact(req.params.contactId, req.user.userId);
+    const config = await BusinessConfig.findOne({ userId: req.user.userId });
+    if (!config) return res.status(404).json({ message: 'Negócio não encontrado' });
+
+    const messages = await messageService.getMessagesForContact(req.params.contactId, config._id);
     res.json(messages);
   } catch (error) {
+    console.error('Erro GET /messages:', error);
     res.status(500).json({ message: 'Erro ao buscar mensagens' });
   }
 });
