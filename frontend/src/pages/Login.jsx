@@ -90,6 +90,7 @@ try {
         duration: 4000,
         isClosable: true,
       });
+      setLoading(false);
     }
   };
 
