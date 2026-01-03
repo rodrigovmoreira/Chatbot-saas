@@ -77,21 +77,34 @@ function isWithinOperatingHours(businessConfig) {
 
   const timeZone = businessConfig.operatingHours.timezone || 'America/Sao_Paulo';
 
-  // Get current time in target timezone
-  const now = new Date();
-  const localDateString = now.toLocaleString('en-US', { timeZone, hour12: false });
-  const localDate = new Date(localDateString);
-  const currentHour = localDate.getHours();
-  // const currentMinute = localDate.getMinutes(); // Optional if you need minute precision later
+  // Use Intl.DateTimeFormat for robust timezone handling down to the second
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hour12: false
+  });
+
+  const parts = formatter.formatToParts(new Date());
+  const getPart = (type) => parseInt(parts.find(p => p.type === type).value, 10);
+
+  const nowH = getPart('hour');
+  const nowM = getPart('minute');
+  const nowS = getPart('second');
+
+  // Convert everything to Total Seconds for precision comparison
+  const currentTotalSeconds = nowH * 3600 + nowM * 60 + nowS;
 
   const [openH, openM] = businessConfig.operatingHours.opening.split(':').map(Number);
   const [closeH, closeM] = businessConfig.operatingHours.closing.split(':').map(Number);
 
-  const currentMinutes = currentHour * 60 + localDate.getMinutes();
-  const openMinutes = openH * 60 + (openM || 0);
-  const closeMinutes = closeH * 60 + (closeM || 0);
+  const openTotalSeconds = openH * 3600 + (openM || 0) * 60;
+  const closeTotalSeconds = closeH * 3600 + (closeM || 0) * 60;
 
-  return currentMinutes >= openMinutes && currentMinutes < closeMinutes;
+  console.log(`🕒 OpHours Check (${timeZone}): Now=${nowH}:${nowM}:${nowS} (${currentTotalSeconds}s) | Range=[${openTotalSeconds}, ${closeTotalSeconds})`);
+
+  return currentTotalSeconds >= openTotalSeconds && currentTotalSeconds < closeTotalSeconds;
 }
 
 // ==========================================
