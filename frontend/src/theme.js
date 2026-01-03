@@ -126,6 +126,10 @@ const theme = extendTheme({
     },
     Modal: {
       baseStyle: (props) => ({
+        overlay: {
+          bg: 'blackAlpha.400',
+          backdropFilter: 'blur(14px)',
+        },
         dialog: {
           bg: mode('white', 'gray.800')(props),
           borderColor: 'brand.neon',
@@ -139,6 +143,10 @@ const theme = extendTheme({
     },
     Drawer: {
       baseStyle: (props) => ({
+        overlay: {
+          bg: 'blackAlpha.400',
+          backdropFilter: 'blur(14px)',
+        },
         dialog: {
           bg: mode('white', 'gray.800')(props),
           borderColor: 'brand.neon',
