@@ -34,24 +34,24 @@ const theme = extendTheme({
   semanticTokens: {
     shadows: {
       sm: {
-        default: '0 1px 2px 0 rgba(168, 1, 229, 0.25)',
-        _dark: '0px 0px 6px 1px #A801E5',
+        default: '0 1px 2px 0 rgba(168, 1, 229, 0.5)',
+        _dark: '0px 0px 4px 1px #A801E5',
       },
       base: {
-        default: '0 1px 3px 0 rgba(168, 1, 229, 0.3), 0 1px 2px 0 rgba(168, 1, 229, 0.15)',
-        _dark: '0px 0px 8px 1px #A801E5',
+        default: '0 1px 3px 0 rgba(168, 1, 229, 0.6), 0 1px 2px 0 rgba(168, 1, 229, 0.3)',
+        _dark: '0px 0px 6px 1px #A801E5',
       },
       md: {
-        default: '0 4px 6px -1px rgba(168, 1, 229, 0.3), 0 2px 4px -1px rgba(168, 1, 229, 0.15)',
-        _dark: '0px 0px 10px 2px #A801E5',
+        default: '0 4px 6px -1px rgba(168, 1, 229, 0.6), 0 2px 4px -1px rgba(168, 1, 229, 0.3)',
+        _dark: '0px 0px 6px 1px #A801E5',
       },
       lg: {
-        default: '0 10px 15px -3px rgba(168, 1, 229, 0.3), 0 4px 6px -2px rgba(168, 1, 229, 0.15)',
-        _dark: '0px 0px 14px 3px #A801E5',
+        default: '0 10px 15px -3px rgba(168, 1, 229, 0.6), 0 4px 6px -2px rgba(168, 1, 229, 0.3)',
+        _dark: '0px 0px 10px 2px #A801E5',
       },
       xl: {
-        default: '0 20px 25px -5px rgba(168, 1, 229, 0.3), 0 10px 10px -5px rgba(168, 1, 229, 0.15)',
-        _dark: '0px 0px 18px 4px #A801E5',
+        default: '0 20px 25px -5px rgba(168, 1, 229, 0.6), 0 10px 10px -5px rgba(168, 1, 229, 0.3)',
+        _dark: '0px 0px 12px 3px #A801E5',
       },
     }
   },
@@ -59,14 +59,11 @@ const theme = extendTheme({
     Card: {
       baseStyle: (props) => ({
         container: {
-          borderColor: mode('brand.neon', 'brand.neon')(props), // Purple border in both modes
+          // Define borderColor using mode() for dynamic switching without high-specificity selector nesting
+          borderColor: mode('rgba(168, 1, 229, 0.3)', 'rgba(168, 1, 229, 0.4)')(props),
           borderWidth: '1px',
           boxShadow: 'md',
-          _light: {
-             borderColor: 'rgba(168, 1, 229, 0.3)', // Softer purple border in light mode
-          },
           _dark: {
-            borderColor: 'rgba(168, 1, 229, 0.4)',
             bg: 'gray.900',
           },
         }

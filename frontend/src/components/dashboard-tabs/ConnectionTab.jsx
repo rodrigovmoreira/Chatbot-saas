@@ -74,7 +74,7 @@ const ConnectionTab = () => {
       <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={6}>
         {/* Card WhatsApp */}
         <GridItem>
-          <Card bg={cardBg} h="100%" boxShadow="md" borderTop="4px solid" borderColor={state.whatsappStatus.isConnected ? "green.400" : "red.400"}>
+          <Card bg={cardBg} h="100%" boxShadow="md" borderTop="4px solid" borderTopColor={state.whatsappStatus.isConnected ? "green.400" : "red.400"}>
             <CardHeader><Heading size="md">Status do WhatsApp</Heading></CardHeader>
             <CardBody display="flex" flexDirection="column" alignItems="center" justifyContent="center">
               {state.whatsappStatus.isConnected ? (
