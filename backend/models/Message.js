@@ -33,6 +33,9 @@ const messageSchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now }
 });
 
+// Optimization: Index for frequent history lookups (AI Context) and Chat UI (Chronological)
+messageSchema.index({ contactId: 1, timestamp: -1 });
+
 // Use 'ChatMessage' to maintain backward compatibility with existing collection
 const Message = mongoose.models.ChatMessage || mongoose.model('ChatMessage', messageSchema);
 
