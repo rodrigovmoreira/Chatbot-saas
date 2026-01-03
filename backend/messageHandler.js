@@ -77,18 +77,34 @@ function isWithinOperatingHours(businessConfig) {
 
   const timeZone = businessConfig.operatingHours.timezone || 'America/Sao_Paulo';
 
-  // Get current time in target timezone
-  const now = new Date();
-  const localDateString = now.toLocaleString('en-US', { timeZone, hour12: false });
-  const localDate = new Date(localDateString);
-  const currentHour = localDate.getHours();
-  // const currentMinute = localDate.getMinutes(); // Optional if you need minute precision later
+  // Use Intl.DateTimeFormat for robust timezone handling down to the second
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hour12: false
+  });
 
-  const [openH] = businessConfig.operatingHours.opening.split(':').map(Number);
-  const [closeH] = businessConfig.operatingHours.closing.split(':').map(Number);
+  const parts = formatter.formatToParts(new Date());
+  const getPart = (type) => parseInt(parts.find(p => p.type === type).value, 10);
 
-  // Simple check for hours (handling day wrap if needed, but keeping simple for now)
-  return currentHour >= openH && currentHour < closeH;
+  const nowH = getPart('hour');
+  const nowM = getPart('minute');
+  const nowS = getPart('second');
+
+  // Convert everything to Total Seconds for precision comparison
+  const currentTotalSeconds = nowH * 3600 + nowM * 60 + nowS;
+
+  const [openH, openM] = businessConfig.operatingHours.opening.split(':').map(Number);
+  const [closeH, closeM] = businessConfig.operatingHours.closing.split(':').map(Number);
+
+  const openTotalSeconds = openH * 3600 + (openM || 0) * 60;
+  const closeTotalSeconds = closeH * 3600 + (closeM || 0) * 60;
+
+  console.log(`🕒 OpHours Check (${timeZone}): Now=${nowH}:${nowM}:${nowS} (${currentTotalSeconds}s) | Range=[${openTotalSeconds}, ${closeTotalSeconds})`);
+
+  return currentTotalSeconds >= openTotalSeconds && currentTotalSeconds < closeTotalSeconds;
 }
 
 // ==========================================
@@ -122,6 +138,17 @@ async function processBufferedMessages(uniqueKey) {
     // 4. HORÁRIO
     if (!isWithinOperatingHours(businessConfig)) {
       const awayMsg = businessConfig.awayMessage;
+
+      // FIX: Prevent 'Away Message' Loop
+      const lastMessages = await getLastMessages(from, 1, activeBusinessId, channel);
+      if (lastMessages && lastMessages.length > 0) {
+          const lastMsg = lastMessages[0];
+          if (lastMsg.role === 'bot' && lastMsg.content === awayMsg) {
+             console.log(`🔕 Away Message suprimida para ${from} (loop prevent).`);
+             if (channel === 'web' && resolve) resolve({ text: "" });
+             return;
+          }
+      }
 
       // FIX: Save the away message to history so conversation isn't empty
       await saveMessage(from, 'bot', awayMsg, 'text', null, activeBusinessId, channel);
@@ -202,8 +229,6 @@ Cliente: ${userMessage}`;
 
     let catalogContext = "";
     if (businessConfig.products?.length > 0) {
-      catalogContext = "REFERENCE ONLY: Use this catalog to answer questions. Do not list these items unless asked.\n\n--- TABELA DE PREÇOS ---\n" + businessConfig.products.map(p => `- ${p.name}: R$ ${p.price}`).join('\n');
-
       const allTags = new Set();
       businessConfig.products.forEach(p => {
           if (p.tags && Array.isArray(p.tags)) {
@@ -213,7 +238,7 @@ Cliente: ${userMessage}`;
       const uniqueTags = Array.from(allTags).join(', ');
 
       if (uniqueTags) {
-          catalogContext += `\n\nCONTEXT: You have a product catalog containing items related to: [${uniqueTags}]. If the user's intent matches these, ALWAYS use the search_catalog tool.`;
+          catalogContext = `CONTEXT: You have a database of products related to: [${uniqueTags}]. DO NOT guess prices. If the user asks about a product, you MUST use the search_catalog tool to find it.`;
       }
     }
 
@@ -221,6 +246,9 @@ Cliente: ${userMessage}`;
     const { instagram, website, portfolio } = businessConfig.socialMedia || {};
 
     const systemInstruction = `
+STYLE: WhatsApp Chat. Short messages (max 2 sentences). No formal introductions. Use emojis sparingly.
+BEHAVIOR: Answer ONLY what was asked. Do not offer help unless necessary.
+
 Instruction: "CONTEXT AWARENESS: Before answering, check the last message sent by 'assistant' in the history. If you have already explained the business focus or pricing in the last turn, DO NOT repeat it. Answer only the specific new question (e.g., 'No, we don't have that option'). Be direct and conversational."
 
 --- AUDIO & IMAGE HANDLING ---
@@ -282,6 +310,10 @@ Assistant: "Ok, I will schedule that for you. {"action": "book"...}" (Do not add
     let finalResponseText = "";
 
     try {
+      console.log('--- 🧠 DEEPSEEK FULL PROMPT ---');
+      console.log(JSON.stringify(messages, null, 2));
+      console.log('-------------------------------');
+
       const responseText = await callDeepSeek(messages);
 
       const cleanResponse = responseText.replace(/```json/g, '').replace(/```/g, '').trim();

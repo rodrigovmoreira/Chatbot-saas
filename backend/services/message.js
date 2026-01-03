@@ -183,4 +183,24 @@ async function getMessagesForContact(contactId, businessId) {
   }
 }
 
-module.exports = { saveMessage, getImageHistory, getLastMessages, getConversations, getMessagesForContact };
+async function deleteMessages(contactId, businessId) {
+  try {
+    const contact = await Contact.findOne({ _id: contactId, businessId });
+    if (!contact) throw new Error('Unauthorized or not found');
+
+    await Message.deleteMany({ contactId: contact._id });
+
+    // Reset basic stats but keep the contact
+    contact.totalMessages = 0;
+    contact.lastInteraction = new Date(); // Updates interaction so it doesn't disappear from top
+    contact.lastSender = null; // Reset last sender
+    await contact.save();
+
+    return true;
+  } catch (error) {
+    console.error('Erro deleteMessages:', error);
+    throw error;
+  }
+}
+
+module.exports = { saveMessage, getImageHistory, getLastMessages, getConversations, getMessagesForContact, deleteMessages };
