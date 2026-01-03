@@ -310,9 +310,9 @@ Assistant: "Ok, I will schedule that for you. {"action": "book"...}" (Do not add
     let finalResponseText = "";
 
     try {
-      console.log('--- 🧠 DEEPSEEK FULL PROMPT ---');
-      console.log(JSON.stringify(messages, null, 2));
-      console.log('-------------------------------');
+      //console.log('--- 🧠 DEEPSEEK FULL PROMPT ---');
+      //console.log(JSON.stringify(messages, null, 2));
+      //console.log('-------------------------------');
 
       const responseText = await callDeepSeek(messages);
 
