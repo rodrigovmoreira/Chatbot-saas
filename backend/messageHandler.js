@@ -84,11 +84,14 @@ function isWithinOperatingHours(businessConfig) {
   const currentHour = localDate.getHours();
   // const currentMinute = localDate.getMinutes(); // Optional if you need minute precision later
 
-  const [openH] = businessConfig.operatingHours.opening.split(':').map(Number);
-  const [closeH] = businessConfig.operatingHours.closing.split(':').map(Number);
+  const [openH, openM] = businessConfig.operatingHours.opening.split(':').map(Number);
+  const [closeH, closeM] = businessConfig.operatingHours.closing.split(':').map(Number);
 
-  // Simple check for hours (handling day wrap if needed, but keeping simple for now)
-  return currentHour >= openH && currentHour < closeH;
+  const currentMinutes = currentHour * 60 + localDate.getMinutes();
+  const openMinutes = openH * 60 + (openM || 0);
+  const closeMinutes = closeH * 60 + (closeM || 0);
+
+  return currentMinutes >= openMinutes && currentMinutes < closeMinutes;
 }
 
 // ==========================================
@@ -122,6 +125,17 @@ async function processBufferedMessages(uniqueKey) {
     // 4. HORÁRIO
     if (!isWithinOperatingHours(businessConfig)) {
       const awayMsg = businessConfig.awayMessage;
+
+      // FIX: Prevent 'Away Message' Loop
+      const lastMessages = await getLastMessages(from, 1, activeBusinessId, channel);
+      if (lastMessages && lastMessages.length > 0) {
+          const lastMsg = lastMessages[0];
+          if (lastMsg.role === 'bot' && lastMsg.content === awayMsg) {
+             console.log(`🔕 Away Message suprimida para ${from} (loop prevent).`);
+             if (channel === 'web' && resolve) resolve({ text: "" });
+             return;
+          }
+      }
 
       // FIX: Save the away message to history so conversation isn't empty
       await saveMessage(from, 'bot', awayMsg, 'text', null, activeBusinessId, channel);

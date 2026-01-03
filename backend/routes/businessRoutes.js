@@ -305,6 +305,20 @@ router.get('/conversations/:contactId/messages', authenticateToken, async (req, 
   }
 });
 
+// DELETE /conversations/:contactId/messages
+router.delete('/conversations/:contactId/messages', authenticateToken, async (req, res) => {
+  try {
+    const config = await BusinessConfig.findOne({ userId: req.user.userId });
+    if (!config) return res.status(404).json({ message: 'Negócio não encontrado' });
+
+    await messageService.deleteMessages(req.params.contactId, config._id);
+    res.json({ message: 'Histórico limpo' });
+  } catch (error) {
+    console.error('Erro DELETE /messages:', error);
+    res.status(500).json({ message: 'Erro ao limpar histórico' });
+  }
+});
+
 // DELETE /api/business/delete-image
 router.post('/delete-image', authenticateToken, async (req, res) => {
   try {

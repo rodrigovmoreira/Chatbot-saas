@@ -77,6 +77,7 @@ export const businessAPI = {
   // 6. Admin Chat (NOVO - Fase 3)
   getConversations: () => api.get('/api/business/conversations'),
   getMessages: (contactId) => api.get(`/api/business/conversations/${contactId}/messages`),
+  clearHistory: (contactId) => api.delete(`/api/business/conversations/${contactId}/messages`), // <--- NOVO
 };
 
 export default api;

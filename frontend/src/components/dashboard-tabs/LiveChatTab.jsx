@@ -3,9 +3,9 @@ import {
   Box, Card, Heading, Text, Button, VStack, HStack, Stack,
   useColorModeValue, Alert, Icon,
   Avatar, Modal, ModalOverlay, ModalContent, ModalHeader,
-  ModalCloseButton, ModalBody, ModalFooter, useDisclosure, Code
+  ModalCloseButton, ModalBody, ModalFooter, useDisclosure, Code, IconButton, Tooltip, useToast
 } from '@chakra-ui/react';
-import { ChatIcon, WarningTwoIcon, LinkIcon } from '@chakra-ui/icons';
+import { ChatIcon, WarningTwoIcon, LinkIcon, DeleteIcon } from '@chakra-ui/icons';
 import { FaWhatsapp, FaGlobe } from 'react-icons/fa';
 import { businessAPI } from '../../services/api';
 import { useApp } from '../../context/AppContext';
@@ -18,12 +18,38 @@ const LiveChatTab = () => {
 
   // Modal de Embed
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const toast = useToast();
 
   const cardBg = useColorModeValue('white', 'gray.800');
   const gray50Bg = useColorModeValue('gray.50', 'gray.700');
   const gray100 = useColorModeValue("gray.100", "gray.900");
 
   const messagesEndRef = useRef(null);
+
+  const handleClearHistory = async () => {
+    if (!selectedContact) return;
+
+    if (!window.confirm("Tem certeza que deseja limpar o histórico desta conversa? A memória da IA será apagada.")) return;
+
+    try {
+      await businessAPI.clearHistory(selectedContact._id);
+      setMessages([]);
+      toast({
+        title: "Histórico limpo.",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error("Erro ao limpar histórico:", error);
+      toast({
+        title: "Erro ao limpar histórico.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
 
   // 1. Carregar Conversas
   const loadConversations = async () => {
@@ -164,7 +190,17 @@ const LiveChatTab = () => {
                       </Text>
                     </Box>
                   </HStack>
-                  {/* Futuro: Botão de Pausar Robô */}
+
+                  <Tooltip label="Limpar Histórico / Resetar IA">
+                    <IconButton
+                      icon={<DeleteIcon />}
+                      size="sm"
+                      colorScheme="red"
+                      variant="ghost"
+                      onClick={handleClearHistory}
+                      aria-label="Limpar histórico"
+                    />
+                  </Tooltip>
                 </HStack>
 
                 {/* Área de Mensagens */}
