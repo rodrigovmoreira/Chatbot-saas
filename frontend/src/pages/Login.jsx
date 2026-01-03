@@ -156,7 +156,7 @@ try {
                 color={headingColor}
                 textAlign="center"
               >
-                ChatBot Platform
+                CalangoBot
               </Heading>
 
               {error && (
@@ -337,7 +337,7 @@ try {
               </Tabs>
 
               <Text fontSize="sm" color={useColorModeValue("gray.600", "gray.300")} textAlign="center">
-                Sistema de atendimento automatizado via WhatsApp
+                Sistema de atendimento automatizado
               </Text>
             </VStack>
           </CardBody>
