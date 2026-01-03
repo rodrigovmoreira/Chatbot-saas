@@ -139,46 +139,93 @@ const Login = () => {
   };
 
   return (
-    <Flex minH="100vh" direction={{ base: 'column', md: 'row' }}>
-      {/* Left Panel - Brand */}
-      <Flex
-        flex={1}
-        bgGradient="linear(to-br, brand.600, brand.neon)"
-        justify="center"
-        align="center"
-        direction="column"
-        p={8}
-        color="white"
-      >
-        <VStack spacing={6}>
-            <Image src="/Gemini_Generated_Image_467xu7467xu7467x.svg" alt="Calango Bot Logo" boxSize="150px" />
-            <Heading size="2xl" fontWeight="bold">Calango Bot</Heading>
-            <Text fontSize="xl" opacity={0.9}>Automação Inteligente Para seu Chat</Text>
-        </VStack>
-      </Flex>
+    <Box
+      minH="100vh"
+      bgGradient="linear(135deg, #128C7E 0%, #25D366 100%)"
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+      py={8}
+    >
+      <ColorModeToggle position="absolute" top={4} right={4} />
+      <Container maxW="md">
+        <Card borderRadius="xl" boxShadow="2xl" bg={cardBg}>
+          <CardBody p={8}>
+            <VStack spacing={6}>
+              <Heading 
+                size="xl" 
+                color={headingColor}
+                textAlign="center"
+              >
+                CalangoBot
+              </Heading>
 
-      {/* Right Panel - Login Form */}
-      <Flex
-        flex={1}
-        bg={rightPanelBg}
-        justify="center"
-        align="center"
-        position="relative"
-        p={4}
-      >
-        <ColorModeToggle position="absolute" top={4} right={4} />
+              {error && (
+                <Alert status="error" borderRadius="md">
+                  <AlertIcon />
+                  {error}
+                </Alert>
+              )}
 
-        <Container maxW="md">
-           <VStack spacing={8} w="full">
-              {/* Mobile Logo (visible only on base) */}
-              <Box display={{ base: 'block', md: 'none' }} mb={4}></Box>
+              <Tabs 
+                index={activeTab} 
+                onChange={setActiveTab}
+                variant="enclosed-colored"
+                colorScheme="brand"
+                width="100%"
+              >
+                <TabList>
+                  <Tab flex={1} fontWeight="semibold">Login</Tab>
+                  <Tab flex={1} fontWeight="semibold">Cadastro</Tab>
+                </TabList>
 
-              <Card w="full" borderRadius="xl" boxShadow="xl" bg={cardBg}>
-                <CardBody p={8}>
-                    <VStack spacing={6}>
-                        <Heading size="lg" color={headingColor} textAlign="center">
-                            Bem-vindo
-                        </Heading>
+                <TabPanels>
+                  {/* Login Tab */}
+                  <TabPanel px={0}>
+                    <VStack spacing={4}>
+                      <Button
+                        w="full"
+                        variant="outline"
+                        leftIcon={<FaGoogle />}
+                        onClick={() => window.location.href = `${API_URL}/api/auth/google`}
+                      >
+                        Continuar com Google
+                      </Button>
+
+                      <Text fontSize="sm" color="gray.500">ou</Text>
+
+                      <form onSubmit={handleLogin} style={{ width: '100%' }}>
+                        <VStack spacing={4}>
+                          <FormControl isRequired>
+                            <FormLabel>Email</FormLabel>
+                            <Input
+                              name="email"
+                            type="email" 
+                            placeholder="seu@email.com"
+                            size="lg"
+                          />
+                        </FormControl>
+                        
+                        <FormControl isRequired>
+                          <FormLabel>Senha</FormLabel>
+                          <InputGroup size="lg">
+                            <Input
+                              name="password"
+                              type={showLoginPassword ? 'text' : 'password'}
+                              placeholder="Sua senha"
+                            />
+                            <InputRightElement width="4.5rem">
+                              <IconButton
+                                h="1.75rem"
+                                size="sm"
+                                onClick={() => setShowLoginPassword(!showLoginPassword)}
+                                icon={showLoginPassword ? <ViewOffIcon /> : <ViewIcon />}
+                                aria-label={showLoginPassword ? 'Ocultar senha' : 'Exibir senha'}
+                                variant="ghost"
+                              />
+                            </InputRightElement>
+                          </InputGroup>
+                        </FormControl>
                         
                         {error && (
                             <Alert status="error" borderRadius="md">
@@ -361,12 +408,18 @@ const Login = () => {
                             Sistema de atendimento automatizado
                         </Text>
                     </VStack>
-                </CardBody>
-              </Card>
-           </VStack>
-        </Container>
-      </Flex>
-    </Flex>
+                  </TabPanel>
+                </TabPanels>
+              </Tabs>
+
+              <Text fontSize="sm" color={useColorModeValue("gray.600", "gray.300")} textAlign="center">
+                Sistema de atendimento automatizado
+              </Text>
+            </VStack>
+          </CardBody>
+        </Card>
+      </Container>
+    </Box>
   );
 };
 
