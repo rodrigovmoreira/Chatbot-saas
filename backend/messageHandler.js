@@ -202,8 +202,6 @@ Cliente: ${userMessage}`;
 
     let catalogContext = "";
     if (businessConfig.products?.length > 0) {
-      catalogContext = "REFERENCE ONLY: Use this catalog to answer questions. Do not list these items unless asked.\n\n--- TABELA DE PREÇOS ---\n" + businessConfig.products.map(p => `- ${p.name}: R$ ${p.price}`).join('\n');
-
       const allTags = new Set();
       businessConfig.products.forEach(p => {
           if (p.tags && Array.isArray(p.tags)) {
@@ -213,7 +211,7 @@ Cliente: ${userMessage}`;
       const uniqueTags = Array.from(allTags).join(', ');
 
       if (uniqueTags) {
-          catalogContext += `\n\nCONTEXT: You have a product catalog containing items related to: [${uniqueTags}]. If the user's intent matches these, ALWAYS use the search_catalog tool.`;
+          catalogContext = `CONTEXT: You have a database of products related to: [${uniqueTags}]. DO NOT guess prices. If the user asks about a product, you MUST use the search_catalog tool to find it.`;
       }
     }
 
@@ -221,6 +219,9 @@ Cliente: ${userMessage}`;
     const { instagram, website, portfolio } = businessConfig.socialMedia || {};
 
     const systemInstruction = `
+STYLE: WhatsApp Chat. Short messages (max 2 sentences). No formal introductions. Use emojis sparingly.
+BEHAVIOR: Answer ONLY what was asked. Do not offer help unless necessary.
+
 Instruction: "CONTEXT AWARENESS: Before answering, check the last message sent by 'assistant' in the history. If you have already explained the business focus or pricing in the last turn, DO NOT repeat it. Answer only the specific new question (e.g., 'No, we don't have that option'). Be direct and conversational."
 
 --- AUDIO & IMAGE HANDLING ---
@@ -282,6 +283,10 @@ Assistant: "Ok, I will schedule that for you. {"action": "book"...}" (Do not add
     let finalResponseText = "";
 
     try {
+      console.log('--- 🧠 DEEPSEEK FULL PROMPT ---');
+      console.log(JSON.stringify(messages, null, 2));
+      console.log('-------------------------------');
+
       const responseText = await callDeepSeek(messages);
 
       const cleanResponse = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
