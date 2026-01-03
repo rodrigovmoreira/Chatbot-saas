@@ -33,21 +33,25 @@ const theme = extendTheme({
   fonts,
   semanticTokens: {
     shadows: {
+      sm: {
+        default: '0 1px 2px 0 rgba(168, 1, 229, 0.25)',
+        _dark: '0px 0px 6px 1px #A801E5',
+      },
       base: {
-        default: '0 1px 3px 0 rgba(168, 1, 229, 0.15), 0 1px 2px 0 rgba(168, 1, 229, 0.1)',
-        _dark: '0px 0px 12px 2px #A801E5',
+        default: '0 1px 3px 0 rgba(168, 1, 229, 0.3), 0 1px 2px 0 rgba(168, 1, 229, 0.15)',
+        _dark: '0px 0px 8px 1px #A801E5',
       },
       md: {
-        default: '0 4px 6px -1px rgba(168, 1, 229, 0.15), 0 2px 4px -1px rgba(168, 1, 229, 0.1)',
-        _dark: '0px 0px 16px 3px #A801E5',
+        default: '0 4px 6px -1px rgba(168, 1, 229, 0.3), 0 2px 4px -1px rgba(168, 1, 229, 0.15)',
+        _dark: '0px 0px 10px 2px #A801E5',
       },
       lg: {
-        default: '0 10px 15px -3px rgba(168, 1, 229, 0.15), 0 4px 6px -2px rgba(168, 1, 229, 0.1)',
-        _dark: '0px 0px 20px 4px #A801E5',
+        default: '0 10px 15px -3px rgba(168, 1, 229, 0.3), 0 4px 6px -2px rgba(168, 1, 229, 0.15)',
+        _dark: '0px 0px 14px 3px #A801E5',
       },
       xl: {
-        default: '0 20px 25px -5px rgba(168, 1, 229, 0.15), 0 10px 10px -5px rgba(168, 1, 229, 0.1)',
-        _dark: '0px 0px 24px 5px #A801E5',
+        default: '0 20px 25px -5px rgba(168, 1, 229, 0.3), 0 10px 10px -5px rgba(168, 1, 229, 0.15)',
+        _dark: '0px 0px 18px 4px #A801E5',
       },
     }
   },
@@ -55,11 +59,15 @@ const theme = extendTheme({
     Card: {
       baseStyle: (props) => ({
         container: {
-          borderColor: mode('gray.200', 'whiteAlpha.300')(props),
+          borderColor: mode('brand.neon', 'brand.neon')(props), // Purple border in both modes
           borderWidth: '1px',
-          boxShadow: 'base',
+          boxShadow: 'md',
+          _light: {
+             borderColor: 'rgba(168, 1, 229, 0.3)', // Softer purple border in light mode
+          },
           _dark: {
-            borderColor: 'rgba(168, 1, 229, 0.3)',
+            borderColor: 'rgba(168, 1, 229, 0.4)',
+            bg: 'gray.900',
           },
         }
       })
@@ -71,7 +79,7 @@ const theme = extendTheme({
           color: 'white',
           _hover: {
             bg: 'brand.600',
-            boxShadow: mode('md', '0 0 12px 2px #A801E5')(props),
+            boxShadow: mode('md', '0 0 10px 1px #A801E5')(props),
             _disabled: {
               bg: 'brand.500',
             }
@@ -106,6 +114,57 @@ const theme = extendTheme({
         }),
       },
     },
+    Menu: {
+      baseStyle: (props) => ({
+        list: {
+          bg: mode('white', 'gray.800')(props),
+          borderColor: 'brand.neon',
+          boxShadow: 'md',
+          borderWidth: '1px',
+          _dark: {
+             borderColor: 'rgba(168, 1, 229, 0.4)',
+          }
+        },
+      }),
+    },
+    Modal: {
+      baseStyle: (props) => ({
+        dialog: {
+          bg: mode('white', 'gray.800')(props),
+          borderColor: 'brand.neon',
+          boxShadow: 'lg',
+          borderWidth: '1px',
+           _dark: {
+             borderColor: 'rgba(168, 1, 229, 0.4)',
+          }
+        },
+      }),
+    },
+    Drawer: {
+      baseStyle: (props) => ({
+        dialog: {
+          bg: mode('white', 'gray.800')(props),
+          borderColor: 'brand.neon',
+          boxShadow: 'lg',
+          // Drawers often have a border on the side edge
+          _dark: {
+             borderColor: 'rgba(168, 1, 229, 0.4)',
+          }
+        },
+      }),
+    },
+    Popover: {
+      baseStyle: (props) => ({
+        content: {
+           borderColor: 'brand.neon',
+           boxShadow: 'md',
+           borderWidth: '1px',
+           _dark: {
+             borderColor: 'rgba(168, 1, 229, 0.4)',
+          }
+        }
+      })
+    }
   },
   styles: {
     global: (props) => ({
