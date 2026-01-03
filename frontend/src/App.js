@@ -1,5 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ChakraProvider } from '@chakra-ui/react';
+import theme from './theme';
 import { AppProvider } from './context/AppContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -19,35 +21,37 @@ const PublicOnlyRoute = ({ children }) => {
 
 function App() {
   return (
-    <AppProvider>
-      <Router>
-        <div className="App">
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/login" element={
-              <PublicOnlyRoute>
-                <Login />
-              </PublicOnlyRoute>
-            } />
-            <Route path="/register" element={
-              <PublicOnlyRoute>
-                <Navigate to="/login" replace />
-              </PublicOnlyRoute>
-            } />
-            <Route path="/google-callback" element={<GoogleCallback />} />
-            <Route path="/chat/:businessId" element={<PublicChat />} />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </div>
-      </Router>
-    </AppProvider>
+    <ChakraProvider theme={theme}>
+      <AppProvider>
+        <Router>
+          <div className="App">
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={
+                <PublicOnlyRoute>
+                  <Login />
+                </PublicOnlyRoute>
+              } />
+              <Route path="/register" element={
+                <PublicOnlyRoute>
+                  <Navigate to="/login" replace />
+                </PublicOnlyRoute>
+              } />
+              <Route path="/google-callback" element={<GoogleCallback />} />
+              <Route path="/chat/:businessId" element={<PublicChat />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </div>
+        </Router>
+      </AppProvider>
+    </ChakraProvider>
   );
 }
 
