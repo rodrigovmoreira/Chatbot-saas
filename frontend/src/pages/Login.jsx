@@ -151,9 +151,9 @@ const Login = () => {
         color="white"
       >
         <VStack spacing={6}>
-            <Image src="/logo512.png" alt="Calango Bot Logo" boxSize="150px" />
+            <Image src="/Gemini_Generated_Image_467xu7467xu7467x.svg" alt="Calango Bot Logo" boxSize="150px" />
             <Heading size="2xl" fontWeight="bold">Calango Bot</Heading>
-            <Text fontSize="xl" opacity={0.9}>Automação Inteligente para WhatsApp</Text>
+            <Text fontSize="xl" opacity={0.9}>Automação Inteligente Para seu Chat</Text>
         </VStack>
       </Flex>
 
@@ -171,9 +171,7 @@ const Login = () => {
         <Container maxW="md">
            <VStack spacing={8} w="full">
               {/* Mobile Logo (visible only on base) */}
-              <Box display={{ base: 'block', md: 'none' }} mb={4}>
-                 <Image src="/logo192.png" alt="Calango Bot" boxSize="80px" mx="auto"/>
-              </Box>
+              <Box display={{ base: 'block', md: 'none' }} mb={4}></Box>
 
               <Card w="full" borderRadius="xl" boxShadow="xl" bg={cardBg}>
                 <CardBody p={8}>
@@ -360,7 +358,7 @@ const Login = () => {
                         </Tabs>
 
                         <Text fontSize="sm" color={useColorModeValue("gray.600", "gray.300")} textAlign="center">
-                            Sistema de atendimento automatizado via WhatsApp
+                            Sistema de atendimento automatizado
                         </Text>
                     </VStack>
                 </CardBody>
