@@ -330,7 +330,7 @@ const LandingPage = () => {
             }}
           >
             <iframe
-              src="https://mindful-happiness-production.up.railway.app/chat/695a69d85b6d832422adb869"
+              src="/chat/695a69d85b6d832422adb869"
               width="350"
               height="600"
               style={{ border: 'none' }} // React usa objeto para style, não string
