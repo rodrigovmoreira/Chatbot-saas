@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const BusinessConfig = require('../models/BusinessConfig');
+const Message = require('../models/Message');
 const { handleIncomingMessage } = require('../messageHandler');
 
 router.post('/send', async (req, res) => {
@@ -31,8 +32,12 @@ router.post('/send', async (req, res) => {
     // Call Handler and Wait for Response
     const response = await handleIncomingMessage(normalizedMsg, businessId);
 
-    // Return the response
+    // Return the response AND emit to socket
     if (response && response.text) {
+        // Emit to all tabs of this visitor
+        if (req.io) {
+            req.io.to(sessionId).emit('bot_message', { sender: 'bot', text: response.text });
+        }
         return res.json({ response: response.text });
     } else if (response && response.error) {
         return res.status(500).json({ error: response.error });
@@ -43,6 +48,32 @@ router.post('/send', async (req, res) => {
 
   } catch (error) {
     console.error('Error in Public Chat API:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// GET History for Visitor
+router.get('/history/:visitorId', async (req, res) => {
+  try {
+    const { visitorId } = req.params;
+
+    // Search messages by sessionId (which equals visitorId)
+    // We sort by timestamp ascending for the chat UI
+    const messages = await Message.find({ sessionId: visitorId })
+      .sort({ timestamp: 1 })
+      .select('role content timestamp')
+      .lean();
+
+    // Map to frontend format
+    const formattedMessages = messages.map(msg => ({
+      sender: msg.role === 'user' ? 'user' : 'bot',
+      text: msg.content,
+      timestamp: msg.timestamp
+    }));
+
+    res.json(formattedMessages);
+  } catch (error) {
+    console.error('Error fetching chat history:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });

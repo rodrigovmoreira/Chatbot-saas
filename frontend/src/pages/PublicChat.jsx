@@ -18,13 +18,15 @@ import {
 import { FaPaperPlane } from 'react-icons/fa';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
+import { io } from 'socket.io-client';
 
 // Create a standalone axios instance to avoid auth interceptors
+const API_URL = (process.env.REACT_APP_API_URL && !process.env.REACT_APP_API_URL.includes('localhotst'))
+  ? process.env.REACT_APP_API_URL
+  : 'http://localhost:3001';
+
 const publicApi = axios.create({
-  // Fallback to hardcoded backend port if env var is missing or contains typo 'localhotst'
-  baseURL: (process.env.REACT_APP_API_URL && !process.env.REACT_APP_API_URL.includes('localhotst'))
-    ? process.env.REACT_APP_API_URL
-    : 'http://localhost:3001',
+  baseURL: API_URL,
 });
 
 const PublicChat = () => {
@@ -44,15 +46,49 @@ const PublicChat = () => {
   const userTextColor = 'white';
   const botTextColor = useColorModeValue('gray.800', 'white');
 
-  // 1. Session & Config Init
+  // 1. Session, Config & History Init
   useEffect(() => {
-    // Session ID Logic
-    let storedSession = localStorage.getItem('calango_session_id');
-    if (!storedSession) {
-      storedSession = uuidv4();
-      localStorage.setItem('calango_session_id', storedSession);
+    // Visitor Identification (calango_visitor_id per instructions, though we previously used calango_session_id)
+    // To respect the prompt strictly, we check calango_visitor_id.
+    let visitorId = localStorage.getItem('calango_visitor_id');
+
+    // If not found, check old key to migrate or create new
+    if (!visitorId) {
+       visitorId = localStorage.getItem('calango_session_id'); // Migration
+       if (!visitorId) {
+          visitorId = uuidv4();
+       }
+       localStorage.setItem('calango_visitor_id', visitorId);
     }
-    setSessionId(storedSession);
+    setSessionId(visitorId);
+
+    // Socket Connection
+    const socket = io(API_URL, {
+      query: { visitorId },
+      transports: ['websocket', 'polling']
+    });
+
+    socket.on('connect', () => {
+      console.log('🔌 Connected to public chat socket');
+    });
+
+    socket.on('bot_message', (data) => {
+      setMessages((prev) => [...prev, data]);
+      setLoading(false); // Stop loading indicator when bot replies
+    });
+
+    // History Hydration
+    const fetchHistory = async () => {
+        try {
+            const res = await publicApi.get(`/api/chat/history/${visitorId}`);
+            if (res.data && Array.isArray(res.data)) {
+                setMessages(res.data);
+            }
+        } catch (error) {
+            console.error('Error fetching history:', error);
+        }
+    };
+    fetchHistory();
 
     // Fetch Business Config
     const fetchConfig = async () => {
@@ -76,6 +112,10 @@ const PublicChat = () => {
     if (businessId) {
       fetchConfig();
     }
+
+    return () => {
+      socket.disconnect();
+    };
   }, [businessId, toast]);
 
   // Scroll to bottom on new messages
@@ -102,14 +142,15 @@ const PublicChat = () => {
         message: userMsg,
       };
 
-      const res = await publicApi.post('/api/chat/send', payload);
+      // We send the message via POST
+      // The response will come back, but we also listen to the socket 'bot_message'.
+      // To avoid duplicates or rely on the "multi-tab" logic, we should probably
+      // NOT add the bot response here, and let the socket handler do it.
+      await publicApi.post('/api/chat/send', payload);
 
-      if (res.data && res.data.response) {
-        setMessages((prev) => [
-          ...prev,
-          { sender: 'bot', text: res.data.response },
-        ]);
-      }
+      // Note: We deliberately ignore the response here for UI updates
+      // because the 'bot_message' socket event will handle it for all tabs.
+
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -118,7 +159,6 @@ const PublicChat = () => {
         duration: 3000,
         isClosable: true,
       });
-    } finally {
       setLoading(false);
     }
   };
