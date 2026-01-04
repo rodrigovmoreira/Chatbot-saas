@@ -48,8 +48,14 @@ function startScheduler() {
   // Roda a cada minuto
   cron.schedule('* * * * *', async () => {
     try {
-      // 1. Pega TODAS as empresas ativas
-      const configs = await BusinessConfig.find({});
+      // 1. Pega APENAS as empresas ativas com regras configuradas
+      const configs = await BusinessConfig.find({
+        userId: { $exists: true },
+        $or: [
+          { notificationRules: { $exists: true, $not: { $size: 0 } } },
+          { followUpSteps: { $exists: true, $not: { $size: 0 } } }
+        ]
+      });
 
       for (const config of configs) {
         if (!config.userId) continue;
