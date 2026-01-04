@@ -115,10 +115,7 @@ router.get('/google/callback',
     });
 
     // Redirect to frontend with token
-    const frontendUrl = [
-  "http://localhost:3000",
-  "https://mindful-happiness-production.up.railway.app"
-];
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
 
     // We pass user info too, url encoded
     const userData = encodeURIComponent(JSON.stringify({ id: user._id, name: user.name, email: user.email, avatarUrl: user.avatarUrl }));
