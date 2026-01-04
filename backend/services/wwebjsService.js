@@ -6,6 +6,7 @@ const BusinessConfig = require('../models/BusinessConfig');
 const sessions = new Map();
 const qrCodes = new Map();
 const statuses = new Map();
+const timeouts = new Map();
 
 let ioInstance;
 
@@ -33,6 +34,42 @@ const startSession = async (userId) => {
     return;
   }
 
+  // 2. The 'QR Timeout' Safety Valve
+  // Clear any existing timeout just in case
+  if (timeouts.has(userId)) {
+      clearTimeout(timeouts.get(userId));
+      timeouts.delete(userId);
+  }
+
+  // Set new timeout (120 seconds)
+  const timeoutId = setTimeout(async () => {
+      const currentStatus = statuses.get(userId);
+      console.log(`⏱️ Timeout de conexão para User ${userId}. Status atual: ${currentStatus}`);
+
+      if (currentStatus === 'initializing' || currentStatus === 'qrcode') {
+          console.warn(`⚠️ Forçando destruição por timeout (User ${userId})`);
+
+          const clientToDestroy = sessions.get(userId);
+          if (clientToDestroy) {
+              try {
+                  await clientToDestroy.destroy();
+              } catch (e) {
+                  console.error(`Erro ao destruir por timeout: ${e.message}`);
+              }
+          }
+
+          cleanupSession(userId);
+
+          if (ioInstance) {
+              ioInstance.to(userId).emit('connection_timeout', { message: 'Tempo limite excedido. Tente novamente.' });
+              // Also update status to disconnected so frontend reflects it
+              ioInstance.to(userId).emit('wwebjs_status', 'disconnected');
+          }
+      }
+  }, 120000); // 2 minutes
+
+  timeouts.set(userId, timeoutId);
+
   const client = new Client({
     authStrategy: new LocalAuth({
       clientId: userId,
@@ -43,14 +80,16 @@ const startSession = async (userId) => {
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
+        '--disable-dev-shm-usage', // Critical for Docker
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
         '--no-zygote',
+        '--single-process',
         '--disable-gpu',
         '--disable-logging', // Desativa logs para evitar EBUSY no chrome_debug.log
         '--log-level=3'
-      ]
+      ],
+      executablePath: process.env.CHROME_BIN || undefined
     }
   });
 
@@ -64,11 +103,19 @@ const startSession = async (userId) => {
   });
 
   client.on('ready', () => {
+    if (timeouts.has(userId)) {
+        clearTimeout(timeouts.get(userId));
+        timeouts.delete(userId);
+    }
     updateStatus(userId, 'ready');
     qrCodes.delete(userId);
   });
 
   client.on('authenticated', () => {
+    if (timeouts.has(userId)) {
+        clearTimeout(timeouts.get(userId));
+        timeouts.delete(userId);
+    }
     updateStatus(userId, 'authenticated');
     qrCodes.delete(userId);
   });
@@ -130,6 +177,10 @@ const stopSession = async (userId) => {
 };
 
 const cleanupSession = (userId) => {
+  if (timeouts.has(userId)) {
+      clearTimeout(timeouts.get(userId));
+      timeouts.delete(userId);
+  }
   sessions.delete(userId);
   qrCodes.delete(userId);
   statuses.delete(userId);

@@ -26,13 +26,14 @@ function appReducer(state, action) {
     
     case 'SET_WHATSAPP_STATUS': 
       const isConnected = action.payload.isConnected;
+      const isDisconnected = action.payload.mode === 'Desconectado';
       return { 
         ...state, 
         whatsappStatus: { 
           ...state.whatsappStatus,
           isConnected: isConnected,
           mode: action.payload.mode,
-          qrCode: isConnected ? null : state.whatsappStatus.qrCode 
+          qrCode: (isConnected || isDisconnected) ? null : state.whatsappStatus.qrCode
         }
       };
       
