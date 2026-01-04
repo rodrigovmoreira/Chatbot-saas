@@ -143,7 +143,7 @@ const Login = () => {
       {/* Left Panel - Brand */}
       <Flex
         flex={1}
-        bgGradient="linear(to-br, brand.600, brand.neon)"
+        bgGradient="linear(to-br, brand.600 54%, brand.neon)"
         justify="center"
         align="center"
         direction="column"
