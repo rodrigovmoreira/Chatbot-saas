@@ -49,4 +49,10 @@ contactSchema.index({ businessId: 1, sessionId: 1 }, {
   partialFilterExpression: { sessionId: { $exists: true } }
 });
 
+// TTL Index: Auto-delete Web visitors after 30 days of inactivity
+contactSchema.index({ lastInteraction: 1 }, {
+  expireAfterSeconds: 2592000, // 30 Days
+  partialFilterExpression: { channel: 'web' }
+});
+
 module.exports = mongoose.model('Contact', contactSchema);

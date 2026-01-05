@@ -70,6 +70,12 @@ app.use(cookieParser());
 app.use(cors({ origin: allowedOrigins, credentials: true, methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'] }));
 app.use(passport.initialize());
 
+// Middleware para injetar IO nas rotas
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
+
 // ==========================================
 // 🔌 CONEXÃO DOS PLUGINS (ROTAS)
 // ==========================================
@@ -115,6 +121,14 @@ app.post('/api/webhook', async (req, res) => {
 // SOCKET.IO (MULTI-TENANT)
 // ==========================================
 io.on('connection', (socket) => {
+  // 1. Visitante do Chat Público
+  const visitorId = socket.handshake.query.visitorId;
+  if (visitorId) {
+    socket.join(visitorId);
+    // console.log(`🔌 Visitor connected: ${visitorId}`);
+  }
+
+  // 2. Admin do Dashboard
   socket.on('join_session', (userId) => {
     if (!userId) return;
     socket.join(userId);
