@@ -1,28 +1,25 @@
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box, Flex, Heading, Text, Button, VStack, HStack,
   useToast, useColorModeValue, FormControl, FormLabel, Input,
-  Spinner,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
   useDisclosure, Drawer, DrawerOverlay, DrawerContent,
   Menu, MenuButton, MenuList, MenuItem, Avatar, IconButton
 } from '@chakra-ui/react';
 import {
-  EditIcon, WarningTwoIcon, ChevronDownIcon,
+  EditIcon, WarningTwoIcon, ChevronDownIcon, HamburgerIcon,
 } from '@chakra-ui/icons';
 import { useApp } from '../context/AppContext';
 import { authAPI, businessAPI } from '../services/api';
+import ScheduleTab from '../components/ScheduleTab';
 
 // Imported Components
 import { SidebarContent, LinkItems } from '../components/Sidebar';
-
-// Lazy Loaded Tabs
-const ConnectionTab = React.lazy(() => import('../components/dashboard-tabs/ConnectionTab'));
-const IntelligenceTab = React.lazy(() => import('../components/dashboard-tabs/IntelligenceTab'));
-const QuickRepliesTab = React.lazy(() => import('../components/dashboard-tabs/QuickRepliesTab'));
-const CatalogTab = React.lazy(() => import('../components/dashboard-tabs/CatalogTab'));
-const LiveChatTab = React.lazy(() => import('../components/dashboard-tabs/LiveChatTab'));
-const ScheduleTab = React.lazy(() => import('../components/ScheduleTab'));
+import ConnectionTab from '../components/dashboard-tabs/ConnectionTab';
+import IntelligenceTab from '../components/dashboard-tabs/IntelligenceTab';
+import QuickRepliesTab from '../components/dashboard-tabs/QuickRepliesTab';
+import CatalogTab from '../components/dashboard-tabs/CatalogTab';
+import LiveChatTab from '../components/dashboard-tabs/LiveChatTab';
 
 const Dashboard = () => {
   const { state, dispatch } = useApp();
@@ -107,32 +104,9 @@ const Dashboard = () => {
     }
   };
 
-  // User Menu Component (Reused in MobileNav and DesktopHeader)
-  const UserMenu = () => (
-    <Menu>
-      <MenuButton
-        as={Button}
-        rounded={'full'}
-        variant={'link'}
-        cursor={'pointer'}
-        minW={0}
-      >
-        <Avatar
-          size={'sm'}
-          name={profileData.name}
-          src={profileData.avatarUrl}
-        />
-      </MenuButton>
-      <MenuList>
-        <MenuItem icon={<EditIcon />} onClick={onProfileOpen}>Meu Perfil</MenuItem>
-        <MenuItem icon={<WarningTwoIcon />} onClick={handleLogoutSystem}>Sair</MenuItem>
-      </MenuList>
-    </Menu>
-  );
-
   return (
     <Box minH="100vh" bg={mainBg}>
-      {/* SIDEBAR PARA DESKTOP !*/}
+      {/* SIDEBAR PARA DESKTOP !!!*/}
       <SidebarContent
         display={{ base: 'none', lg: 'flex' }}
         activeTab={activeTab}
@@ -163,23 +137,61 @@ const Dashboard = () => {
         </DrawerContent>
       </Drawer>
 
-      {/* MOBILE NAVIGATION BAR (Fixed Top) */}
-      <MobileNav
-        onOpen={onSidebarOpen}
-        title={LinkItems[activeTab]?.name || 'Painel'}
-      >
-        <UserMenu />
-      </MobileNav>
-
       {/* CONTEÚDO PRINCIPAL (Área à direita) */}
       <Box
         ml={{ base: 0, lg: isCollapsed ? 20 : 60 }}
         p={{ base: 4, md: 6 }}
-        pt={{ base: '24', lg: 6 }} // Increased top padding on mobile to account for fixed MobileNav (20 = 5rem = 80px)
+        pt={{ base: 4, lg: 6 }}
         transition="margin-left 0.2s"
       >
 
-        {/* HEADER DESKTOP (TopBar) - Hidden on Mobile */}
+        {/* Navbar Mobile Customizada (Com Avatar e Menu) */}
+        <Flex
+          display={{ base: 'flex', lg: 'none' }} // Só aparece no Mobile
+          alignItems="center"
+          justifyContent="space-between"
+          bg={useColorModeValue('white', 'gray.800')}
+          p={4}
+          mb={4}
+          borderRadius="lg"
+          boxShadow="sm"
+        >
+          {/* Lado Esquerdo: Menu Hamburger + Título */}
+          <HStack spacing={3}>
+            <IconButton
+              onClick={onSidebarOpen}
+              variant="ghost"
+              aria-label="Abrir menu"
+              icon={<HamburgerIcon />}
+            />
+            <Text fontSize="lg" fontWeight="bold" color={useColorModeValue('gray.700', 'white')}>
+              {LinkItems[activeTab]?.name || 'Painel'}
+            </Text>
+          </HStack>
+
+          {/* Lado Direito: Foto do Usuário (Avatar) */}
+          <Menu>
+            <MenuButton
+              as={Button}
+              rounded={'full'}
+              variant={'link'}
+              cursor={'pointer'}
+              minW={0}
+            >
+              <Avatar
+                size={'sm'}
+                name={profileData.name}
+                src={profileData.avatarUrl}
+              />
+            </MenuButton>
+            <MenuList>
+              <MenuItem icon={<EditIcon />} onClick={onProfileOpen}>Meu Perfil</MenuItem>
+              <MenuItem icon={<WarningTwoIcon />} onClick={handleLogoutSystem}>Sair</MenuItem>
+            </MenuList>
+          </Menu>
+        </Flex>
+
+        {/* HEADER DESKTOP (TopBar) */}
         <Flex
           display={{ base: 'none', lg: 'flex' }}
           justify="space-between"
@@ -212,14 +224,12 @@ const Dashboard = () => {
 
         {/* --- CONTEÚDO DAS ABAS (Render Condicional) --- */}
 
-        <Suspense fallback={<Flex justify="center" align="center" h="400px"><Spinner size="xl" thickness="4px" speed="0.65s" emptyColor="gray.200" color="brand.500" /></Flex>}>
-          {activeTab === 0 && <ConnectionTab />}
-          {activeTab === 1 && <IntelligenceTab />}
-          {activeTab === 2 && <QuickRepliesTab />}
-          {activeTab === 3 && <CatalogTab />}
-          {activeTab === 4 && <LiveChatTab />}
-          {activeTab === 5 && <ScheduleTab />}
-        </Suspense>
+        {activeTab === 0 && <ConnectionTab />}
+        {activeTab === 1 && <IntelligenceTab />}
+        {activeTab === 2 && <QuickRepliesTab />}
+        {activeTab === 3 && <CatalogTab />}
+        {activeTab === 4 && <LiveChatTab />}
+        {activeTab === 5 && <ScheduleTab />}
 
       </Box>
 
