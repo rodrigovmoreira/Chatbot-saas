@@ -69,7 +69,7 @@ const LandingPage = () => {
               bgGradient="linear(to-r, brand.600, brand.400)"
               bgClip="text"
             >
-              Automatize seu WhatsApp com Inteligência Artificial
+              Evolua seus atendimentos com Inteligência Artificial
             </Heading>
             <Text fontSize="xl" color="gray.500">
               Agendamento automático, envio de catálogo visual e respostas inteligentes 24 horas por dia para o seu negócio nunca parar de vender.
