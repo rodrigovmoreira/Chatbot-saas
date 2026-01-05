@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
-  Box, Grid, GridItem, Card, CardHeader, CardBody, Heading, Text, Button, VStack, HStack,
+  Box, Grid, GridItem, Card, CardHeader, CardBody, Heading, Text, Button, VStack, HStack, Stack,
   useToast, Icon, useColorModeValue, FormControl, FormLabel, Input, Textarea,
   Spinner, Divider
 } from '@chakra-ui/react';
@@ -119,10 +119,10 @@ const ConnectionTab = () => {
                   <FormLabel fontSize="xs" fontWeight="bold" color="gray.500">NOME FANTASIA</FormLabel>
                   <Input isDisabled={!editingHours} value={configForm.businessName} onChange={e => setConfigForm({ ...configForm, businessName: e.target.value })} />
                 </FormControl>
-                <HStack>
-                  <FormControl><FormLabel fontSize="xs" fontWeight="bold" color="gray.500">ABERTURA</FormLabel><Input type="time" isDisabled={!editingHours} value={configForm.operatingHours.opening} onChange={e => setConfigForm({ ...configForm, operatingHours: { ...configForm.operatingHours, opening: e.target.value } })} /></FormControl>
-                  <FormControl><FormLabel fontSize="xs" fontWeight="bold" color="gray.500">FECHAMENTO</FormLabel><Input type="time" isDisabled={!editingHours} value={configForm.operatingHours.closing} onChange={e => setConfigForm({ ...configForm, operatingHours: { ...configForm.operatingHours, closing: e.target.value } })} /></FormControl>
-                </HStack>
+                <Stack direction={{ base: 'column', md: 'row' }} spacing={4}>
+                  <FormControl><FormLabel fontSize="xs" fontWeight="bold" color="gray.500">ABERTURA</FormLabel><Input type="time" isDisabled={!editingHours} value={configForm.operatingHours.opening} onChange={e => setConfigForm({ ...configForm, operatingHours: { ...configForm.operatingHours, opening: e.target.value } })} size={{ base: 'lg', md: 'md' }} /></FormControl>
+                  <FormControl><FormLabel fontSize="xs" fontWeight="bold" color="gray.500">FECHAMENTO</FormLabel><Input type="time" isDisabled={!editingHours} value={configForm.operatingHours.closing} onChange={e => setConfigForm({ ...configForm, operatingHours: { ...configForm.operatingHours, closing: e.target.value } })} size={{ base: 'lg', md: 'md' }} /></FormControl>
+                </Stack>
                 <FormControl>
                   <FormLabel fontSize="xs" fontWeight="bold" color="gray.500">MENSAGEM DE AUSÊNCIA</FormLabel>
                   <Textarea isDisabled={!editingHours} value={configForm.awayMessage} onChange={e => setConfigForm({ ...configForm, awayMessage: e.target.value })} rows={3} />
@@ -133,15 +133,15 @@ const ConnectionTab = () => {
                 <Heading size="sm" pt={2} color="gray.600">Links & Redes Sociais</Heading>
                 <FormControl>
                   <FormLabel fontSize="xs" fontWeight="bold" color="gray.500">INSTAGRAM</FormLabel>
-                  <Input isDisabled={!editingHours} placeholder="@seu_negocio" value={configForm.socialMedia.instagram} onChange={e => setConfigForm({ ...configForm, socialMedia: { ...configForm.socialMedia, instagram: e.target.value } })} />
+                  <Input isDisabled={!editingHours} placeholder="@seu_negocio" value={configForm.socialMedia.instagram} onChange={e => setConfigForm({ ...configForm, socialMedia: { ...configForm.socialMedia, instagram: e.target.value } })} size={{ base: 'lg', md: 'md' }} />
                 </FormControl>
                 <FormControl>
                   <FormLabel fontSize="xs" fontWeight="bold" color="gray.500">WEBSITE</FormLabel>
-                  <Input isDisabled={!editingHours} placeholder="https://..." value={configForm.socialMedia.website} onChange={e => setConfigForm({ ...configForm, socialMedia: { ...configForm.socialMedia, website: e.target.value } })} />
+                  <Input isDisabled={!editingHours} placeholder="https://..." value={configForm.socialMedia.website} onChange={e => setConfigForm({ ...configForm, socialMedia: { ...configForm.socialMedia, website: e.target.value } })} size={{ base: 'lg', md: 'md' }} />
                 </FormControl>
                 <FormControl>
                   <FormLabel fontSize="xs" fontWeight="bold" color="gray.500">PORTFOLIO</FormLabel>
-                  <Input isDisabled={!editingHours} placeholder="Link externo (Drive, Behance...)" value={configForm.socialMedia.portfolio} onChange={e => setConfigForm({ ...configForm, socialMedia: { ...configForm.socialMedia, portfolio: e.target.value } })} />
+                  <Input isDisabled={!editingHours} placeholder="Link externo (Drive, Behance...)" value={configForm.socialMedia.portfolio} onChange={e => setConfigForm({ ...configForm, socialMedia: { ...configForm.socialMedia, portfolio: e.target.value } })} size={{ base: 'lg', md: 'md' }} />
                 </FormControl>
 
                 {editingHours && <Button colorScheme="brand" onClick={handleSaveConfig} width="full">Salvar Alterações</Button>}

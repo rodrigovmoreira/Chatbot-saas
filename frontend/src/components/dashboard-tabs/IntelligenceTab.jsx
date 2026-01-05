@@ -203,10 +203,10 @@ const IntelligenceTab = () => {
                 <Text fontSize="sm" color="gray.600">Use um modelo pronto da plataforma.</Text>
               </Box>
               <Stack direction={{ base: 'column', md: 'row' }} spacing={4}>
-                <Select placeholder="Selecione..." bg={gray50Bg} onChange={(e) => setSelectedPreset(e.target.value)} value={selectedPreset}>
+                <Select placeholder="Selecione..." bg={gray50Bg} onChange={(e) => setSelectedPreset(e.target.value)} value={selectedPreset} size={{ base: 'lg', md: 'md' }}>
                   {presets.map(p => (<option key={p.key} value={p.key}>{p.icon} {p.name}</option>))}
                 </Select>
-                <Button colorScheme="blue" onClick={handleApplyPreset} isDisabled={!selectedPreset} leftIcon={<StarIcon />} width={{ base: 'full', md: 'auto' }}>Aplicar</Button>
+                <Button colorScheme="blue" onClick={handleApplyPreset} isDisabled={!selectedPreset} leftIcon={<StarIcon />} width={{ base: 'full', md: 'auto' }} size={{ base: 'lg', md: 'md' }}>Aplicar</Button>
               </Stack>
             </Grid>
           </CardBody>
@@ -226,6 +226,7 @@ const IntelligenceTab = () => {
                   bg={cardBg}
                   onChange={(e) => handleLoadCustomPrompt(e.target.value)}
                   value={selectedCustomPrompt}
+                  size={{ base: 'lg', md: 'md' }}
                 >
                   {customPrompts.map(p => (
                     <option key={p._id} value={p._id}>📄 {p.name}</option>
