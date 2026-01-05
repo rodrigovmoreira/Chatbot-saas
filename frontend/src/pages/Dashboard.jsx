@@ -106,7 +106,7 @@ const Dashboard = () => {
 
   return (
     <Box minH="100vh" bg={mainBg}>
-      {/* SIDEBAR PARA DESKTOP */}
+      {/* SIDEBAR PARA DESKTOP !!!*/}
       <SidebarContent
         display={{ base: 'none', lg: 'flex' }}
         activeTab={activeTab}
