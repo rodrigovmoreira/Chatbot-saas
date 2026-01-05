@@ -7,14 +7,14 @@ import {
   Menu, MenuButton, MenuList, MenuItem, Avatar, IconButton
 } from '@chakra-ui/react';
 import {
-  EditIcon, WarningTwoIcon, ChevronDownIcon, HamburgerIcon,
+  EditIcon, WarningTwoIcon, ChevronDownIcon,
 } from '@chakra-ui/icons';
 import { useApp } from '../context/AppContext';
 import { authAPI, businessAPI } from '../services/api';
 import ScheduleTab from '../components/ScheduleTab';
 
 // Imported Components
-import { SidebarContent, LinkItems } from '../components/Sidebar';
+import { SidebarContent, LinkItems, MobileNav } from '../components/Sidebar';
 import ConnectionTab from '../components/dashboard-tabs/ConnectionTab';
 import IntelligenceTab from '../components/dashboard-tabs/IntelligenceTab';
 import QuickRepliesTab from '../components/dashboard-tabs/QuickRepliesTab';
@@ -104,6 +104,29 @@ const Dashboard = () => {
     }
   };
 
+  // User Menu Component (Reused in MobileNav and DesktopHeader)
+  const UserMenu = () => (
+    <Menu>
+      <MenuButton
+        as={Button}
+        rounded={'full'}
+        variant={'link'}
+        cursor={'pointer'}
+        minW={0}
+      >
+        <Avatar
+          size={'sm'}
+          name={profileData.name}
+          src={profileData.avatarUrl}
+        />
+      </MenuButton>
+      <MenuList>
+        <MenuItem icon={<EditIcon />} onClick={onProfileOpen}>Meu Perfil</MenuItem>
+        <MenuItem icon={<WarningTwoIcon />} onClick={handleLogoutSystem}>Sair</MenuItem>
+      </MenuList>
+    </Menu>
+  );
+
   return (
     <Box minH="100vh" bg={mainBg}>
       {/* SIDEBAR PARA DESKTOP */}
@@ -137,61 +160,23 @@ const Dashboard = () => {
         </DrawerContent>
       </Drawer>
 
+      {/* MOBILE NAVIGATION BAR (Fixed Top) */}
+      <MobileNav
+        onOpen={onSidebarOpen}
+        title={LinkItems[activeTab]?.name || 'Painel'}
+      >
+        <UserMenu />
+      </MobileNav>
+
       {/* CONTEÚDO PRINCIPAL (Área à direita) */}
       <Box
         ml={{ base: 0, lg: isCollapsed ? 20 : 60 }}
         p={{ base: 4, md: 6 }}
-        pt={{ base: 4, lg: 6 }}
+        pt={{ base: '24', lg: 6 }} // Increased top padding on mobile to account for fixed MobileNav (20 = 5rem = 80px)
         transition="margin-left 0.2s"
       >
 
-        {/* Navbar Mobile Customizada (Com Avatar e Menu) */}
-        <Flex
-          display={{ base: 'flex', lg: 'none' }} // Só aparece no Mobile
-          alignItems="center"
-          justifyContent="space-between"
-          bg={useColorModeValue('white', 'gray.800')}
-          p={4}
-          mb={4}
-          borderRadius="lg"
-          boxShadow="sm"
-        >
-          {/* Lado Esquerdo: Menu Hamburger + Título */}
-          <HStack spacing={3}>
-            <IconButton
-              onClick={onSidebarOpen}
-              variant="ghost"
-              aria-label="Abrir menu"
-              icon={<HamburgerIcon />}
-            />
-            <Text fontSize="lg" fontWeight="bold" color={useColorModeValue('gray.700', 'white')}>
-              {LinkItems[activeTab]?.name || 'Painel'}
-            </Text>
-          </HStack>
-
-          {/* Lado Direito: Foto do Usuário (Avatar) */}
-          <Menu>
-            <MenuButton
-              as={Button}
-              rounded={'full'}
-              variant={'link'}
-              cursor={'pointer'}
-              minW={0}
-            >
-              <Avatar
-                size={'sm'}
-                name={profileData.name}
-                src={profileData.avatarUrl}
-              />
-            </MenuButton>
-            <MenuList>
-              <MenuItem icon={<EditIcon />} onClick={onProfileOpen}>Meu Perfil</MenuItem>
-              <MenuItem icon={<WarningTwoIcon />} onClick={handleLogoutSystem}>Sair</MenuItem>
-            </MenuList>
-          </Menu>
-        </Flex>
-
-        {/* HEADER DESKTOP (TopBar) */}
+        {/* HEADER DESKTOP (TopBar) - Hidden on Mobile */}
         <Flex
           display={{ base: 'none', lg: 'flex' }}
           justify="space-between"

@@ -138,21 +138,20 @@ export const SidebarContent = ({ onClose, activeTab, setActiveTab, isCollapsed =
   );
 };
 
-export const MobileNav = ({ onOpen, title, ...rest }) => {
+export const MobileNav = ({ onOpen, title, children, ...rest }) => {
   const bg = useColorModeValue('white', 'gray.900');
   const borderBottomColor = useColorModeValue('gray.200', 'gray.700');
 
   return (
     <Flex
       display={{ base: 'flex', lg: 'none' }}
-      ml={{ base: 0, lg: 60 }}
       px={{ base: 4, md: 4 }}
       height="20"
       alignItems="center"
       bg={bg}
       borderBottomWidth="1px"
       borderBottomColor={borderBottomColor}
-      justifyContent={{ base: 'space-between', md: 'flex-end' }}
+      justifyContent="space-between"
       pos="fixed"
       top="0"
       left="0"
@@ -160,26 +159,27 @@ export const MobileNav = ({ onOpen, title, ...rest }) => {
       zIndex="10"
       {...rest}
     >
-      <IconButton
-        display={{ base: 'flex', lg: 'none' }}
-        onClick={onOpen}
-        variant="outline"
-        aria-label="open menu"
-        icon={<HamburgerIcon />}
-      />
+      <HStack>
+        <IconButton
+          display={{ base: 'flex', lg: 'none' }}
+          onClick={onOpen}
+          variant="ghost"
+          aria-label="open menu"
+          icon={<HamburgerIcon />}
+        />
 
-      <Text
-        display={{ base: 'flex', lg: 'none' }}
-        fontSize="xl"
-        fontFamily="monospace"
-        fontWeight="bold"
-        ml={4}
-      >
-        {title}
-      </Text>
+        <Text
+          display={{ base: 'flex', lg: 'none' }}
+          fontSize="lg"
+          fontWeight="bold"
+          ml={2}
+        >
+          {title}
+        </Text>
+      </HStack>
 
       <HStack spacing={{ base: '0', md: '6' }}>
-        {/* ColorModeToggle moved to Sidebar */}
+        {children}
       </HStack>
     </Flex>
   );
