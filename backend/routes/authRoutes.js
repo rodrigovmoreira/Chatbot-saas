@@ -8,9 +8,10 @@ const BusinessConfig = require('../models/BusinessConfig');
 const authenticateToken = require('../middleware/auth');
 const { stopSession } = require('../services/wwebjsService');
 const { sendVerificationEmail } = require('../services/emailService');
+const loginLimiter = require('../middleware/loginLimiter');
 
 // ROTA: /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await SystemUser.findOne({ email }).select('+password');
