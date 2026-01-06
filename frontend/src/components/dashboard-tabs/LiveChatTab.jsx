@@ -5,7 +5,7 @@ import {
   Avatar, Modal, ModalOverlay, ModalContent, ModalHeader,
   ModalCloseButton, ModalBody, ModalFooter, useDisclosure, Code, IconButton, Tooltip, useToast
 } from '@chakra-ui/react';
-import { ChatIcon, WarningTwoIcon, LinkIcon, DeleteIcon } from '@chakra-ui/icons';
+import { ChatIcon, WarningTwoIcon, LinkIcon, DeleteIcon, ArrowBackIcon } from '@chakra-ui/icons';
 import { FaWhatsapp, FaGlobe } from 'react-icons/fa';
 import { businessAPI } from '../../services/api';
 import { useApp } from '../../context/AppContext';
@@ -15,6 +15,9 @@ const LiveChatTab = () => {
   const [conversations, setConversations] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
   const [messages, setMessages] = useState([]);
+
+  // Mobile View State
+  const [showMobileChat, setShowMobileChat] = useState(false);
 
   // Modal de Embed
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -92,6 +95,16 @@ const LiveChatTab = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const handleContactSelect = (contact) => {
+    setSelectedContact(contact);
+    setShowMobileChat(true); // Switch to chat view on mobile
+  };
+
+  const handleBackToList = () => {
+    setShowMobileChat(false);
+    setSelectedContact(null);
+  };
+
   // Helper de Formatação
   const formatTime = (isoString) => {
     if (!isoString) return '';
@@ -130,7 +143,8 @@ const LiveChatTab = () => {
           {/* LADO ESQUERDO: LISTA DE CONTATOS */}
           <Box
             w={{ base: "100%", md: "300px" }}
-            h={{ base: "40%", md: "100%" }}
+            display={{ base: showMobileChat ? 'none' : 'block', md: 'block' }}
+            h="100%"
             borderRight="1px solid"
             borderColor={gray50Bg}
             bg={gray50Bg}
@@ -154,7 +168,7 @@ const LiveChatTab = () => {
                   borderLeft={selectedContact?._id === contact._id ? "4px solid" : "4px solid transparent"}
                   borderLeftColor="brand.500"
                   _hover={{ bg: 'gray.100' }}
-                  onClick={() => setSelectedContact(contact)}
+                  onClick={() => handleContactSelect(contact)}
                 >
                   <HStack justify="space-between" mb={1}>
                     <HStack>
@@ -175,13 +189,29 @@ const LiveChatTab = () => {
           </Box>
 
           {/* LADO DIREITO: CHAT */}
-          <Box flex="1" bg={gray100} position="relative" display="flex" flexDirection="column" h={{ base: "60%", md: "100%" }}>
+          <Box
+            flex="1"
+            bg={gray100}
+            position="relative"
+            display={{ base: showMobileChat ? 'flex' : 'none', md: 'flex' }}
+            flexDirection="column"
+            h="100%"
+          >
 
             {selectedContact ? (
               <>
                 {/* Header do Chat */}
                 <HStack p={4} bg={cardBg} borderBottom="1px solid" borderColor={gray50Bg} justify="space-between">
                   <HStack>
+                    {/* Back Button for Mobile */}
+                    <IconButton
+                      display={{ base: 'flex', md: 'none' }}
+                      icon={<ArrowBackIcon />}
+                      onClick={handleBackToList}
+                      variant="ghost"
+                      aria-label="Voltar"
+                      mr={2}
+                    />
                     <Avatar size="sm" name={selectedContact.name} src={selectedContact.avatarUrl} />
                     <Box>
                       <Text fontWeight="bold">{selectedContact.name || 'Visitante'}</Text>
