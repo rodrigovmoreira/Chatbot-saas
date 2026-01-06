@@ -6,9 +6,10 @@ import {
   ModalCloseButton, ModalBody, ModalFooter, useDisclosure, Code, IconButton, Tooltip, useToast
 } from '@chakra-ui/react';
 import { ChatIcon, WarningTwoIcon, LinkIcon, DeleteIcon } from '@chakra-ui/icons';
-import { FaWhatsapp, FaGlobe } from 'react-icons/fa';
 import { businessAPI } from '../../services/api';
 import { useApp } from '../../context/AppContext';
+import ConversationItem from './ConversationItem';
+import MessageItem from './MessageItem';
 
 const LiveChatTab = () => {
   const { state } = useApp();
@@ -144,32 +145,15 @@ const LiveChatTab = () => {
                  <Text p={4} fontSize="sm" color="gray.500">Nenhuma conversa ainda.</Text>
               )}
               {conversations.map((contact) => (
-                <Box
+                <ConversationItem
                   key={contact._id}
-                  p={4}
-                  bg={selectedContact?._id === contact._id ? 'brand.50' : cardBg}
-                  borderBottom="1px solid"
-                  borderColor={gray50Bg}
-                  cursor="pointer"
-                  borderLeft={selectedContact?._id === contact._id ? "4px solid" : "4px solid transparent"}
-                  borderLeftColor="brand.500"
-                  _hover={{ bg: 'gray.100' }}
-                  onClick={() => setSelectedContact(contact)}
-                >
-                  <HStack justify="space-between" mb={1}>
-                    <HStack>
-                       {contact.channel === 'whatsapp'
-                         ? <Icon as={FaWhatsapp} color="green.500" />
-                         : <Icon as={FaGlobe} color="blue.500" />
-                       }
-                       <Text fontWeight="bold" fontSize="sm" noOfLines={1}>{contact.name || contact.phone}</Text>
-                    </HStack>
-                    <Text fontSize="xs" color="gray.500">{formatTime(contact.lastInteraction)}</Text>
-                  </HStack>
-                  <Text fontSize="xs" color="gray.500" noOfLines={1}>
-                    {contact.phone || contact.sessionId}
-                  </Text>
-                </Box>
+                  contact={contact}
+                  isSelected={selectedContact?._id === contact._id}
+                  onClick={setSelectedContact}
+                  cardBg={cardBg}
+                  gray50Bg={gray50Bg}
+                  formatTime={formatTime}
+                />
               ))}
             </VStack>
           </Box>
@@ -206,32 +190,14 @@ const LiveChatTab = () => {
                 {/* Área de Mensagens */}
                 <Box flex="1" p={4} overflowY="auto" bgImage="linear-gradient(to bottom, #f0f2f5, #e1e5ea)">
                   <VStack spacing={3} align="stretch">
-                    {messages.map((msg, index) => {
-                       const isMe = msg.role === 'bot' || msg.role === 'system'; // Bot = Direita (Verde), User = Esquerda (Branco)
-                       // Ajuste: No Admin, "Eu" sou o Bot/Empresa. O "Outro" é o User.
-                       // Então msg.role === 'bot' -> Right. msg.role === 'user' -> Left.
-
-                       return (
-                         <HStack key={index} justify={isMe ? 'flex-end' : 'flex-start'} align="flex-start">
-                           {!isMe && <Avatar size="xs" name={selectedContact.name} mr={2} mt={1} />}
-                           <Box
-                             bg={isMe ? 'brand.100' : 'white'}
-                             color="black"
-                             px={4} py={2}
-                             borderRadius="lg"
-                             boxShadow="sm"
-                             maxW="70%"
-                             borderTopLeftRadius={!isMe ? 0 : 'lg'}
-                             borderTopRightRadius={isMe ? 0 : 'lg'}
-                           >
-                             <Text fontSize="sm" whiteSpace="pre-wrap">{msg.content}</Text>
-                             <Text fontSize="10px" color="gray.500" textAlign="right" mt={1}>
-                               {formatTime(msg.timestamp)}
-                             </Text>
-                           </Box>
-                         </HStack>
-                       );
-                    })}
+                    {messages.map((msg, index) => (
+                      <MessageItem
+                        key={index}
+                        msg={msg}
+                        selectedContactName={selectedContact.name}
+                        formatTime={formatTime}
+                      />
+                    ))}
                     <div ref={messagesEndRef} />
                   </VStack>
                 </Box>
