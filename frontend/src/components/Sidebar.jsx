@@ -83,6 +83,7 @@ export const SidebarContent = ({ onClose, activeTab, setActiveTab, isCollapsed =
       w={{ base: 'full', lg: isCollapsed ? 20 : 60 }}
       pos={pos}
       h="full"
+      zIndex={pos === 'fixed' ? 100 : 'auto'} // Ensure fixed sidebar stays on top
       {...rest}
     >
       <Flex h="20" alignItems="center" mx={isCollapsed ? 0 : 8} justifyContent={isCollapsed ? 'center' : 'space-between'}>
@@ -139,7 +140,7 @@ export const SidebarContent = ({ onClose, activeTab, setActiveTab, isCollapsed =
 };
 
 export const MobileNav = ({ onOpen, title, children, ...rest }) => {
-  const bg = useColorModeValue('white', 'gray.900');
+  const bg = useColorModeValue('white', 'gray.800');
   const borderBottomColor = useColorModeValue('gray.200', 'gray.700');
 
   return (
@@ -156,12 +157,12 @@ export const MobileNav = ({ onOpen, title, children, ...rest }) => {
       top="0"
       left="0"
       right="0"
-      zIndex="10"
+      zIndex="999" // High z-index for mobile nav
+      boxShadow="sm"
       {...rest}
     >
-      <HStack>
+      <HStack spacing={3}>
         <IconButton
-          display={{ base: 'flex', lg: 'none' }}
           onClick={onOpen}
           variant="ghost"
           aria-label="open menu"
@@ -169,10 +170,8 @@ export const MobileNav = ({ onOpen, title, children, ...rest }) => {
         />
 
         <Text
-          display={{ base: 'flex', lg: 'none' }}
           fontSize="lg"
           fontWeight="bold"
-          ml={2}
         >
           {title}
         </Text>
