@@ -5,7 +5,7 @@ import {
   Avatar, Modal, ModalOverlay, ModalContent, ModalHeader,
   ModalCloseButton, ModalBody, ModalFooter, useDisclosure, Code, IconButton, Tooltip, useToast
 } from '@chakra-ui/react';
-import { ChatIcon, WarningTwoIcon, LinkIcon, DeleteIcon } from '@chakra-ui/icons';
+import { ChatIcon, WarningTwoIcon, LinkIcon, DeleteIcon, ArrowBackIcon } from '@chakra-ui/icons';
 import { FaWhatsapp, FaGlobe } from 'react-icons/fa';
 import { businessAPI } from '../../services/api';
 import { useApp } from '../../context/AppContext';
@@ -130,11 +130,12 @@ const LiveChatTab = () => {
           {/* LADO ESQUERDO: LISTA DE CONTATOS */}
           <Box
             w={{ base: "100%", md: "300px" }}
-            h={{ base: "40%", md: "100%" }}
+            h={{ base: "100%", md: "100%" }}
             borderRight="1px solid"
             borderColor={gray50Bg}
             bg={gray50Bg}
             overflowY="auto"
+            display={{ base: selectedContact ? 'none' : 'block', md: 'block' }} // Hide on mobile if contact selected
           >
             <Box p={4} borderBottom="1px solid" borderColor={gray50Bg} bg={cardBg}>
               <Heading size="sm" color="gray.600">Conversas</Heading>
@@ -175,13 +176,30 @@ const LiveChatTab = () => {
           </Box>
 
           {/* LADO DIREITO: CHAT */}
-          <Box flex="1" bg={gray100} position="relative" display="flex" flexDirection="column" h={{ base: "60%", md: "100%" }}>
+          <Box
+             flex="1"
+             bg={gray100}
+             position="relative"
+             display={{ base: selectedContact ? 'flex' : 'none', md: 'flex' }} // Hide on mobile if NO contact selected
+             flexDirection="column"
+             h="100%"
+          >
 
             {selectedContact ? (
               <>
                 {/* Header do Chat */}
                 <HStack p={4} bg={cardBg} borderBottom="1px solid" borderColor={gray50Bg} justify="space-between">
                   <HStack>
+                    {/* Botão Voltar (Apenas Mobile) */}
+                    <IconButton
+                      display={{ base: 'flex', md: 'none' }}
+                      icon={<ArrowBackIcon />}
+                      aria-label="Voltar"
+                      variant="ghost"
+                      onClick={() => setSelectedContact(null)}
+                      mr={2}
+                    />
+
                     <Avatar size="sm" name={selectedContact.name} src={selectedContact.avatarUrl} />
                     <Box>
                       <Text fontWeight="bold">{selectedContact.name || 'Visitante'}</Text>
