@@ -11,15 +11,18 @@ import {
 } from '@chakra-ui/icons';
 import { useApp } from '../context/AppContext';
 import { authAPI, businessAPI } from '../services/api';
-import ScheduleTab from '../components/ScheduleTab';
 
 // Imported Components
 import { SidebarContent, LinkItems } from '../components/Sidebar';
-import ConnectionTab from '../components/dashboard-tabs/ConnectionTab';
-import IntelligenceTab from '../components/dashboard-tabs/IntelligenceTab';
-import QuickRepliesTab from '../components/dashboard-tabs/QuickRepliesTab';
-import CatalogTab from '../components/dashboard-tabs/CatalogTab';
-import LiveChatTab from '../components/dashboard-tabs/LiveChatTab';
+import { Spinner, Center } from '@chakra-ui/react';
+
+// Lazy Loaded Components (Code Splitting)
+const ConnectionTab = React.lazy(() => import('../components/dashboard-tabs/ConnectionTab'));
+const IntelligenceTab = React.lazy(() => import('../components/dashboard-tabs/IntelligenceTab'));
+const QuickRepliesTab = React.lazy(() => import('../components/dashboard-tabs/QuickRepliesTab'));
+const CatalogTab = React.lazy(() => import('../components/dashboard-tabs/CatalogTab'));
+const LiveChatTab = React.lazy(() => import('../components/dashboard-tabs/LiveChatTab'));
+const ScheduleTab = React.lazy(() => import('../components/ScheduleTab'));
 
 const Dashboard = () => {
   const { state, dispatch } = useApp();
@@ -224,12 +227,18 @@ const Dashboard = () => {
 
         {/* --- CONTEÚDO DAS ABAS (Render Condicional) --- */}
 
-        {activeTab === 0 && <ConnectionTab />}
-        {activeTab === 1 && <IntelligenceTab />}
-        {activeTab === 2 && <QuickRepliesTab />}
-        {activeTab === 3 && <CatalogTab />}
-        {activeTab === 4 && <LiveChatTab />}
-        {activeTab === 5 && <ScheduleTab />}
+        <React.Suspense fallback={
+          <Center h="50vh">
+            <Spinner size="xl" color="brand.500" thickness="4px" speed="0.65s" emptyColor="gray.200" />
+          </Center>
+        }>
+          {activeTab === 0 && <ConnectionTab />}
+          {activeTab === 1 && <IntelligenceTab />}
+          {activeTab === 2 && <QuickRepliesTab />}
+          {activeTab === 3 && <CatalogTab />}
+          {activeTab === 4 && <LiveChatTab />}
+          {activeTab === 5 && <ScheduleTab />}
+        </React.Suspense>
 
       </Box>
 
