@@ -46,7 +46,7 @@ const publicChatRoutes = require('./routes/publicChatRoutes');
 
 // Carregar Models (Garantia de registro)
 require('./models/SystemUser');
-require('./models/BusinessConfig');
+const BusinessConfig = require('./models/BusinessConfig');
 require('./models/Appointment');
 
 const app = express();
@@ -104,7 +104,25 @@ app.post('/api/webhook', async (req, res) => {
 
       // FIX: Fallback to first BusinessConfig for Webhooks if ID is missing
       // In production, this should map the 'To' number to a BusinessConfig
-      let businessConfig = await BusinessConfig.findOne();
+
+      // 1. Tenta mapear pelo número 'To' (destino)
+      let targetPhone = req.body.To ? req.body.To.replace('whatsapp:', '') : null;
+      let businessConfig = null;
+
+      if (targetPhone) {
+        businessConfig = await BusinessConfig.findOne({ phoneNumber: targetPhone });
+        if (businessConfig) {
+           console.log(`🎯 Webhook roteado para BusinessConfig: ${businessConfig._id} (Phone: ${targetPhone})`);
+        }
+      }
+
+      // 2. Fallback: Se não achou (ou não veio 'To'), pega o primeiro (modo single-tenant/dev)
+      if (!businessConfig) {
+        businessConfig = await BusinessConfig.findOne();
+        if (businessConfig) {
+           console.log(`⚠️ Webhook: Fallback para primeira BusinessConfig encontrada: ${businessConfig._id}`);
+        }
+      }
 
       if (businessConfig) {
          await handleIncomingMessage(normalizedMsg, businessConfig._id);
