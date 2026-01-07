@@ -6,11 +6,12 @@ const crypto = require('crypto');
 const SystemUser = require('../models/SystemUser');
 const BusinessConfig = require('../models/BusinessConfig');
 const authenticateToken = require('../middleware/auth');
+const loginLimiter = require('../middleware/loginLimiter'); // 🛡️ Sentinel: Rate Limiting
 const { stopSession } = require('../services/wwebjsService');
 const { sendVerificationEmail } = require('../services/emailService');
 
 // ROTA: /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await SystemUser.findOne({ email }).select('+password');
