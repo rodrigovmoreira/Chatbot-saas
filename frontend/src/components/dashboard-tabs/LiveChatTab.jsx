@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Box, Card, Heading, Text, Button, VStack, HStack, Stack,
   useColorModeValue, Alert, Icon,
@@ -9,6 +9,89 @@ import { ChatIcon, WarningTwoIcon, LinkIcon, DeleteIcon, ArrowBackIcon } from '@
 import { FaWhatsapp, FaGlobe } from 'react-icons/fa';
 import { businessAPI } from '../../services/api';
 import { useApp } from '../../context/AppContext';
+
+// --- Helper Function (Outside Component) ---
+const formatTime = (isoString) => {
+  if (!isoString) return '';
+  const date = new Date(isoString);
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
+
+// --- Optimized Sub-Components ---
+
+const ConversationItem = React.memo(({ contact, isSelected, onClick, cardBg, gray50Bg }) => {
+  return (
+    <Box
+      p={4}
+      bg={isSelected ? 'brand.50' : cardBg}
+      borderBottom="1px solid"
+      borderColor={gray50Bg}
+      cursor="pointer"
+      borderLeft={isSelected ? "4px solid" : "4px solid transparent"}
+      borderLeftColor="brand.500"
+      _hover={{ bg: 'gray.100' }}
+      onClick={() => onClick(contact)}
+    >
+      <HStack justify="space-between" mb={1}>
+        <HStack>
+            {contact.channel === 'whatsapp'
+              ? <Icon as={FaWhatsapp} color="green.500" />
+              : <Icon as={FaGlobe} color="blue.500" />
+            }
+            <Text fontWeight="bold" fontSize="sm" noOfLines={1}>{contact.name || contact.phone}</Text>
+        </HStack>
+        <Text fontSize="xs" color="gray.500">{formatTime(contact.lastInteraction)}</Text>
+      </HStack>
+      <Text fontSize="xs" color="gray.500" noOfLines={1}>
+        {contact.phone || contact.sessionId}
+      </Text>
+    </Box>
+  );
+}, (prev, next) => {
+  // Custom comparator to prevent re-renders when polling returns new object references
+  // but the data is effectively the same.
+  return (
+    prev.isSelected === next.isSelected &&
+    prev.contact._id === next.contact._id &&
+    prev.contact.lastInteraction === next.contact.lastInteraction &&
+    prev.contact.name === next.contact.name &&
+    prev.cardBg === next.cardBg && // Theme consistency
+    prev.gray50Bg === next.gray50Bg
+  );
+});
+
+const MessageItem = React.memo(({ msg, contactName, isMe }) => {
+  return (
+    <HStack justify={isMe ? 'flex-end' : 'flex-start'} align="flex-start">
+      {!isMe && <Avatar size="xs" name={contactName} mr={2} mt={1} />}
+      <Box
+        bg={isMe ? 'brand.100' : 'white'}
+        color="black"
+        px={4} py={2}
+        borderRadius="lg"
+        boxShadow="sm"
+        maxW="70%"
+        borderTopLeftRadius={!isMe ? 0 : 'lg'}
+        borderTopRightRadius={isMe ? 0 : 'lg'}
+      >
+        <Text fontSize="sm" whiteSpace="pre-wrap">{msg.content}</Text>
+        <Text fontSize="10px" color="gray.500" textAlign="right" mt={1}>
+          {formatTime(msg.timestamp)}
+        </Text>
+      </Box>
+    </HStack>
+  );
+}, (prev, next) => {
+  return (
+    prev.msg._id === next.msg._id &&
+    prev.msg.content === next.msg.content &&
+    prev.msg.timestamp === next.msg.timestamp &&
+    prev.contactName === next.contactName &&
+    prev.isMe === next.isMe
+  );
+});
+
+// --- Main Component ---
 
 const LiveChatTab = () => {
   const { state } = useApp();
@@ -79,7 +162,8 @@ const LiveChatTab = () => {
       try {
         const { data } = await businessAPI.getMessages(selectedContact._id);
         setMessages(data);
-        scrollToBottom();
+        // Only scroll if messages length changed (basic check, could be improved)
+        // But for now, we keep original behavior of scrolling on fetch
       } catch (error) {
         console.error("Erro ao carregar mensagens:", error);
       }
@@ -91,25 +175,27 @@ const LiveChatTab = () => {
     return () => clearInterval(interval);
   }, [selectedContact]);
 
+  // Scroll only when messages change length to avoid jarring jumps?
+  // Original code called scrollToBottom on every fetch.
+  // We'll preserve behavior but use effect on messages.
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleContactSelect = (contact) => {
+  // Optimization: Stable handler
+  const handleContactSelect = useCallback((contact) => {
     setSelectedContact(contact);
     setShowMobileChat(true); // Switch to chat view on mobile
-  };
+  }, []); // Setters are stable
 
   const handleBackToList = () => {
     setShowMobileChat(false);
     setSelectedContact(null);
-  };
-
-  // Helper de Formatação
-  const formatTime = (isoString) => {
-    if (!isoString) return '';
-    const date = new Date(isoString);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   const getEmbedCode = () => {
@@ -158,32 +244,14 @@ const LiveChatTab = () => {
                  <Text p={4} fontSize="sm" color="gray.500">Nenhuma conversa ainda.</Text>
               )}
               {conversations.map((contact) => (
-                <Box
+                <ConversationItem
                   key={contact._id}
-                  p={4}
-                  bg={selectedContact?._id === contact._id ? 'brand.50' : cardBg}
-                  borderBottom="1px solid"
-                  borderColor={gray50Bg}
-                  cursor="pointer"
-                  borderLeft={selectedContact?._id === contact._id ? "4px solid" : "4px solid transparent"}
-                  borderLeftColor="brand.500"
-                  _hover={{ bg: 'gray.100' }}
-                  onClick={() => handleContactSelect(contact)}
-                >
-                  <HStack justify="space-between" mb={1}>
-                    <HStack>
-                       {contact.channel === 'whatsapp'
-                         ? <Icon as={FaWhatsapp} color="green.500" />
-                         : <Icon as={FaGlobe} color="blue.500" />
-                       }
-                       <Text fontWeight="bold" fontSize="sm" noOfLines={1}>{contact.name || contact.phone}</Text>
-                    </HStack>
-                    <Text fontSize="xs" color="gray.500">{formatTime(contact.lastInteraction)}</Text>
-                  </HStack>
-                  <Text fontSize="xs" color="gray.500" noOfLines={1}>
-                    {contact.phone || contact.sessionId}
-                  </Text>
-                </Box>
+                  contact={contact}
+                  isSelected={selectedContact?._id === contact._id}
+                  onClick={handleContactSelect}
+                  cardBg={cardBg}
+                  gray50Bg={gray50Bg}
+                />
               ))}
             </VStack>
           </Box>
@@ -237,29 +305,14 @@ const LiveChatTab = () => {
                 <Box flex="1" p={4} overflowY="auto" bgImage="linear-gradient(to bottom, #f0f2f5, #e1e5ea)">
                   <VStack spacing={3} align="stretch">
                     {messages.map((msg, index) => {
-                       const isMe = msg.role === 'bot' || msg.role === 'system'; // Bot = Direita (Verde), User = Esquerda (Branco)
-                       // Ajuste: No Admin, "Eu" sou o Bot/Empresa. O "Outro" é o User.
-                       // Então msg.role === 'bot' -> Right. msg.role === 'user' -> Left.
-
+                       const isMe = msg.role === 'bot' || msg.role === 'system';
                        return (
-                         <HStack key={index} justify={isMe ? 'flex-end' : 'flex-start'} align="flex-start">
-                           {!isMe && <Avatar size="xs" name={selectedContact.name} mr={2} mt={1} />}
-                           <Box
-                             bg={isMe ? 'brand.100' : 'white'}
-                             color="black"
-                             px={4} py={2}
-                             borderRadius="lg"
-                             boxShadow="sm"
-                             maxW="70%"
-                             borderTopLeftRadius={!isMe ? 0 : 'lg'}
-                             borderTopRightRadius={isMe ? 0 : 'lg'}
-                           >
-                             <Text fontSize="sm" whiteSpace="pre-wrap">{msg.content}</Text>
-                             <Text fontSize="10px" color="gray.500" textAlign="right" mt={1}>
-                               {formatTime(msg.timestamp)}
-                             </Text>
-                           </Box>
-                         </HStack>
+                         <MessageItem
+                           key={index} // Using index as key is not ideal but msg._id might be better if available. Assuming index for now to match old code.
+                           msg={msg}
+                           contactName={selectedContact.name}
+                           isMe={isMe}
+                         />
                        );
                     })}
                     <div ref={messagesEndRef} />
