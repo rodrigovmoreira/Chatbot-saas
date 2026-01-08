@@ -4,7 +4,9 @@ import {
   useColorModeValue, Alert, Icon,
   Avatar, Modal, ModalOverlay, ModalContent, ModalHeader,
   ModalCloseButton, ModalBody, ModalFooter, useDisclosure, Code, IconButton, Tooltip, useToast,
-  Badge, Input, InputGroup, InputRightElement, Switch, FormControl, FormLabel
+  Badge, Input, InputGroup, InputRightElement, Switch, FormControl, FormLabel,
+  Popover, PopoverTrigger, PopoverContent, PopoverBody, PopoverHeader, PopoverArrow, PopoverCloseButton,
+  List, ListItem
 } from '@chakra-ui/react';
 import { ChatIcon, WarningTwoIcon, LinkIcon, DeleteIcon, ArrowBackIcon, AddIcon, SmallCloseIcon } from '@chakra-ui/icons';
 import { FaWhatsapp, FaGlobe, FaRobot, FaUser } from 'react-icons/fa';
@@ -13,13 +15,14 @@ import { useApp } from '../../context/AppContext';
 import axios from 'axios'; // For direct call if needed, but better via service
 
 const LiveChatTab = () => {
-  const { state } = useApp();
+  const { state, dispatch } = useApp();
   const [conversations, setConversations] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
   const [messages, setMessages] = useState([]);
 
   // Tag Input State
   const [newTag, setNewTag] = useState('');
+  const [isTagPopoverOpen, setIsTagPopoverOpen] = useState(false);
 
   // Mobile View State
   const [showMobileChat, setShowMobileChat] = useState(false);
@@ -58,17 +61,46 @@ const LiveChatTab = () => {
     }
   };
 
-  const handleAddTag = async () => {
-    if (!newTag.trim()) return;
+  // Adiciona tag ao contato. Se a tag não existir em availableTags, pergunta se quer criar.
+  // Como o usuário pediu para "LiveChat tbm deve aparecer uma lista para seleção das tags existentes ou criar uma nova tag que salva no banco",
+  // Vamos implementar lógica para salvar no banco se não existir.
+  const handleAddTag = async (tagToAdd = null) => {
+    const tag = tagToAdd || newTag.trim();
+    if (!tag) return;
+
     const currentTags = selectedContact.tags || [];
-    if (currentTags.includes(newTag.trim())) {
+    if (currentTags.includes(tag)) {
         setNewTag('');
+        setIsTagPopoverOpen(false);
         return;
     }
 
-    const updatedTags = [...currentTags, newTag.trim()];
+    // Verifica se tag existe em availableTags
+    const availableTags = state.businessConfig?.availableTags || [];
+    if (!availableTags.includes(tag)) {
+       // Se não existe, adiciona ao BusinessConfig primeiro
+       try {
+           const newAvailableTags = [...availableTags, tag];
+           // Atualiza config no backend
+           await businessAPI.updateConfig({ availableTags: newAvailableTags });
+
+           // Update global context immediately for UX
+           dispatch({
+             type: 'SET_BUSINESS_CONFIG',
+             payload: { ...state.businessConfig, availableTags: newAvailableTags }
+           });
+
+       } catch (error) {
+           console.error("Erro ao criar nova tag global:", error);
+           toast({ title: "Erro ao salvar nova tag no sistema.", status: "error" });
+           return;
+       }
+    }
+
+    const updatedTags = [...currentTags, tag];
     await updateContact({ tags: updatedTags });
     setNewTag('');
+    setIsTagPopoverOpen(false);
   };
 
   const handleRemoveTag = async (tagToRemove) => {
@@ -326,7 +358,7 @@ const LiveChatTab = () => {
                     </HStack>
 
                     {/* Bottom Row: Tags */}
-                    <HStack spacing={2} overflowX="auto" pb={1}>
+                    <HStack spacing={2} overflowX="auto" pb={1} alignItems="center">
                         <Text fontSize="xs" color="gray.500">Tags:</Text>
                         {selectedContact.tags && selectedContact.tags.map(tag => (
                             <Badge key={tag} colorScheme={getTagColor(tag)} borderRadius="full" px={2} cursor="default">
@@ -334,17 +366,77 @@ const LiveChatTab = () => {
                                 <Icon as={SmallCloseIcon} ml={1} cursor="pointer" onClick={() => handleRemoveTag(tag)} />
                             </Badge>
                         ))}
-                        <InputGroup size="xs" w="120px">
-                             <Input
-                                placeholder="+ Tag"
-                                value={newTag}
-                                onChange={(e) => setNewTag(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
-                             />
-                             <InputRightElement>
-                                <Icon as={AddIcon} color="green.500" cursor="pointer" onClick={handleAddTag} />
-                             </InputRightElement>
-                        </InputGroup>
+
+                        <Popover
+                            isOpen={isTagPopoverOpen}
+                            onClose={() => setIsTagPopoverOpen(false)}
+                            placement="bottom-start"
+                        >
+                            <PopoverTrigger>
+                                <Button
+                                    size="xs"
+                                    leftIcon={<AddIcon />}
+                                    onClick={() => setIsTagPopoverOpen(!isTagPopoverOpen)}
+                                    colorScheme="gray"
+                                    variant="outline"
+                                >
+                                    Tag
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent w="200px">
+                                <PopoverHeader fontSize="sm" fontWeight="bold">Adicionar Tag</PopoverHeader>
+                                <PopoverArrow />
+                                <PopoverCloseButton />
+                                <PopoverBody p={2}>
+                                    <Input
+                                        size="sm"
+                                        placeholder="Busca ou Nova Tag"
+                                        value={newTag}
+                                        onChange={(e) => setNewTag(e.target.value)}
+                                        mb={2}
+                                    />
+                                    <List spacing={1} maxH="150px" overflowY="auto">
+                                        {/* Filter available tags based on input and exclude already assigned tags */}
+                                        {(state.businessConfig?.availableTags || [])
+                                            .filter(t =>
+                                                t.toLowerCase().includes(newTag.toLowerCase()) &&
+                                                !selectedContact.tags?.includes(t)
+                                            )
+                                            .map(tag => (
+                                                <ListItem
+                                                    key={tag}
+                                                    px={2} py={1}
+                                                    _hover={{ bg: "gray.100", cursor: "pointer" }}
+                                                    onClick={() => handleAddTag(tag)}
+                                                    borderRadius="md"
+                                                    fontSize="sm"
+                                                >
+                                                    {tag}
+                                                </ListItem>
+                                            ))
+                                        }
+                                        {/* Option to create new tag if it doesn't exist */}
+                                        {newTag &&
+                                         !(state.businessConfig?.availableTags || []).some(t => t.toLowerCase() === newTag.toLowerCase()) &&
+                                         !selectedContact.tags?.includes(newTag) && (
+                                            <ListItem
+                                                px={2} py={1}
+                                                color="brand.500"
+                                                fontWeight="bold"
+                                                cursor="pointer"
+                                                _hover={{ bg: "brand.50" }}
+                                                onClick={() => handleAddTag()}
+                                                borderRadius="md"
+                                                fontSize="sm"
+                                            >
+                                                + Criar "{newTag}"
+                                            </ListItem>
+                                        )}
+                                    </List>
+                                </PopoverBody>
+                            </PopoverContent>
+                        </Popover>
+
                     </HStack>
                 </Box>
 
