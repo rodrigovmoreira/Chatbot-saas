@@ -21,7 +21,14 @@ const contactSchema = new mongoose.Schema({
 
   name: { type: String, default: 'Visitante' },
   
-  // === CAMPOS DO FUNIL (Faltavam estes!) ===
+  // Tags para segmentação (Novo Campo)
+  tags: {
+    type: [String],
+    default: [],
+    index: true
+  },
+
+  // === CAMPOS DO FUNIL ===
   followUpStage: { type: Number, default: 0 },
   
   // Controle de Ativação (Importante para o Scheduler)

@@ -1,0 +1,55 @@
+const mongoose = require('mongoose');
+
+const campaignSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'SystemUser',
+    required: true,
+    index: true
+  },
+  name: {
+    type: String,
+    required: true
+  },
+  targetTags: {
+    type: [String],
+    default: []
+  },
+  type: {
+    type: String,
+    enum: ['recurring', 'broadcast'],
+    required: true
+  },
+  message: {
+    type: String,
+    required: true
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  schedule: {
+    frequency: {
+      type: String,
+      enum: ['daily', 'weekly', 'monthly', 'once']
+    },
+    time: {
+      type: String, // 'HH:mm'
+      required: true
+    },
+    days: {
+      type: [Number], // 0-6 (Sunday-Saturday)
+      default: []
+    }
+  },
+  stats: {
+    sentCount: { type: Number, default: 0 },
+    lastRun: { type: Date }
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+module.exports = mongoose.model('Campaign', campaignSchema);
