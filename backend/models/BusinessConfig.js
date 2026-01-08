@@ -60,7 +60,8 @@ const businessConfigSchema = new mongoose.Schema({
     {
       stage: { type: Number },
       delayMinutes: { type: Number },
-      message: { type: String }
+      message: { type: String },
+      useAI: { type: Boolean, default: false } // <--- ADICIONADO: AI-Powered Follow-up
     }
   ],
 
