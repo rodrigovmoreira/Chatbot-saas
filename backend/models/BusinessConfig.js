@@ -11,6 +11,7 @@ const businessConfigSchema = new mongoose.Schema({
   avatarUrl: { type: String }, // <--- ADICIONADO: URL do avatar/logo do negócio
   businessType: { type: String }, // <--- ADICIONADO: Identifica o nicho (ex: Barber, Tattoo)
   whatsappProvider: { type: String, enum: ['twilio', 'wwebjs'], default: 'wwebjs' },
+  phoneNumber: { type: String, unique: true, sparse: true }, // <--- ADICIONADO: Número do WhatsApp para roteamento de Webhook
 
   // === NOVO: CENTRAL DE PROMPTS (O CÉREBRO) ===
   prompts: {
