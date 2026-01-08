@@ -19,6 +19,7 @@ import ConnectionTab from '../components/dashboard-tabs/ConnectionTab';
 import IntelligenceTab from '../components/dashboard-tabs/IntelligenceTab';
 import QuickRepliesTab from '../components/dashboard-tabs/QuickRepliesTab';
 import CatalogTab from '../components/dashboard-tabs/CatalogTab';
+import CampaignTab from '../components/dashboard-tabs/CampaignTab'; // Import CampaignTab
 import LiveChatTab from '../components/dashboard-tabs/LiveChatTab';
 
 const Dashboard = () => {
@@ -214,8 +215,9 @@ const Dashboard = () => {
         {activeTab === 1 && <IntelligenceTab />}
         {activeTab === 2 && <QuickRepliesTab />}
         {activeTab === 3 && <CatalogTab />}
-        {activeTab === 4 && <LiveChatTab />}
-        {activeTab === 5 && <ScheduleTab />}
+        {activeTab === 4 && <CampaignTab />}
+        {activeTab === 5 && <LiveChatTab />}
+        {activeTab === 6 && <ScheduleTab />}
 
       </Box>
 

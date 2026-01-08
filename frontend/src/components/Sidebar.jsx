@@ -26,8 +26,9 @@ const LinkItems = [
   { name: 'Inteligência & Nicho', icon: StarIcon, index: 1 },
   { name: 'Respostas Rápidas', icon: EditIcon, index: 2 },
   { name: 'Catálogo', icon: AttachmentIcon, index: 3 },
-  { name: 'Live Chat', icon: ChatIcon, index: 4, color: 'purple.500' },
-  { name: 'Agendamentos', icon: TimeIcon, index: 5, color: 'blue.500' },
+  { name: 'Automação (Funil)', icon: TimeIcon, index: 4, color: 'orange.500' }, // Reordered/Added
+  { name: 'Live Chat', icon: ChatIcon, index: 5, color: 'purple.500' },
+  { name: 'Agendamentos', icon: TimeIcon, index: 6, color: 'blue.500' },
 ];
 
 const NavItem = ({ icon, children, isActive, color, isCollapsed, ...rest }) => {

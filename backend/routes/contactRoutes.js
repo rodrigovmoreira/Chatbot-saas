@@ -10,11 +10,11 @@ const getBusinessId = async (userId) => {
     return config ? config._id : null;
 };
 
-// Update contact (specifically tags)
+// Update contact (tags, handover, name)
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { tags, name } = req.body; // Allow updating tags and name
+    const { tags, name, isHandover } = req.body; // Expanded allow-list
 
     const businessId = await getBusinessId(req.user.userId);
     if (!businessId) {
@@ -29,6 +29,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     if (tags !== undefined) contact.tags = tags;
     if (name !== undefined) contact.name = name;
+    if (isHandover !== undefined) contact.isHandover = isHandover;
 
     await contact.save();
     res.json(contact);

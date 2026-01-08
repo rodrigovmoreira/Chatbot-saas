@@ -21,7 +21,7 @@ const contactSchema = new mongoose.Schema({
 
   name: { type: String, default: 'Visitante' },
   
-  // Tags para segmentação (Novo Campo)
+  // Tags para segmentação
   tags: {
     type: [String],
     default: [],
@@ -36,6 +36,9 @@ const contactSchema = new mongoose.Schema({
   
   // O relógio para contar o tempo (Importante para o Scheduler)
   lastResponseTime: { type: Date }, 
+
+  // Human Handoff (Kill Switch)
+  isHandover: { type: Boolean, default: false },
 
   // Histórico básico
   lastInteraction: { type: Date, default: Date.now },

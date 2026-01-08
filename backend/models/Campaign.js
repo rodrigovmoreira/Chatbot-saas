@@ -42,6 +42,11 @@ const campaignSchema = new mongoose.Schema({
       default: []
     }
   },
+  // Human-Like Delay
+  delayRange: {
+    min: { type: Number, default: 0 },
+    max: { type: Number, default: 0 }
+  },
   stats: {
     sentCount: { type: Number, default: 0 },
     lastRun: { type: Date }

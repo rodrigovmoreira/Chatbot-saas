@@ -3,18 +3,23 @@ import {
   Box, Card, Heading, Text, Button, VStack, HStack, Stack,
   useColorModeValue, Alert, Icon,
   Avatar, Modal, ModalOverlay, ModalContent, ModalHeader,
-  ModalCloseButton, ModalBody, ModalFooter, useDisclosure, Code, IconButton, Tooltip, useToast
+  ModalCloseButton, ModalBody, ModalFooter, useDisclosure, Code, IconButton, Tooltip, useToast,
+  Badge, Input, InputGroup, InputRightElement, Switch, FormControl, FormLabel
 } from '@chakra-ui/react';
-import { ChatIcon, WarningTwoIcon, LinkIcon, DeleteIcon, ArrowBackIcon } from '@chakra-ui/icons';
-import { FaWhatsapp, FaGlobe } from 'react-icons/fa';
-import { businessAPI } from '../../services/api';
+import { ChatIcon, WarningTwoIcon, LinkIcon, DeleteIcon, ArrowBackIcon, AddIcon, SmallCloseIcon } from '@chakra-ui/icons';
+import { FaWhatsapp, FaGlobe, FaRobot, FaUser } from 'react-icons/fa';
+import { businessAPI } from '../../services/api'; // Ensure this service has updateContact method
 import { useApp } from '../../context/AppContext';
+import axios from 'axios'; // For direct call if needed, but better via service
 
 const LiveChatTab = () => {
   const { state } = useApp();
   const [conversations, setConversations] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
   const [messages, setMessages] = useState([]);
+
+  // Tag Input State
+  const [newTag, setNewTag] = useState('');
 
   // Mobile View State
   const [showMobileChat, setShowMobileChat] = useState(false);
@@ -28,6 +33,59 @@ const LiveChatTab = () => {
   const gray100 = useColorModeValue("gray.100", "gray.900");
 
   const messagesEndRef = useRef(null);
+
+  // === Handlers for Tags & Handover ===
+
+  const updateContact = async (updates) => {
+    if (!selectedContact) return;
+    try {
+        const token = localStorage.getItem('token');
+        const response = await axios.put(`${process.env.REACT_APP_API_URL || 'http://localhost:3001'}/api/contacts/${selectedContact._id}`, updates, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        // Update local state immediately
+        setSelectedContact(prev => ({ ...prev, ...response.data }));
+
+        // Update list
+        setConversations(prev => prev.map(c => c._id === selectedContact._id ? { ...c, ...response.data } : c));
+
+        return response.data;
+    } catch (error) {
+        console.error("Error updating contact:", error);
+        toast({ title: "Erro ao atualizar contato.", status: "error", duration: 3000 });
+        throw error;
+    }
+  };
+
+  const handleAddTag = async () => {
+    if (!newTag.trim()) return;
+    const currentTags = selectedContact.tags || [];
+    if (currentTags.includes(newTag.trim())) {
+        setNewTag('');
+        return;
+    }
+
+    const updatedTags = [...currentTags, newTag.trim()];
+    await updateContact({ tags: updatedTags });
+    setNewTag('');
+  };
+
+  const handleRemoveTag = async (tagToRemove) => {
+      const currentTags = selectedContact.tags || [];
+      const updatedTags = currentTags.filter(t => t !== tagToRemove);
+      await updateContact({ tags: updatedTags });
+  };
+
+  const toggleHandover = async () => {
+      const newValue = !selectedContact.isHandover;
+      await updateContact({ isHandover: newValue });
+      toast({
+          title: newValue ? "Robô Pausado (Modo Humano)" : "Robô Ativado",
+          status: newValue ? "warning" : "success",
+          duration: 2000
+      });
+  };
 
   const handleClearHistory = async () => {
     if (!selectedContact) return;
@@ -128,6 +186,13 @@ const LiveChatTab = () => {
 </iframe>`;
   };
 
+  // Cores de Badge
+  const getTagColor = (tag) => {
+      const colors = ['purple', 'green', 'blue', 'orange', 'red', 'teal'];
+      const hash = tag.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+      return colors[hash % colors.length];
+  };
+
   return (
     <Box>
       <HStack mb={4} justify="space-between">
@@ -183,6 +248,15 @@ const LiveChatTab = () => {
                   <Text fontSize="xs" color="gray.500" noOfLines={1}>
                     {contact.phone || contact.sessionId}
                   </Text>
+                  {/* Tags Preview */}
+                  {contact.tags && contact.tags.length > 0 && (
+                      <HStack mt={1} spacing={1}>
+                          {contact.tags.slice(0, 2).map(tag => (
+                              <Badge key={tag} fontSize="xx-small" colorScheme={getTagColor(tag)}>{tag}</Badge>
+                          ))}
+                          {contact.tags.length > 2 && <Text fontSize="xx-small">+{contact.tags.length - 2}</Text>}
+                      </HStack>
+                  )}
                 </Box>
               ))}
             </VStack>
@@ -196,50 +270,89 @@ const LiveChatTab = () => {
             display={{ base: showMobileChat ? 'flex' : 'none', md: 'flex' }}
             flexDirection="column"
             h="100%"
+            border={selectedContact?.isHandover ? "4px solid orange" : "none"} // Visual Cue for Handover
           >
 
             {selectedContact ? (
               <>
                 {/* Header do Chat */}
-                <HStack p={4} bg={cardBg} borderBottom="1px solid" borderColor={gray50Bg} justify="space-between">
-                  <HStack>
-                    {/* Back Button for Mobile */}
-                    <IconButton
-                      display={{ base: 'flex', md: 'none' }}
-                      icon={<ArrowBackIcon />}
-                      onClick={handleBackToList}
-                      variant="ghost"
-                      aria-label="Voltar"
-                      mr={2}
-                    />
-                    <Avatar size="sm" name={selectedContact.name} src={selectedContact.avatarUrl} />
-                    <Box>
-                      <Text fontWeight="bold">{selectedContact.name || 'Visitante'}</Text>
-                      <Text fontSize="xs" color="gray.500">
-                         via {selectedContact.channel === 'whatsapp' ? 'WhatsApp' : 'Web Chat'}
-                      </Text>
-                    </Box>
-                  </HStack>
+                <Box p={3} bg={cardBg} borderBottom="1px solid" borderColor={gray50Bg}>
+                    {/* Top Row: User Info & Actions */}
+                    <HStack justify="space-between" mb={2}>
+                      <HStack>
+                        <IconButton
+                          display={{ base: 'flex', md: 'none' }}
+                          icon={<ArrowBackIcon />}
+                          onClick={handleBackToList}
+                          variant="ghost"
+                          aria-label="Voltar"
+                          mr={2}
+                        />
+                        <Avatar size="sm" name={selectedContact.name} src={selectedContact.avatarUrl} />
+                        <Box>
+                          <Text fontWeight="bold">{selectedContact.name || 'Visitante'}</Text>
+                          <Text fontSize="xs" color="gray.500">
+                             {selectedContact.channel === 'whatsapp' ? 'WhatsApp' : 'Web Chat'}
+                          </Text>
+                        </Box>
+                      </HStack>
 
-                  <Tooltip label="Limpar Histórico / Resetar IA">
-                    <IconButton
-                      icon={<DeleteIcon />}
-                      size="sm"
-                      colorScheme="red"
-                      variant="ghost"
-                      onClick={handleClearHistory}
-                      aria-label="Limpar histórico"
-                    />
-                  </Tooltip>
-                </HStack>
+                      <HStack>
+                          {/* Handover Toggle */}
+                           <FormControl display='flex' alignItems='center'>
+                              <FormLabel htmlFor='handover-switch' mb='0' fontSize="xs" color={selectedContact.isHandover ? "orange.500" : "gray.500"}>
+                                {selectedContact.isHandover ? "Pausado (Humano)" : "Robô Ativo"}
+                              </FormLabel>
+                              <Switch
+                                id='handover-switch'
+                                isChecked={selectedContact.isHandover}
+                                onChange={toggleHandover}
+                                colorScheme="orange"
+                                size="sm"
+                              />
+                            </FormControl>
+
+                          <Tooltip label="Limpar Histórico">
+                            <IconButton
+                              icon={<DeleteIcon />}
+                              size="sm"
+                              colorScheme="red"
+                              variant="ghost"
+                              onClick={handleClearHistory}
+                              aria-label="Limpar histórico"
+                            />
+                          </Tooltip>
+                      </HStack>
+                    </HStack>
+
+                    {/* Bottom Row: Tags */}
+                    <HStack spacing={2} overflowX="auto" pb={1}>
+                        <Text fontSize="xs" color="gray.500">Tags:</Text>
+                        {selectedContact.tags && selectedContact.tags.map(tag => (
+                            <Badge key={tag} colorScheme={getTagColor(tag)} borderRadius="full" px={2} cursor="default">
+                                {tag}
+                                <Icon as={SmallCloseIcon} ml={1} cursor="pointer" onClick={() => handleRemoveTag(tag)} />
+                            </Badge>
+                        ))}
+                        <InputGroup size="xs" w="120px">
+                             <Input
+                                placeholder="+ Tag"
+                                value={newTag}
+                                onChange={(e) => setNewTag(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleAddTag()}
+                             />
+                             <InputRightElement>
+                                <Icon as={AddIcon} color="green.500" cursor="pointer" onClick={handleAddTag} />
+                             </InputRightElement>
+                        </InputGroup>
+                    </HStack>
+                </Box>
 
                 {/* Área de Mensagens */}
                 <Box flex="1" p={4} overflowY="auto" bgImage="linear-gradient(to bottom, #f0f2f5, #e1e5ea)">
                   <VStack spacing={3} align="stretch">
                     {messages.map((msg, index) => {
-                       const isMe = msg.role === 'bot' || msg.role === 'system'; // Bot = Direita (Verde), User = Esquerda (Branco)
-                       // Ajuste: No Admin, "Eu" sou o Bot/Empresa. O "Outro" é o User.
-                       // Então msg.role === 'bot' -> Right. msg.role === 'user' -> Left.
+                       const isMe = msg.role === 'bot' || msg.role === 'system';
 
                        return (
                          <HStack key={index} justify={isMe ? 'flex-end' : 'flex-start'} align="flex-start">
@@ -266,12 +379,19 @@ const LiveChatTab = () => {
                   </VStack>
                 </Box>
 
-                {/* Input (Desativado por enquanto, pois é apenas visualização) */}
+                {/* Input Area (Visual Only for now) */}
                 <Box p={4} bg={cardBg} borderTop="1px solid" borderColor={gray50Bg}>
-                   <Alert status="info" size="sm" borderRadius="md">
-                      <Icon as={WarningTwoIcon} mr={2} />
-                      Modo somente leitura. A intervenção humana será adicionada em breve.
-                   </Alert>
+                    {selectedContact.isHandover ? (
+                       <Alert status="warning" size="sm" borderRadius="md">
+                          <Icon as={FaUser} mr={2} />
+                          Robô pausado. Responda pelo seu celular ou app do WhatsApp.
+                       </Alert>
+                    ) : (
+                       <Alert status="info" size="sm" borderRadius="md">
+                          <Icon as={FaRobot} mr={2} />
+                          IA Ativa. Monitorando conversa...
+                       </Alert>
+                    )}
                 </Box>
               </>
             ) : (

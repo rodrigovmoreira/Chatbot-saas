@@ -5,6 +5,7 @@ const { transcribeAudio } = require('./services/transcriptionService');
 const { sendUnifiedMessage } = require('./services/responseService');
 const wwebjsService = require('./services/wwebjsService');
 const BusinessConfig = require('./models/BusinessConfig');
+const Contact = require('./models/Contact'); // Import Contact model
 const aiTools = require('./services/aiTools');
 
 const MAX_HISTORY = 30;
@@ -132,8 +133,22 @@ async function processBufferedMessages(uniqueKey) {
     }
     if (!businessConfig.prompts) businessConfig.prompts = { chatSystem: "...", visionSystem: "..." };
 
+    // 0. VERIFICAÇÃO DE HANDOVER (ATENDIMENTO HUMANO)
+    // Precisamos buscar o contato para saber se o robô foi desligado para ele
+    let contactQuery = { businessId: activeBusinessId };
+    if (channel === 'web') contactQuery.sessionId = from;
+    else contactQuery.phone = from;
+
+    const contact = await Contact.findOne(contactQuery);
+
     // Salva a mensagem combinada como 'user'
     await saveMessage(from, 'user', userMessage, 'text', null, activeBusinessId, channel);
+
+    if (contact && contact.isHandover) {
+        console.log(`🛑 Handover ativo para ${from}. Robô silenciado.`);
+        if (channel === 'web' && resolve) resolve({ text: "" }); // Retorna vazio para o web
+        return; // Encerra execução (não chama IA)
+    }
 
     // 4. HORÁRIO
     if (!isWithinOperatingHours(businessConfig)) {

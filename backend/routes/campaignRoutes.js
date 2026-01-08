@@ -17,7 +17,7 @@ router.get('/', authenticateToken, async (req, res) => {
 // Create a new campaign
 router.post('/', authenticateToken, async (req, res) => {
   try {
-    const { name, targetTags, type, message, isActive, schedule } = req.body;
+    const { name, targetTags, type, message, isActive, schedule, delayRange } = req.body; // Added delayRange
 
     // Basic validation
     if (!name || !type || !message || !schedule || !schedule.time) {
@@ -31,7 +31,8 @@ router.post('/', authenticateToken, async (req, res) => {
       type,
       message,
       isActive,
-      schedule
+      schedule,
+      delayRange // Added delayRange
     });
 
     const savedCampaign = await campaign.save();
