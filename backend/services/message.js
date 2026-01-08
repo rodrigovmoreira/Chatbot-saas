@@ -155,7 +155,7 @@ async function getConversations(businessId) {
     // Busca contatos do negócio ordenados por última interação
     const contacts = await Contact.find({ businessId })
       .sort({ lastInteraction: -1 })
-      .select('_id name phone channel lastInteraction sessionId avatarUrl') // Projection
+      .select('_id name phone channel lastInteraction sessionId avatarUrl tags isHandover funnelStage') // Projection
       .lean();
 
     return contacts;
