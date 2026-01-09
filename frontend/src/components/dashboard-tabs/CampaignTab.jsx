@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Box, Button, Card, CardBody, Heading, Text, VStack, HStack, Badge,
   Table, Thead, Tbody, Tr, Th, Td, IconButton, useDisclosure,
@@ -44,9 +44,7 @@ const CampaignTab = () => {
       }
   }, [API_URL, toast]);
 
-  useEffect(() => {
-    loadCampaigns();
-  }, [loadCampaigns]);
+
 
   const handleSave = async (e) => {
     e.preventDefault();
