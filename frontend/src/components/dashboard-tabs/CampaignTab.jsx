@@ -3,9 +3,10 @@ import {
   Box, Button, Card, CardBody, Heading, Text, VStack, HStack, Badge,
   Table, Thead, Tbody, Tr, Th, Td, IconButton, useDisclosure,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter,
-  FormControl, FormLabel, Input, Select, Textarea, useToast, NumberInput, NumberInputField, NumberInputStepper, NumberIncrementStepper, NumberDecrementStepper, Checkbox, SimpleGrid
+  FormControl, FormLabel, Input, Select, Textarea, useToast, NumberInput, NumberInputField, NumberInputStepper, NumberIncrementStepper, NumberDecrementStepper, Checkbox, SimpleGrid,
+  RadioGroup, Radio, Stack, FormHelperText
 } from '@chakra-ui/react';
-import { AddIcon, EditIcon, DeleteIcon, TimeIcon } from '@chakra-ui/icons';
+import { AddIcon, EditIcon, DeleteIcon, TimeIcon, CalendarIcon } from '@chakra-ui/icons';
 import { useApp } from '../../context/AppContext';
 // Using direct axios for this specific module as it is not fully integrated into standard services yet,
 // but auth headers are handled carefully.
@@ -105,11 +106,22 @@ const CampaignTab = () => {
   };
 
   const openModal = (campaign = null) => {
+    let ui_offsetUnit = 'minutes';
+    if (campaign && campaign.eventOffset) {
+        if (campaign.eventOffset % 1440 === 0 && campaign.eventOffset !== 0) ui_offsetUnit = 'days';
+        else if (campaign.eventOffset % 60 === 0 && campaign.eventOffset !== 0) ui_offsetUnit = 'hours';
+    } else {
+        ui_offsetUnit = 'hours';
+    }
+
     if (campaign) {
       setCurrentCampaign({
           ...campaign,
-          // Ensure targetTags is an array for the state
-          targetTags: Array.isArray(campaign.targetTags) ? campaign.targetTags : []
+          targetTags: Array.isArray(campaign.targetTags) ? campaign.targetTags : [],
+          triggerType: campaign.triggerType || 'time',
+          eventOffset: campaign.eventOffset !== undefined ? campaign.eventOffset : 60,
+          eventTargetStatus: campaign.eventTargetStatus || ['scheduled', 'confirmed'],
+          ui_offsetUnit
       });
     } else {
       setCurrentCampaign({
@@ -118,8 +130,12 @@ const CampaignTab = () => {
         targetTags: [], // Initialize as empty array
         message: '',
         isActive: true,
+        triggerType: 'time',
+        eventOffset: 60,
+        eventTargetStatus: ['scheduled', 'confirmed'],
         schedule: { frequency: 'once', time: '09:00', days: [] },
-        delayRange: { min: 5, max: 15 }
+        delayRange: { min: 5, max: 15 },
+        ui_offsetUnit: 'hours'
       });
     }
     onOpen();
@@ -279,60 +295,117 @@ const CampaignTab = () => {
                             value={currentCampaign?.message || ''}
                             onChange={e => setCurrentCampaign({...currentCampaign, message: e.target.value})}
                         />
+                        <FormHelperText>
+                            Variáveis disponíveis: {'{nome_cliente}'}
+                            {currentCampaign?.triggerType === 'event' && ', {data_agendamento}, {hora_agendamento}'}.
+                        </FormHelperText>
                     </FormControl>
 
-                    <Box border="1px solid" borderColor="gray.200" p={4} borderRadius="md">
-                        <Heading size="sm" mb={3} display="flex" alignItems="center">
-                            <TimeIcon mr={2} /> Agendamento
-                        </Heading>
-                        <HStack alignItems="flex-start">
-                            <FormControl>
-                                <FormLabel>Frequência</FormLabel>
-                                <Select
-                                    value={currentCampaign?.schedule?.frequency}
-                                    onChange={e => setCurrentCampaign({
-                                        ...currentCampaign,
-                                        schedule: { ...currentCampaign.schedule, frequency: e.target.value }
-                                    })}
-                                >
-                                    <option value="once">Uma vez</option>
-                                    <option value="daily">Diário</option>
-                                    <option value="weekly">Semanal</option>
-                                    <option value="monthly">Mensal</option>
-                                </Select>
-                            </FormControl>
+                    <FormControl>
+                        <FormLabel>Gatilho de Envio</FormLabel>
+                        <RadioGroup
+                            value={currentCampaign?.triggerType}
+                            onChange={val => setCurrentCampaign({...currentCampaign, triggerType: val})}
+                        >
+                            <Stack direction="row">
+                                <Radio value="time">Horário Fixo / Recorrente</Radio>
+                                <Radio value="event">Lembrete da Agenda</Radio>
+                            </Stack>
+                        </RadioGroup>
+                    </FormControl>
 
-                            <FormControl>
-                                <FormLabel>Horário</FormLabel>
-                                <Input
-                                    type="time"
-                                    value={currentCampaign?.schedule?.time}
-                                    onChange={e => setCurrentCampaign({
-                                        ...currentCampaign,
-                                        schedule: { ...currentCampaign.schedule, time: e.target.value }
-                                    })}
-                                />
-                            </FormControl>
-                        </HStack>
+                    {currentCampaign?.triggerType === 'time' ? (
+                        <Box border="1px solid" borderColor="gray.200" p={4} borderRadius="md">
+                            <Heading size="sm" mb={3} display="flex" alignItems="center">
+                                <TimeIcon mr={2} /> Agendamento
+                            </Heading>
+                            <HStack alignItems="flex-start">
+                                <FormControl>
+                                    <FormLabel>Frequência</FormLabel>
+                                    <Select
+                                        value={currentCampaign?.schedule?.frequency}
+                                        onChange={e => setCurrentCampaign({
+                                            ...currentCampaign,
+                                            schedule: { ...currentCampaign.schedule, frequency: e.target.value }
+                                        })}
+                                    >
+                                        <option value="once">Uma vez</option>
+                                        <option value="daily">Diário</option>
+                                        <option value="weekly">Semanal</option>
+                                        <option value="monthly">Mensal</option>
+                                    </Select>
+                                </FormControl>
 
-                        {/* Weekly Days Selector */}
-                        {currentCampaign?.schedule?.frequency === 'weekly' && (
-                            <FormControl mt={3}>
-                                <FormLabel fontSize="sm">Dias da Semana</FormLabel>
-                                <SimpleGrid columns={4} spacing={2}>
-                                    {DAYS_OF_WEEK.map(day => (
-                                        <Checkbox
-                                            key={day.value}
-                                            isChecked={currentCampaign?.schedule?.days?.includes(day.value)}
-                                            onChange={() => toggleDay(day.value)}
-                                        >
-                                            {day.label}
-                                        </Checkbox>
-                                    ))}
-                                </SimpleGrid>
-                            </FormControl>
-                        )}
-                    </Box>
+                                <FormControl>
+                                    <FormLabel>Horário</FormLabel>
+                                    <Input
+                                        type="time"
+                                        value={currentCampaign?.schedule?.time}
+                                        onChange={e => setCurrentCampaign({
+                                            ...currentCampaign,
+                                            schedule: { ...currentCampaign.schedule, time: e.target.value }
+                                        })}
+                                    />
+                                </FormControl>
+                            </HStack>
+
+                            {/* Weekly Days Selector */}
+                            {currentCampaign?.schedule?.frequency === 'weekly' && (
+                                <FormControl mt={3}>
+                                    <FormLabel fontSize="sm">Dias da Semana</FormLabel>
+                                    <SimpleGrid columns={4} spacing={2}>
+                                        {DAYS_OF_WEEK.map(day => (
+                                            <Checkbox
+                                                key={day.value}
+                                                isChecked={currentCampaign?.schedule?.days?.includes(day.value)}
+                                                onChange={() => toggleDay(day.value)}
+                                            >
+                                                {day.label}
+                                            </Checkbox>
+                                        ))}
+                                    </SimpleGrid>
+                                </FormControl>
+                            )}
+                        </Box>
+                    ) : (
+                        <Box border="1px solid" borderColor="gray.200" p={4} borderRadius="md">
+                            <Heading size="sm" mb={3} display="flex" alignItems="center">
+                                <CalendarIcon mr={2} /> Regra de Agendamento
+                            </Heading>
+                            <HStack alignItems="flex-end">
+                                <FormControl>
+                                    <FormLabel>Enviar com antecedência de</FormLabel>
+                                    <NumberInput
+                                        min={1}
+                                        value={currentCampaign?.eventOffset / (currentCampaign?.ui_offsetUnit === 'days' ? 1440 : currentCampaign?.ui_offsetUnit === 'hours' ? 60 : 1)}
+                                        onChange={(str, num) => {
+                                            const multiplier = currentCampaign?.ui_offsetUnit === 'days' ? 1440 : currentCampaign?.ui_offsetUnit === 'hours' ? 60 : 1;
+                                            setCurrentCampaign({
+                                                ...currentCampaign,
+                                                eventOffset: num * multiplier
+                                            });
+                                        }}
+                                    >
+                                        <NumberInputField />
+                                        <NumberInputStepper><NumberIncrementStepper /><NumberDecrementStepper /></NumberInputStepper>
+                                    </NumberInput>
+                                </FormControl>
+                                <FormControl w="150px">
+                                    <Select
+                                        value={currentCampaign?.ui_offsetUnit}
+                                        onChange={e => setCurrentCampaign({...currentCampaign, ui_offsetUnit: e.target.value})}
+                                    >
+                                        <option value="minutes">Minutos</option>
+                                        <option value="hours">Horas</option>
+                                        <option value="days">Dias</option>
+                                    </Select>
+                                </FormControl>
+                            </HStack>
+                            <Text fontSize="xs" color="gray.500" mt={2}>
+                                O sistema verificará agendamentos com status: {currentCampaign?.eventTargetStatus?.join(', ')}
+                            </Text>
+                        </Box>
+                    )}
 
                     <Box border="1px solid" borderColor="gray.200" p={4} borderRadius="md">
                         <Heading size="sm" mb={3}>Humanização (Delay)</Heading>

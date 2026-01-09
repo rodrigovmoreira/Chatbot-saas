@@ -17,11 +17,19 @@ router.get('/', authenticateToken, async (req, res) => {
 // Create a new campaign
 router.post('/', authenticateToken, async (req, res) => {
   try {
-    const { name, targetTags, type, message, isActive, schedule, delayRange } = req.body; // Added delayRange
+    const {
+      name, targetTags, type, message, isActive, schedule, delayRange,
+      triggerType, eventOffset, eventTargetStatus
+    } = req.body;
 
     // Basic validation
-    if (!name || !type || !message || !schedule || !schedule.time) {
+    if (!name || !type || !message) {
       return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    // Validate schedule if triggerType is time (or undefined, defaulting to time)
+    if ((!triggerType || triggerType === 'time') && (!schedule || !schedule.time)) {
+      return res.status(400).json({ message: 'Missing schedule time for time-based campaign' });
     }
 
     const campaign = new Campaign({
@@ -32,7 +40,10 @@ router.post('/', authenticateToken, async (req, res) => {
       message,
       isActive,
       schedule,
-      delayRange // Added delayRange
+      delayRange,
+      triggerType,
+      eventOffset,
+      eventTargetStatus
     });
 
     const savedCampaign = await campaign.save();
@@ -51,6 +62,22 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
     // Prevent updating userId
     delete updates.userId;
+
+    // Validate schedule if triggerType is time (or undefined, defaulting to time)
+    // Note: In PUT, we need to check if triggerType is being updated or if it exists in DB.
+    // However, simplest check is: if the update contains schedule data or triggerType changes to time, validate.
+    // Ideally we should fetch, merge, and validate, but strict validation might break partial updates if not careful.
+    // Given the frontend sends the whole object, we can validate the incoming payload if it looks like a full update.
+
+    // For now, let's allow the update but we should ensure data integrity if possible.
+    // The user requested: "Ensure the POST / and PUT /:id validators accept these new fields".
+    // Since we use { ...updates }, the new fields are automatically accepted by Mongoose if they are in the Schema.
+    // But we should add the same validation logic if triggerType/schedule are involved.
+
+    if (updates.triggerType === 'time' && (!updates.schedule || !updates.schedule.time)) {
+        // If switching to time, ensure time is present.
+         return res.status(400).json({ message: 'Missing schedule time for time-based campaign' });
+    }
 
     const campaign = await Campaign.findOneAndUpdate(
       { _id: id, userId: req.user.userId },

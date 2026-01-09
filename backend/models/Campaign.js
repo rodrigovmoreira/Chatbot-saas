@@ -28,6 +28,20 @@ const campaignSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  // Trigger Configuration
+  triggerType: {
+    type: String,
+    enum: ['time', 'event'],
+    default: 'time'
+  },
+  eventOffset: {
+    type: Number, // In minutes
+    default: 0
+  },
+  eventTargetStatus: {
+    type: [String],
+    default: ['scheduled', 'confirmed']
+  },
   schedule: {
     frequency: {
       type: String,
@@ -35,7 +49,7 @@ const campaignSchema = new mongoose.Schema({
     },
     time: {
       type: String, // 'HH:mm'
-      required: true
+      // Not required if triggerType is 'event', handled in validation
     },
     days: {
       type: [Number], // 0-6 (Sunday-Saturday)
