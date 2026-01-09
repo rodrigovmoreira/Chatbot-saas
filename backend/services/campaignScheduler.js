@@ -14,7 +14,7 @@ const SCHEDULE_INTERVAL = '0 0-23 * * *'; // Every hour? No, prompt says "Runs e
 const CRON_EXPRESSION = '* * * * *';
 
 async function processCampaigns() {
-  console.log('🔄 [CampaignScheduler] Checking active campaigns...');
+  //console.log('🔄 [CampaignScheduler] Checking active campaigns...');
 
   try {
     const campaigns = await Campaign.find({ isActive: true });
