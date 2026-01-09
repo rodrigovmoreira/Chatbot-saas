@@ -21,12 +21,14 @@ import {
 } from '@chakra-ui/icons';
 import ColorModeToggle from './ColorModeToggle';
 
+import { FaFilter } from 'react-icons/fa';
+
 const LinkItems = [
   { name: 'Conexão & Geral', icon: SettingsIcon, index: 0 },
   { name: 'Inteligência & Nicho', icon: StarIcon, index: 1 },
   { name: 'Respostas Rápidas', icon: EditIcon, index: 2 },
   { name: 'Catálogo', icon: AttachmentIcon, index: 3 },
-  { name: 'Automação (Funil)', icon: TimeIcon, index: 4, color: 'orange.500' }, // Reordered/Added
+  { name: 'Funil de Atendimento', icon: FaFilter, index: 4, color: 'orange.500' }, // Reordered/Added
   { name: 'Live Chat', icon: ChatIcon, index: 5, color: 'purple.500' },
   { name: 'Agendamentos', icon: TimeIcon, index: 6, color: 'blue.500' },
 ];
