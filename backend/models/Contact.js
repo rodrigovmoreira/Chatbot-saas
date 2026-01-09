@@ -21,7 +21,14 @@ const contactSchema = new mongoose.Schema({
 
   name: { type: String, default: 'Visitante' },
   
-  // === CAMPOS DO FUNIL (Faltavam estes!) ===
+  // Tags para segmentação
+  tags: {
+    type: [String],
+    default: [],
+    index: true
+  },
+
+  // === CAMPOS DO FUNIL ===
   followUpStage: { type: Number, default: 0 },
   
   // Controle de Ativação (Importante para o Scheduler)
@@ -29,6 +36,9 @@ const contactSchema = new mongoose.Schema({
   
   // O relógio para contar o tempo (Importante para o Scheduler)
   lastResponseTime: { type: Date }, 
+
+  // Human Handoff (Kill Switch)
+  isHandover: { type: Boolean, default: false },
 
   // Histórico básico
   lastInteraction: { type: Date, default: Date.now },

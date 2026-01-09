@@ -28,6 +28,12 @@ const businessConfigSchema = new mongoose.Schema({
     }
   },
 
+  // === ADICIONADO: TAGS DISPONÍVEIS (Fase 2.5) ===
+  availableTags: {
+    type: [String],
+    default: ['Cliente', 'Lead', 'Pós-Venda']
+  },
+
   // === ADICIONADO: MENU DE RESPOSTAS RÁPIDAS ===
   menuOptions: [
     {
@@ -60,7 +66,8 @@ const businessConfigSchema = new mongoose.Schema({
     {
       stage: { type: Number },
       delayMinutes: { type: Number },
-      message: { type: String }
+      message: { type: String },
+      useAI: { type: Boolean, default: false }
     }
   ],
 

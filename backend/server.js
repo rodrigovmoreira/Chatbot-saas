@@ -43,6 +43,8 @@ const businessRoutes = require('./routes/businessRoutes');
 const appointmentRoutes = require('./routes/appointmentRoutes');
 const whatsappRoutes = require('./routes/whatsappRoutes');
 const publicChatRoutes = require('./routes/publicChatRoutes');
+const campaignRoutes = require('./routes/campaignRoutes');
+const contactRoutes = require('./routes/contactRoutes');
 
 // Carregar Models (Garantia de registro)
 require('./models/SystemUser');
@@ -95,7 +97,13 @@ app.use('/api/appointments', appointmentRoutes);
 // 5. Chat Público (Web)
 app.use('/api/chat', publicChatRoutes);
 
-// 6. Webhook (Mantido aqui por ser externo)
+// 6. Campanhas (Active CRM)
+app.use('/api/campaigns', campaignRoutes);
+
+// 7. Contatos (Active CRM)
+app.use('/api/contacts', contactRoutes);
+
+// 8. Webhook (Mantido aqui por ser externo)
 app.post('/api/webhook', async (req, res) => {
   try {
     res.status(200).send('<Response></Response>');

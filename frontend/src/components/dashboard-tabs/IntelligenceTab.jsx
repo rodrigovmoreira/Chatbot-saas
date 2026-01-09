@@ -3,7 +3,7 @@ import {
   Box, Grid, Card, CardHeader, CardBody, Heading, Text, Button, VStack, HStack, Stack,
   useToast, Icon, useColorModeValue, FormControl, FormLabel, Input, Textarea,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
-  useDisclosure, Alert, AlertIcon, Select, Divider, IconButton, Tooltip
+  useDisclosure, Alert, AlertIcon, Select, Divider, IconButton, Tooltip, Checkbox
 } from '@chakra-ui/react';
 import {
   AddIcon, EditIcon, DeleteIcon, StarIcon, TimeIcon, DownloadIcon
@@ -41,7 +41,7 @@ const IntelligenceTab = () => {
   });
 
   const [followUpSteps, setFollowUpSteps] = useState([]);
-  const [newFollowUp, setNewFollowUp] = useState({ delayMinutes: 60, message: '' });
+  const [newFollowUp, setNewFollowUp] = useState({ delayMinutes: 60, message: '', useAI: false });
   const [editingFollowUpIndex, setEditingFollowUpIndex] = useState(null);
 
   // Sync Global State
@@ -170,7 +170,7 @@ const IntelligenceTab = () => {
 
     setFollowUpSteps(updated);
     setEditingFollowUpIndex(null);
-    setNewFollowUp({ delayMinutes: 60, message: '' });
+    setNewFollowUp({ delayMinutes: 60, message: '', useAI: false });
     onFollowUpClose();
   };
 
@@ -186,8 +186,8 @@ const IntelligenceTab = () => {
       const res = await businessAPI.updateConfig(payload);
       dispatch({ type: 'SET_BUSINESS_CONFIG', payload: res.data });
       setFollowUpSteps(orderedSteps);
-      toast({ title: 'Funil de Vendas salvo!', status: 'success' });
-    } catch (e) { toast({ title: 'Erro ao salvar funil', status: 'error' }); }
+      toast({ title: 'Recuperação de Inatividade salva!', status: 'success' });
+    } catch (e) { toast({ title: 'Erro ao salvar configuração', status: 'error' }); }
   };
 
   return (
@@ -311,14 +311,14 @@ const IntelligenceTab = () => {
 
         <Divider />
 
-        {/* 4. FUNIL DE VENDAS */}
+        {/* 4. RECUPERAÇÃO DE INATIVIDADE (Formerly Funnel) */}
         <Box>
           <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" mb={4}>
             <Box>
-              <Heading size="md">Funil de Vendas (Follow-up)</Heading>
+              <Heading size="md">Recuperação de Inatividade</Heading>
               <Text fontSize="sm" color="gray.500">Mensagens automáticas para recuperar clientes que pararam de responder.</Text>
             </Box>
-            <Button leftIcon={<AddIcon />} colorScheme="purple" onClick={() => { setEditingFollowUpIndex(null); setNewFollowUp({ delayMinutes: 60, message: '' }); onFollowUpOpen(); }}>
+            <Button leftIcon={<AddIcon />} colorScheme="purple" onClick={() => { setEditingFollowUpIndex(null); setNewFollowUp({ delayMinutes: 60, message: '', useAI: false }); onFollowUpOpen(); }}>
               Novo Passo
             </Button>
           </Stack>
@@ -341,8 +341,11 @@ const IntelligenceTab = () => {
                           <Text fontWeight="bold" fontSize="sm">
                             Após {step.delayMinutes >= 60 ? `${(step.delayMinutes / 60).toFixed(1)} horas` : `${step.delayMinutes} minutos`} de silêncio
                           </Text>
+                          {step.useAI && <Icon as={StarIcon} color="orange.400" />}
                         </HStack>
-                        <Text fontSize="md" color={gray800}>"{step.message}"</Text>
+                        <Text fontSize="md" color={gray800} fontStyle={step.useAI ? 'italic' : 'normal'}>
+                           {step.useAI ? `[Diretriz IA]: ${step.message}` : `"${step.message}"`}
+                        </Text>
                       </Box>
                     </Stack>
                     <HStack>
@@ -364,7 +367,7 @@ const IntelligenceTab = () => {
 
           {followUpSteps.length > 0 && (
             <Box mt={4} textAlign="right">
-              <Button colorScheme="purple" variant="outline" onClick={handleSaveFollowUps}>Salvar Funil de Vendas</Button>
+              <Button colorScheme="purple" variant="outline" onClick={handleSaveFollowUps}>Salvar Recuperação</Button>
             </Box>
           )}
         </Box>
@@ -375,7 +378,7 @@ const IntelligenceTab = () => {
       <Modal isOpen={isFollowUpModalOpen} onClose={onFollowUpClose} isCentered>
         <ModalOverlay />
         <ModalContent>
-          <ModalHeader>{editingFollowUpIndex !== null ? 'Editar Passo do Funil' : 'Novo Passo do Funil'}</ModalHeader>
+          <ModalHeader>{editingFollowUpIndex !== null ? 'Editar Passo' : 'Novo Passo'}</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <VStack spacing={4}>
@@ -387,9 +390,31 @@ const IntelligenceTab = () => {
                 </HStack>
                 <Text fontSize="xs" color="gray.400">Ex: 60 = 1 hora; 1440 = 24 horas.</Text>
               </FormControl>
+
+              <FormControl display='flex' alignItems='center'>
+                  <Checkbox
+                     isChecked={newFollowUp.useAI}
+                     onChange={(e) => setNewFollowUp({...newFollowUp, useAI: e.target.checked})}
+                     colorScheme="orange"
+                     mr={2}
+                  />
+                  <FormLabel mb='0' fontSize="sm">
+                    Usar IA para gerar mensagem?
+                  </FormLabel>
+              </FormControl>
+
               <FormControl isRequired>
-                <FormLabel>Mensagem de Cobrança</FormLabel>
-                <Textarea placeholder="Ex: E aí, ainda tem interesse?" value={newFollowUp.message} onChange={e => setNewFollowUp({ ...newFollowUp, message: e.target.value })} rows={4} size={{ base: 'lg', md: 'md' }} />
+                <FormLabel>
+                    {newFollowUp.useAI ? "Diretrizes para a IA" : "Mensagem Exata"}
+                </FormLabel>
+                <Textarea
+                    placeholder={newFollowUp.useAI ? "Ex: Cobre a resposta de forma educada e sugira uma ligação." : "Ex: E aí, ainda tem interesse?"}
+                    value={newFollowUp.message}
+                    onChange={e => setNewFollowUp({ ...newFollowUp, message: e.target.value })}
+                    rows={4}
+                    size={{ base: 'lg', md: 'md' }}
+                />
+                {newFollowUp.useAI && <Text fontSize="xs" color="orange.500">A IA gerará a mensagem real com base na conversa anterior e nesta diretriz.</Text>}
               </FormControl>
             </VStack>
           </ModalBody>
