@@ -28,6 +28,7 @@ require('./config/passport');
 // Serviços e Banco de Dados
 const connectDB = require('./services/database');
 const { startScheduler } = require('./services/scheduler');
+const { initScheduler: initCampaignScheduler } = require('./services/campaignScheduler');
 const { adaptTwilioMessage } = require('./services/providerAdapter');
 const { handleIncomingMessage } = require('./messageHandler');
 const { 
@@ -175,6 +176,7 @@ async function start() {
   try {
     await connectDB();
     startScheduler();
+    initCampaignScheduler(); // Initialize the new Campaign Scheduler
     
     // Passamos o IO para o serviço WWebJS poder emitir eventos
     initializeWWebJS(io);
