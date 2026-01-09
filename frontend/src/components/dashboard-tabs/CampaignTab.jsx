@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Button, Card, CardBody, Heading, Text, VStack, HStack, Badge,
   Table, Thead, Tbody, Tr, Th, Td, IconButton, useDisclosure,
@@ -6,12 +6,15 @@ import {
   FormControl, FormLabel, Input, Select, Textarea, useToast, NumberInput, NumberInputField, NumberInputStepper, NumberIncrementStepper, NumberDecrementStepper, Checkbox, SimpleGrid
 } from '@chakra-ui/react';
 import { AddIcon, EditIcon, DeleteIcon, TimeIcon } from '@chakra-ui/icons';
-import { businessAPI } from '../../services/api';
+import { useApp } from '../../context/AppContext';
 // Using direct axios for this specific module as it is not fully integrated into standard services yet,
 // but auth headers are handled carefully.
 import axios from 'axios';
+import { Menu, MenuButton, MenuList, MenuItem, Checkbox as ChakraCheckbox } from '@chakra-ui/react';
+import { ChevronDownIcon, SmallCloseIcon } from '@chakra-ui/icons';
 
 const CampaignTab = () => {
+  const { state } = useApp(); // Access global state for availableTags
   const [campaigns, setCampaigns] = useState([]);
   const [currentCampaign, setCurrentCampaign] = useState(null);
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -29,21 +32,21 @@ const CampaignTab = () => {
       { label: 'Sab', value: 6 }
   ];
 
-  const loadCampaigns = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const { data } = await axios.get(`${API_URL}/api/campaigns`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setCampaigns(data);
-    } catch (error) {
-      toast({ title: 'Erro ao carregar campanhas', status: 'error' });
-    }
-  };
+  const loadCampaigns = useCallback(async () => {
+      try {
+          const token = localStorage.getItem('token');
+          const { data } = await axios.get(`${API_URL}/api/campaigns`, {
+              headers: { Authorization: `Bearer ${token}` }
+          });
+          setCampaigns(data);
+      } catch (error) {
+          toast({ title: 'Erro ao carregar campanhas', status: 'error' });
+      }
+  }, [API_URL, toast]);
 
   useEffect(() => {
     loadCampaigns();
-  }, []);
+  }, [loadCampaigns]);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -51,10 +54,12 @@ const CampaignTab = () => {
       const token = localStorage.getItem('token');
       const payload = {
           ...currentCampaign,
-          // Ensure targetTags is array
-          targetTags: typeof currentCampaign.targetTags === 'string'
-             ? currentCampaign.targetTags.split(',').map(t => t.trim()).filter(Boolean)
-             : currentCampaign.targetTags
+          // Ensure targetTags is array (it should already be array with new UI, but keeping safeguard)
+          targetTags: Array.isArray(currentCampaign.targetTags)
+            ? currentCampaign.targetTags
+            : (typeof currentCampaign.targetTags === 'string'
+                ? currentCampaign.targetTags.split(',').map(t => t.trim()).filter(Boolean)
+                : [])
       };
 
       if (currentCampaign._id) {
@@ -105,13 +110,14 @@ const CampaignTab = () => {
     if (campaign) {
       setCurrentCampaign({
           ...campaign,
-          targetTags: campaign.targetTags ? campaign.targetTags.join(', ') : ''
+          // Ensure targetTags is an array for the state
+          targetTags: Array.isArray(campaign.targetTags) ? campaign.targetTags : []
       });
     } else {
       setCurrentCampaign({
         name: '',
         type: 'broadcast',
-        targetTags: '',
+        targetTags: [], // Initialize as empty array
         message: '',
         isActive: true,
         schedule: { frequency: 'once', time: '09:00', days: [] },
@@ -119,6 +125,15 @@ const CampaignTab = () => {
       });
     }
     onOpen();
+  };
+
+  const toggleTag = (tag) => {
+      const currentTags = Array.isArray(currentCampaign.targetTags) ? currentCampaign.targetTags : [];
+      const newTags = currentTags.includes(tag)
+          ? currentTags.filter(t => t !== tag)
+          : [...currentTags, tag];
+
+      setCurrentCampaign({ ...currentCampaign, targetTags: newTags });
   };
 
   return (
@@ -220,12 +235,43 @@ const CampaignTab = () => {
                     </HStack>
 
                     <FormControl>
-                        <FormLabel>Tags Alvo (Separe por vírgula)</FormLabel>
-                        <Input
-                            placeholder="Ex: Hot Lead, Cliente Antigo"
-                            value={currentCampaign?.targetTags || ''}
-                            onChange={e => setCurrentCampaign({...currentCampaign, targetTags: e.target.value})}
-                        />
+                        <FormLabel>Tags Alvo</FormLabel>
+                        <Menu closeOnSelect={false}>
+                            <MenuButton as={Button} rightIcon={<ChevronDownIcon />} w="100%" textAlign="left" variant="outline" fontWeight="normal">
+                                {currentCampaign?.targetTags?.length > 0
+                                    ? `${currentCampaign.targetTags.length} tag(s) selecionada(s)`
+                                    : "Selecione as Tags"}
+                            </MenuButton>
+                            <MenuList maxH="200px" overflowY="auto">
+                                {state.businessConfig?.availableTags?.map((tag) => (
+                                    <MenuItem key={tag} onClick={() => toggleTag(tag)}>
+                                        <ChakraCheckbox
+                                            isChecked={currentCampaign?.targetTags?.includes(tag)}
+                                            pointerEvents="none" // Pass click through to MenuItem
+                                            mr={2}
+                                        />
+                                        {tag}
+                                    </MenuItem>
+                                ))}
+                                {(!state.businessConfig?.availableTags || state.businessConfig.availableTags.length === 0) && (
+                                    <MenuItem isDisabled>Nenhuma tag disponível.</MenuItem>
+                                )}
+                            </MenuList>
+                        </Menu>
+                        {/* Selected Tags Display */}
+                        <HStack mt={2} wrap="wrap" spacing={2}>
+                            {currentCampaign?.targetTags?.map(tag => (
+                                <Badge key={tag} colorScheme="brand" borderRadius="full" px={2} py={1} display="flex" alignItems="center">
+                                    {tag}
+                                    <SmallCloseIcon
+                                        ml={1}
+                                        cursor="pointer"
+                                        onClick={() => toggleTag(tag)}
+                                        _hover={{ color: 'red.500' }}
+                                    />
+                                </Badge>
+                            ))}
+                        </HStack>
                     </FormControl>
 
                     <FormControl isRequired>
