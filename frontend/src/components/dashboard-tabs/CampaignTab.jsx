@@ -117,6 +117,7 @@ const CampaignTab = () => {
     if (campaign) {
       setCurrentCampaign({
           ...campaign,
+          contentMode: campaign.contentMode || 'static',
           targetTags: Array.isArray(campaign.targetTags) ? campaign.targetTags : [],
           triggerType: campaign.triggerType || 'time',
           eventOffset: campaign.eventOffset !== undefined ? campaign.eventOffset : 60,
@@ -126,6 +127,7 @@ const CampaignTab = () => {
     } else {
       setCurrentCampaign({
         name: '',
+        contentMode: 'static',
         type: 'broadcast',
         targetTags: [], // Initialize as empty array
         message: '',
@@ -288,13 +290,36 @@ const CampaignTab = () => {
                         </HStack>
                     </FormControl>
 
+                    <FormControl mb={4}>
+                        <FormLabel>Modo de Conteúdo</FormLabel>
+                        <RadioGroup
+                            value={currentCampaign?.contentMode}
+                            onChange={val => setCurrentCampaign({...currentCampaign, contentMode: val})}
+                        >
+                            <Stack direction="row" spacing={4}>
+                                <Radio value="static">Mensagem Fixa (Padrão)</Radio>
+                                <Radio value="ai_prompt">Gerado por IA (Dinâmico)</Radio>
+                            </Stack>
+                        </RadioGroup>
+                    </FormControl>
+
                     <FormControl isRequired>
-                        <FormLabel>Mensagem</FormLabel>
+                        <FormLabel>
+                            {currentCampaign?.contentMode === 'ai_prompt' ? 'Instrução para a IA' : 'Mensagem'}
+                        </FormLabel>
                         <Textarea
                             rows={4}
                             value={currentCampaign?.message || ''}
                             onChange={e => setCurrentCampaign({...currentCampaign, message: e.target.value})}
+                            placeholder={currentCampaign?.contentMode === 'ai_prompt'
+                                ? "Ex: Analise a última conversa e convide o {nome} para retornar, oferecendo 10% de desconto. Use um tom amigável."
+                                : ""}
                         />
+                        {currentCampaign?.contentMode === 'ai_prompt' && (
+                             <Text fontSize="sm" color="orange.500" mt={1}>
+                                <i className="fas fa-info-circle"></i> A IA usará o histórico da conversa para personalizar esta mensagem para cada cliente.
+                             </Text>
+                        )}
                         <FormHelperText>
                             Variáveis disponíveis: {'{nome_cliente}'}
                             {currentCampaign?.triggerType === 'event' && ', {data_agendamento}, {hora_agendamento}'}.
