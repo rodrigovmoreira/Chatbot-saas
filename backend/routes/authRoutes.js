@@ -8,7 +8,7 @@ const BusinessConfig = require('../models/BusinessConfig');
 const authenticateToken = require('../middleware/auth');
 const { stopSession } = require('../services/wwebjsService');
 const { sendVerificationEmail } = require('../services/emailService');
-const loginLimiter = require('../middleware/loginLimiter');
+const { loginLimiter, registerLimiter } = require('../middleware/rateLimiters');
 
 // ROTA: /api/auth/login
 router.post('/login', loginLimiter, async (req, res) => {
@@ -37,7 +37,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 });
 
 // ROTA: /api/auth/register
-router.post('/register', async (req, res) => {
+router.post('/register', registerLimiter, async (req, res) => {
   try {
     const { name, email, password, company } = req.body;
     if (await SystemUser.findOne({ email })) return res.status(400).json({ message: 'Email existe' });
