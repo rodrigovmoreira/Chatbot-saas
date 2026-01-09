@@ -65,4 +65,10 @@ contactSchema.index({ lastInteraction: 1 }, {
   partialFilterExpression: { channel: 'web' }
 });
 
+// Optimization: Dashboard Conversations List (sort by recent interaction)
+contactSchema.index({ businessId: 1, lastInteraction: -1 });
+
+// Optimization: Scheduler Polling (find active follow-ups)
+contactSchema.index({ businessId: 1, followUpActive: 1 });
+
 module.exports = mongoose.model('Contact', contactSchema);
