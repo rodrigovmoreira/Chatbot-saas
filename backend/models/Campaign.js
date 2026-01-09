@@ -24,6 +24,11 @@ const campaignSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  contentMode: {
+    type: String,
+    enum: ['static', 'ai_prompt'],
+    default: 'static'
+  },
   isActive: {
     type: Boolean,
     default: true
