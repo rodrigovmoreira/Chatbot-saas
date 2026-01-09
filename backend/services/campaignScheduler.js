@@ -7,7 +7,7 @@ const Appointment = require('../models/Appointment');
 const BusinessConfig = require('../models/BusinessConfig');
 const { callDeepSeek } = require('./aiService');
 const { sendUnifiedMessage } = require('./responseService');
-const { getLastMessages } = require('./messageService');
+const { getLastMessages } = require('./message');
 
 const SCHEDULE_INTERVAL = '0 0-23 * * *'; // Every hour? No, prompt says "Runs every minute".
 // Cron pattern for every minute: '* * * * *'
@@ -262,4 +262,4 @@ function initScheduler() {
   console.log('🚀 Campaign Scheduler initialized (runs every minute).');
 }
 
-module.exports = { initScheduler };
+module.exports = { initScheduler, processCampaigns };
