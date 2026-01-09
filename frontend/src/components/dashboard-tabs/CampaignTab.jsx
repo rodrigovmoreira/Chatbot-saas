@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Box, Button, Card, CardBody, Heading, Text, VStack, HStack, Badge,
   Table, Thead, Tbody, Tr, Th, Td, IconButton, useDisclosure,
@@ -39,11 +39,16 @@ const CampaignTab = () => {
           const { data } = await axios.get(`${API_URL}/api/campaigns`, {
               headers: { Authorization: `Bearer ${token}` }
           });
+          console.log('Campaigns fetched:', data);
           setCampaigns(data);
       } catch (error) {
           toast({ title: 'Erro ao carregar campanhas', status: 'error' });
       }
   }, [API_URL, toast]);
+
+  useEffect(() => {
+    loadCampaigns();
+  }, [loadCampaigns]);
 
 
 
