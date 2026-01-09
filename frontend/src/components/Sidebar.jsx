@@ -162,6 +162,7 @@ export const MobileNav = ({ onOpen, title, children, ...rest }) => {
       right="0"
       zIndex="999" // High z-index for mobile nav
       boxShadow="sm"
+      transition="all 0.3s" // Smooth transition for appearance
       {...rest}
     >
       <HStack spacing={3}>
