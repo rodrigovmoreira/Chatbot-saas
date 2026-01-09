@@ -57,15 +57,15 @@ if (cleanupInterval.unref) {
 }
 
 const loginLimiter = createRateLimiter({
-  windowMs: 15 * 60 * 1000, // 15 mins
+  windowMs: 5 * 60 * 1000, // 5 mins
   max: 5,
-  message: 'Muitas tentativas de login. Tente novamente em 15 minutos.',
+  message: 'Muitas tentativas de login. Tente novamente em 5 minutos.',
   keyPrefix: 'login'
 });
 
 const registerLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3,
+  max: 10,
   message: 'Muitos registros criados deste IP. Tente novamente em 1 hora.',
   keyPrefix: 'register'
 });
