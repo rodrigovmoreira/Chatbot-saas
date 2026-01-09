@@ -4,11 +4,11 @@ import {
   useColorModeValue, Alert, Icon,
   Avatar, Modal, ModalOverlay, ModalContent, ModalHeader,
   ModalCloseButton, ModalBody, ModalFooter, useDisclosure, Code, IconButton, Tooltip, useToast,
-  Badge, Input, InputGroup, InputRightElement, Switch, FormControl, FormLabel,
+  Badge, Input, Switch, FormControl, FormLabel,
   Popover, PopoverTrigger, PopoverContent, PopoverBody, PopoverHeader, PopoverArrow, PopoverCloseButton,
   List, ListItem
 } from '@chakra-ui/react';
-import { ChatIcon, WarningTwoIcon, LinkIcon, DeleteIcon, ArrowBackIcon, AddIcon, SmallCloseIcon } from '@chakra-ui/icons';
+import { ChatIcon, LinkIcon, DeleteIcon, ArrowBackIcon, AddIcon, SmallCloseIcon } from '@chakra-ui/icons';
 import { FaWhatsapp, FaGlobe, FaRobot, FaUser } from 'react-icons/fa';
 import { businessAPI } from '../../services/api'; // Ensure this service has updateContact method
 import { useApp } from '../../context/AppContext';
