@@ -50,7 +50,7 @@ const campaignSchema = new mongoose.Schema({
   schedule: {
     frequency: {
       type: String,
-      enum: ['daily', 'weekly', 'monthly', 'once']
+      enum: ['daily', 'weekly', 'monthly', 'once', 'minutes_30', 'hours_1', 'hours_6', 'hours_12']
     },
     time: {
       type: String, // 'HH:mm'

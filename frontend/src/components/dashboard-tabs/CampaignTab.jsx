@@ -122,7 +122,10 @@ const CampaignTab = () => {
     if (campaign) {
       setCurrentCampaign({
           ...campaign,
-          contentMode: campaign.contentMode || 'static',
+          // Explicitly set contentMode to ensure persistence as per bug report
+          contentMode: (campaign.contentMode === 'ai_prompt' || campaign.contentMode === 'static')
+            ? campaign.contentMode
+            : 'static',
           targetTags: Array.isArray(campaign.targetTags) ? campaign.targetTags : [],
           triggerType: campaign.triggerType || 'time',
           eventOffset: campaign.eventOffset !== undefined ? campaign.eventOffset : 60,
@@ -370,21 +373,34 @@ const CampaignTab = () => {
                                         <option value="daily">Diário</option>
                                         <option value="weekly">Semanal</option>
                                         <option value="monthly">Mensal</option>
+                                        <option value="minutes_30">A cada 30 min</option>
+                                        <option value="hours_1">A cada 1 Hora</option>
+                                        <option value="hours_6">A cada 6 Horas</option>
+                                        <option value="hours_12">A cada 12 Horas</option>
                                     </Select>
                                 </FormControl>
 
-                                <FormControl>
-                                    <FormLabel>Horário</FormLabel>
-                                    <Input
-                                        type="time"
-                                        value={currentCampaign?.schedule?.time}
-                                        onChange={e => setCurrentCampaign({
-                                            ...currentCampaign,
-                                            schedule: { ...currentCampaign.schedule, time: e.target.value }
-                                        })}
-                                        size={{ base: 'lg', md: 'md' }}
-                                    />
-                                </FormControl>
+                                {/* Use a function to check visibility for clarity */}
+                                {(() => {
+                                    const freq = currentCampaign?.schedule?.frequency;
+                                    const isInterval = ['minutes_30', 'hours_1', 'hours_6', 'hours_12'].includes(freq);
+                                    if (isInterval) return null;
+
+                                    return (
+                                        <FormControl>
+                                            <FormLabel>Horário</FormLabel>
+                                            <Input
+                                                type="time"
+                                                value={currentCampaign?.schedule?.time}
+                                                onChange={e => setCurrentCampaign({
+                                                    ...currentCampaign,
+                                                    schedule: { ...currentCampaign.schedule, time: e.target.value }
+                                                })}
+                                                size={{ base: 'lg', md: 'md' }}
+                                            />
+                                        </FormControl>
+                                    );
+                                })()}
                             </Stack>
 
                             {/* Weekly Days Selector */}
