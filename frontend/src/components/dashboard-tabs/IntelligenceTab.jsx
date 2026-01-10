@@ -113,12 +113,18 @@ const IntelligenceTab = () => {
 
   const handleSavePrompts = async () => {
     try {
+      const orderedSteps = followUpSteps.map((step, index) => ({
+        ...step,
+        stage: index + 1
+      }));
       const payload = {
         ...state.businessConfig,
-        prompts: activePrompts
+        prompts: activePrompts,
+        followUpSteps: orderedSteps
       };
       const response = await businessAPI.updateConfig(payload);
       dispatch({ type: 'SET_BUSINESS_CONFIG', payload: response.data });
+      setFollowUpSteps(orderedSteps);
       toast({ title: 'Cérebro da IA atualizado!', status: 'success' });
     } catch (error) {
       toast({ title: 'Erro ao salvar prompts', status: 'error' });
