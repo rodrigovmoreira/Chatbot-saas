@@ -1,5 +1,6 @@
 const Appointment = require('../models/Appointment');
 const BusinessConfig = require('../models/BusinessConfig');
+const { toZonedTime, fromZonedTime } = require('date-fns-tz');
 
 // 1. FERRAMENTA: Verificar Disponibilidade
 // Verifica se um horário específico está livre
@@ -7,15 +8,36 @@ const checkAvailability = async (userId, start, end) => {
     try {
         const startTime = new Date(start);
         const endTime = new Date(end);
+        const now = new Date();
 
-        // 1. Verifica horário de funcionamento
+        // 0. Verifica Antecedência Mínima (Buffer)
         const config = await BusinessConfig.findOne({ userId });
+
+        if (config) {
+            const bufferMinutes = config.minSchedulingNoticeMinutes || 60;
+            const minStart = new Date(now.getTime() + bufferMinutes * 60000);
+
+            if (startTime < minStart) {
+                return {
+                    available: false,
+                    reason: `Necessário agendar com no mínimo ${bufferMinutes} minutos de antecedência.`
+                };
+            }
+        }
+
+        // 1. Verifica horário de funcionamento (COM TIMEZONE)
         if (config && config.operatingHours) {
-            // Conversão simples de horas (ex: "09:00" -> 9)
+            const timeZone = config.timezone || config.operatingHours.timezone || 'America/Sao_Paulo';
+
+            // Converte o startTime (que é UTC no objeto Date, mas queremos saber a hora LOCAL do negócio)
+            const zonedStart = toZonedTime(startTime, timeZone);
+
             const openHour = parseInt(config.operatingHours.opening.split(':')[0]);
             const closeHour = parseInt(config.operatingHours.closing.split(':')[0]);
             
-            const reqHour = startTime.getHours();
+            const reqHour = zonedStart.getHours();
+
+            // Validação simples de hora cheia. Para minutos, seria necessário mais detalhe.
             if (reqHour < openHour || reqHour >= closeHour) {
                 return { available: false, reason: "Fora do horário de funcionamento." };
             }
@@ -47,6 +69,8 @@ const createAppointmentByAI = async (userId, data) => {
     try {
         // data deve conter: { clientName, clientPhone, start, end, title }
         
+        // start e end já devem chegar aqui como objetos Date (UTC) ou strings ISO corretas
+
         // Dupla checagem de disponibilidade
         const check = await checkAvailability(userId, data.start, data.end);
         if (!check.available) return { success: false, message: check.reason };

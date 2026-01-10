@@ -7,9 +7,9 @@ import {
   Box, Button, Modal, ModalOverlay, ModalContent, ModalHeader,
   ModalFooter, ModalBody, ModalCloseButton, FormControl, FormLabel,
   Input, Select, useDisclosure, useToast, VStack, HStack, Stack, Text,
-  useColorModeValue, Badge, Menu, MenuButton, MenuList, MenuItem
+  useColorModeValue, Badge, Menu, MenuButton, MenuList, MenuItem, Tooltip, IconButton
 } from '@chakra-ui/react';
-import { DeleteIcon, ChevronDownIcon, CheckIcon, AddIcon, TimeIcon } from '@chakra-ui/icons';
+import { DeleteIcon, ChevronDownIcon, CheckIcon, AddIcon, TimeIcon, SettingsIcon } from '@chakra-ui/icons';
 import { businessAPI } from '../services/api';
 import { useApp } from '../context/AppContext';
 
@@ -23,9 +23,11 @@ const ScheduleTab = () => {
   const [filteredEvents, setFilteredEvents] = useState([]);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen: isFollowUpOpen, onOpen: onFollowUpOpen, onClose: onFollowUpClose } = useDisclosure(); // Modal de confirmação follow-up
+  const { isOpen: isSettingsOpen, onOpen: onSettingsOpen, onClose: onSettingsClose } = useDisclosure(); // Modal de Configurações
   const toast = useToast();
 
   const [view, setView] = useState('week');
+  const [minNotice, setMinNotice] = useState(60); // Default 60
   const [date, setDate] = useState(new Date());
   const [filterStatus, setFilterStatus] = useState('all'); // all, scheduled, completed, pending
 
@@ -43,7 +45,10 @@ const ScheduleTab = () => {
 
   useEffect(() => {
     fetchAppointments();
-  }, []);
+    if (state.businessConfig?.minSchedulingNoticeMinutes) {
+        setMinNotice(state.businessConfig.minSchedulingNoticeMinutes);
+    }
+  }, [state.businessConfig]);
 
   useEffect(() => {
     if (filterStatus === 'all') {
@@ -298,9 +303,12 @@ const ScheduleTab = () => {
       <Box display={{ base: 'block', md: 'none' }} h="90%" overflowY="auto">
         <HStack justify="space-between" mb={4}>
            <Text fontWeight="bold" fontSize="lg">Agenda</Text>
-           <Button leftIcon={<AddIcon />} colorScheme="blue" size="sm" onClick={() => handleSelectSlot({ start: new Date(), end: new Date() })}>
-             Novo
-           </Button>
+           <HStack>
+               <IconButton icon={<SettingsIcon />} size="sm" onClick={onSettingsOpen} aria-label="Configurações" />
+               <Button leftIcon={<AddIcon />} colorScheme="blue" size="sm" onClick={() => handleSelectSlot({ start: new Date(), end: new Date() })}>
+                 Novo
+               </Button>
+           </HStack>
         </HStack>
 
         <VStack spacing={3} align="stretch">
@@ -342,46 +350,52 @@ const ScheduleTab = () => {
       <Box display={{ base: 'none', md: 'block' }} h="100%">
 
       {/* BARRA DE FILTROS DE STATUS */}
-      <HStack mb={4} spacing={4} overflowX="auto" pb={2} css={{
-        '&::-webkit-scrollbar': { height: '4px' },
-        '&::-webkit-scrollbar-thumb': { background: '#CBD5E0', borderRadius: '24px' },
-      }}>
-        <Button
-          flexShrink={0}
-          size="sm"
-          variant={filterStatus === 'all' ? 'solid' : 'outline'}
-          colorScheme="blue"
-          onClick={() => setFilterStatus('all')}
-        >
-          Todos
-        </Button>
-        <Button
-          flexShrink={0}
-          size="sm"
-          variant={filterStatus === 'scheduled' ? 'solid' : 'outline'}
-          colorScheme="blue"
-          onClick={() => setFilterStatus('scheduled')}
-        >
-          Agendados
-        </Button>
-        <Button
-          flexShrink={0}
-          size="sm"
-          variant={filterStatus === 'completed' ? 'solid' : 'outline'}
-          colorScheme="green"
-          onClick={() => setFilterStatus('completed')}
-        >
-          Concluídos
-        </Button>
-        <Button
-          flexShrink={0}
-          size="sm"
-          variant={filterStatus === 'pending' ? 'solid' : 'outline'}
-          colorScheme="orange"
-          onClick={() => setFilterStatus('pending')}
-        >
-          Follow-up Pendente
-        </Button>
+      <HStack mb={4} justify="space-between">
+          <HStack spacing={4} overflowX="auto" pb={2} css={{
+            '&::-webkit-scrollbar': { height: '4px' },
+            '&::-webkit-scrollbar-thumb': { background: '#CBD5E0', borderRadius: '24px' },
+          }}>
+            <Button
+              flexShrink={0}
+              size="sm"
+              variant={filterStatus === 'all' ? 'solid' : 'outline'}
+              colorScheme="blue"
+              onClick={() => setFilterStatus('all')}
+            >
+              Todos
+            </Button>
+            <Button
+              flexShrink={0}
+              size="sm"
+              variant={filterStatus === 'scheduled' ? 'solid' : 'outline'}
+              colorScheme="blue"
+              onClick={() => setFilterStatus('scheduled')}
+            >
+              Agendados
+            </Button>
+            <Button
+              flexShrink={0}
+              size="sm"
+              variant={filterStatus === 'completed' ? 'solid' : 'outline'}
+              colorScheme="green"
+              onClick={() => setFilterStatus('completed')}
+            >
+              Concluídos
+            </Button>
+            <Button
+              flexShrink={0}
+              size="sm"
+              variant={filterStatus === 'pending' ? 'solid' : 'outline'}
+              colorScheme="orange"
+              onClick={() => setFilterStatus('pending')}
+            >
+              Follow-up Pendente
+            </Button>
+          </HStack>
+
+          <Tooltip label="Configurar Antecedência Mínima">
+             <IconButton icon={<SettingsIcon />} size="sm" onClick={onSettingsOpen} aria-label="Configurações da Agenda" />
+          </Tooltip>
       </HStack>
 
       <Box flex="1" overflowX="auto" h="90%">
@@ -551,6 +565,47 @@ const ScheduleTab = () => {
               Sim, agendar Follow-up
             </Button>
           </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* MODAL DE CONFIGURAÇÕES DA AGENDA */}
+      <Modal isOpen={isSettingsOpen} onClose={onSettingsClose}>
+        <ModalOverlay />
+        <ModalContent>
+            <ModalHeader>Configurações da Agenda</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+                <FormControl>
+                    <FormLabel>
+                        Tempo Mínimo de Antecedência (Minutos)
+                        <Tooltip label="Tempo mínimo entre agora e o próximo agendamento disponível. Ex: Se colocar 60 min, o cliente só verá vagas daqui a 1 hora.">
+                            <TimeIcon ml={2} color="gray.500" />
+                        </Tooltip>
+                    </FormLabel>
+                    <Input
+                        type="number"
+                        value={minNotice}
+                        onChange={(e) => setMinNotice(Number(e.target.value))}
+                    />
+                    <Text fontSize="sm" color="gray.500" mt={2}>
+                        Isso impede que a IA agende horários muito próximos de "agora".
+                    </Text>
+                </FormControl>
+            </ModalBody>
+            <ModalFooter>
+                <Button variant="ghost" mr={3} onClick={onSettingsClose}>Cancelar</Button>
+                <Button colorScheme="blue" onClick={async () => {
+                    try {
+                        await businessAPI.updateConfig({ minSchedulingNoticeMinutes: minNotice });
+                        toast({ title: 'Configuração salva!', status: 'success' });
+                        onSettingsClose();
+                    } catch (e) {
+                        toast({ title: 'Erro ao salvar', status: 'error' });
+                    }
+                }}>
+                    Salvar
+                </Button>
+            </ModalFooter>
         </ModalContent>
       </Modal>
 
