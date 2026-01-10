@@ -3,8 +3,9 @@ const router = express.Router();
 const BusinessConfig = require('../models/BusinessConfig');
 const Message = require('../models/Message');
 const { handleIncomingMessage } = require('../messageHandler');
+const { publicChatLimiter } = require('../middleware/rateLimiters');
 
-router.post('/send', async (req, res) => {
+router.post('/send', publicChatLimiter, async (req, res) => {
   try {
     const { businessId, sessionId, message } = req.body;
 

@@ -1,4 +1,4 @@
-const { loginLimiter, registerLimiter } = require('../../middleware/rateLimiters');
+const { loginLimiter, registerLimiter, publicChatLimiter } = require('../../middleware/rateLimiters');
 
 // Mock Request and Response
 const mockReq = (ip) => ({
@@ -59,17 +59,38 @@ describe('Rate Limiters', () => {
     const res = mockRes();
     const next = mockNext;
 
-    // Register limiter max is 3.
-    for (let i = 0; i < 3; i++) {
+    // Register limiter max is 10.
+    for (let i = 0; i < 10; i++) {
       registerLimiter(req, res, next);
     }
 
-    // The 4th time should fail
+    // The 11th time should fail
     registerLimiter(req, res, next);
 
     expect(res.status).toHaveBeenCalledWith(429);
     expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
       message: expect.stringContaining('Muitos registros')
+    }));
+  });
+
+  test('public chat limiter should limit messages', () => {
+    const ip = '4.4.4.4';
+    const req = mockReq(ip);
+    const res = mockRes();
+    const next = mockNext;
+
+    // Public Chat limiter max is 30.
+    for (let i = 0; i < 30; i++) {
+      publicChatLimiter(req, res, next);
+      expect(next).toHaveBeenCalledTimes(i + 1);
+    }
+
+    // The 31st time should fail
+    publicChatLimiter(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(429);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      message: expect.stringContaining('Você está enviando mensagens muito rápido')
     }));
   });
 });
