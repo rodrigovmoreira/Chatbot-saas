@@ -70,4 +70,11 @@ const registerLimiter = createRateLimiter({
   keyPrefix: 'register'
 });
 
-module.exports = { loginLimiter, registerLimiter };
+const publicChatLimiter = createRateLimiter({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 30, // 30 messages per minute (approx 1 per 2 seconds)
+  message: 'Você está enviando mensagens muito rápido. Aguarde um momento.',
+  keyPrefix: 'public_chat'
+});
+
+module.exports = { loginLimiter, registerLimiter, publicChatLimiter, createRateLimiter };
