@@ -159,12 +159,12 @@ const CampaignTab = () => {
 
   return (
     <Box>
-      <HStack justify="space-between" mb={6}>
+      <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" mb={6} spacing={4}>
         <Heading size="md">Automação & Funis</Heading>
         <Button leftIcon={<AddIcon />} colorScheme="brand" onClick={() => openModal()}>
           Nova Campanha
         </Button>
-      </HStack>
+      </Stack>
 
       {campaigns.length === 0 ? (
         <Card>
@@ -228,15 +228,17 @@ const CampaignTab = () => {
                         <Input
                             value={currentCampaign?.name || ''}
                             onChange={e => setCurrentCampaign({...currentCampaign, name: e.target.value})}
+                            size={{ base: 'lg', md: 'md' }}
                         />
                     </FormControl>
 
-                    <HStack>
+                    <Stack direction={{ base: 'column', md: 'row' }} spacing={4}>
                         <FormControl>
                             <FormLabel>Tipo</FormLabel>
                             <Select
                                 value={currentCampaign?.type}
                                 onChange={e => setCurrentCampaign({...currentCampaign, type: e.target.value})}
+                                size={{ base: 'lg', md: 'md' }}
                             >
                                 <option value="broadcast">Broadcast (Disparo Único)</option>
                                 <option value="recurring">Recorrente (Ex: Cobrança)</option>
@@ -248,12 +250,13 @@ const CampaignTab = () => {
                             <Select
                                 value={currentCampaign?.isActive ? 'true' : 'false'}
                                 onChange={e => setCurrentCampaign({...currentCampaign, isActive: e.target.value === 'true'})}
+                                size={{ base: 'lg', md: 'md' }}
                             >
                                 <option value="true">Ativo</option>
                                 <option value="false">Pausado</option>
                             </Select>
                         </FormControl>
-                    </HStack>
+                    </Stack>
 
                     <FormControl>
                         <FormLabel>Tags Alvo</FormLabel>
@@ -319,6 +322,7 @@ const CampaignTab = () => {
                             placeholder={currentCampaign?.contentMode === 'ai_prompt'
                                 ? "Ex: Analise a última conversa e convide o {nome} para retornar, oferecendo 10% de desconto. Use um tom amigável."
                                 : ""}
+                            size={{ base: 'lg', md: 'md' }}
                         />
                         {currentCampaign?.contentMode === 'ai_prompt' && (
                              <Text fontSize="sm" color="orange.500" mt={1}>
@@ -349,7 +353,7 @@ const CampaignTab = () => {
                             <Heading size="sm" mb={3} display="flex" alignItems="center">
                                 <TimeIcon mr={2} /> Agendamento
                             </Heading>
-                            <HStack alignItems="flex-start">
+                            <Stack direction={{ base: 'column', md: 'row' }} alignItems="flex-start" spacing={4}>
                                 <FormControl>
                                     <FormLabel>Frequência</FormLabel>
                                     <Select
@@ -358,6 +362,7 @@ const CampaignTab = () => {
                                             ...currentCampaign,
                                             schedule: { ...currentCampaign.schedule, frequency: e.target.value }
                                         })}
+                                        size={{ base: 'lg', md: 'md' }}
                                     >
                                         <option value="once">Uma vez</option>
                                         <option value="daily">Diário</option>
@@ -375,20 +380,22 @@ const CampaignTab = () => {
                                             ...currentCampaign,
                                             schedule: { ...currentCampaign.schedule, time: e.target.value }
                                         })}
+                                        size={{ base: 'lg', md: 'md' }}
                                     />
                                 </FormControl>
-                            </HStack>
+                            </Stack>
 
                             {/* Weekly Days Selector */}
                             {currentCampaign?.schedule?.frequency === 'weekly' && (
                                 <FormControl mt={3}>
                                     <FormLabel fontSize="sm">Dias da Semana</FormLabel>
-                                    <SimpleGrid columns={4} spacing={2}>
+                                    <SimpleGrid columns={{ base: 2, md: 4 }} spacing={2}>
                                         {DAYS_OF_WEEK.map(day => (
                                             <Checkbox
                                                 key={day.value}
                                                 isChecked={currentCampaign?.schedule?.days?.includes(day.value)}
                                                 onChange={() => toggleDay(day.value)}
+                                                size="lg"
                                             >
                                                 {day.label}
                                             </Checkbox>
@@ -402,7 +409,7 @@ const CampaignTab = () => {
                             <Heading size="sm" mb={3} display="flex" alignItems="center">
                                 <CalendarIcon mr={2} /> Regra de Agendamento
                             </Heading>
-                            <HStack alignItems="flex-end">
+                            <Stack direction={{ base: 'column', md: 'row' }} alignItems="flex-end" spacing={4}>
                                 <FormControl>
                                     <FormLabel>Enviar com antecedência de</FormLabel>
                                     <NumberInput
@@ -415,22 +422,24 @@ const CampaignTab = () => {
                                                 eventOffset: num * multiplier
                                             });
                                         }}
+                                        size={{ base: 'lg', md: 'md' }}
                                     >
                                         <NumberInputField />
                                         <NumberInputStepper><NumberIncrementStepper /><NumberDecrementStepper /></NumberInputStepper>
                                     </NumberInput>
                                 </FormControl>
-                                <FormControl w="150px">
+                                <FormControl w={{ base: 'full', md: '150px' }}>
                                     <Select
                                         value={currentCampaign?.ui_offsetUnit}
                                         onChange={e => setCurrentCampaign({...currentCampaign, ui_offsetUnit: e.target.value})}
+                                        size={{ base: 'lg', md: 'md' }}
                                     >
                                         <option value="minutes">Minutos</option>
                                         <option value="hours">Horas</option>
                                         <option value="days">Dias</option>
                                     </Select>
                                 </FormControl>
-                            </HStack>
+                            </Stack>
                             <Text fontSize="xs" color="gray.500" mt={2}>
                                 O sistema verificará agendamentos com status: {currentCampaign?.eventTargetStatus?.join(', ')}
                             </Text>
@@ -439,7 +448,7 @@ const CampaignTab = () => {
 
                     <Box border="1px solid" borderColor="gray.200" p={4} borderRadius="md">
                         <Heading size="sm" mb={3}>Humanização (Delay)</Heading>
-                        <HStack>
+                        <Stack direction={{ base: 'column', md: 'row' }} spacing={4}>
                             <FormControl>
                                 <FormLabel>Min (Segundos)</FormLabel>
                                 <NumberInput
@@ -449,6 +458,7 @@ const CampaignTab = () => {
                                         ...currentCampaign,
                                         delayRange: { ...currentCampaign.delayRange, min: num }
                                     })}
+                                    size={{ base: 'lg', md: 'md' }}
                                 >
                                     <NumberInputField />
                                     <NumberInputStepper><NumberIncrementStepper /><NumberDecrementStepper /></NumberInputStepper>
@@ -463,12 +473,13 @@ const CampaignTab = () => {
                                         ...currentCampaign,
                                         delayRange: { ...currentCampaign.delayRange, max: num }
                                     })}
+                                    size={{ base: 'lg', md: 'md' }}
                                 >
                                     <NumberInputField />
                                     <NumberInputStepper><NumberIncrementStepper /><NumberDecrementStepper /></NumberInputStepper>
                                 </NumberInput>
                             </FormControl>
-                        </HStack>
+                        </Stack>
                     </Box>
 
                 </VStack>

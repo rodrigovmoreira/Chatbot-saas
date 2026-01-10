@@ -227,12 +227,12 @@ const LiveChatTab = () => {
 
   return (
     <Box>
-      <HStack mb={4} justify="space-between">
+      <Stack direction={{ base: 'column', md: 'row' }} mb={4} justify="space-between" spacing={2}>
         <Text fontSize="xs" color="gray.400">Debug ID: {state.businessConfig?._id || 'N/A'}</Text>
         <Button leftIcon={<LinkIcon />} size="sm" onClick={onOpen} colorScheme="brand">
           Instalar no Site
         </Button>
-      </HStack>
+      </Stack>
 
       <Card h="75vh" overflow="hidden" border="1px solid" borderColor="gray.200">
         <Stack direction={{ base: 'column', md: 'row' }} h="100%" spacing={0} align="stretch">
@@ -310,7 +310,7 @@ const LiveChatTab = () => {
                 {/* Header do Chat */}
                 <Box p={3} bg={cardBg} borderBottom="1px solid" borderColor={gray50Bg}>
                     {/* Top Row: User Info & Actions */}
-                    <HStack justify="space-between" mb={2}>
+                    <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" mb={2} spacing={2}>
                       <HStack>
                         <IconButton
                           display={{ base: 'flex', md: 'none' }}
@@ -329,10 +329,10 @@ const LiveChatTab = () => {
                         </Box>
                       </HStack>
 
-                      <HStack>
+                      <Stack direction="row" alignItems="center" justify={{ base: 'space-between', md: 'flex-end' }} w={{ base: 'full', md: 'auto' }}>
                           {/* Handover Toggle */}
-                           <FormControl display='flex' alignItems='center'>
-                              <FormLabel htmlFor='handover-switch' mb='0' fontSize="xs" color={selectedContact.isHandover ? "orange.500" : "gray.500"}>
+                           <FormControl display='flex' alignItems='center' w="auto">
+                              <FormLabel htmlFor='handover-switch' mb='0' fontSize="xs" color={selectedContact.isHandover ? "orange.500" : "gray.500"} mr={2}>
                                 {selectedContact.isHandover ? "Pausado (Humano)" : "Robô Ativo"}
                               </FormLabel>
                               <Switch
@@ -354,8 +354,8 @@ const LiveChatTab = () => {
                               aria-label="Limpar histórico"
                             />
                           </Tooltip>
-                      </HStack>
-                    </HStack>
+                      </Stack>
+                    </Stack>
 
                     {/* Bottom Row: Tags */}
                     <HStack spacing={2} overflowX="auto" pb={1} alignItems="center">
