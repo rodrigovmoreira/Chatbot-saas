@@ -8,6 +8,7 @@ const BusinessConfig = require('./models/BusinessConfig');
 const Contact = require('./models/Contact'); // Import Contact model
 const aiTools = require('./services/aiTools');
 const { callDeepSeek } = require('./services/aiService');
+const { fromZonedTime, format } = require('date-fns-tz');
 
 const MAX_HISTORY = 30;
 
@@ -192,23 +193,25 @@ Cliente: ${userMessage}`;
     // =========================================================================
 
     // A. Contexto Temporal
-    const timeZone = businessConfig.operatingHours?.timezone || 'America/Sao_Paulo';
+    const timeZone = businessConfig.timezone || businessConfig.operatingHours?.timezone || 'America/Sao_Paulo';
     const now = new Date();
 
-    // Force timezone in formatting
-    const todayStr = now.toLocaleDateString('pt-BR', {
+    // Force timezone in formatting using date-fns-tz or Intl
+    // Ex: "2023-10-27 14:00 (America/Sao_Paulo)"
+    const formattedDateTime = new Intl.DateTimeFormat('pt-BR', {
         timeZone,
-        weekday: 'long',
         year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
-
-    const timeStr = now.toLocaleTimeString('pt-BR', {
-        timeZone,
+        month: '2-digit',
+        day: '2-digit',
         hour: '2-digit',
-        minute: '2-digit'
-    });
+        minute: '2-digit',
+        hour12: false
+    }).format(now);
+
+    const todayStr = formattedDateTime.split(' ')[0]; // Retém retrocompatibilidade se necessário
+    const timeStr = formattedDateTime.split(' ')[1];  // Retém retrocompatibilidade se necessário
+
+    const contextDateTime = `${formattedDateTime} (${timeZone})`;
 
     let catalogContext = "";
     if (businessConfig.products?.length > 0) {
@@ -243,8 +246,9 @@ Instruction: "CONTEXT AWARENESS: Before answering, check the last message sent b
 ${businessConfig.prompts.chatSystem}
 
 --- CONTEXTO ATUAL ---
-Hoje é: ${todayStr}.
-Hora atual: ${timeStr}.
+Data/Hora Atual: ${contextDateTime}.
+IMPORTANTE: Todos os horários que você sugerir ou agendar devem estar baseados nesta data/hora e timezone.
+Ao enviar comandos JSON, use o formato ISO (YYYY-MM-DDTHH:mm:ss). Se você enviar "2024-01-01T14:00:00", o sistema entenderá que é 14:00 NO TIMEZONE ${timeZone}.
 
 ${catalogContext}
 
@@ -308,22 +312,39 @@ Assistant: "Ok, I will schedule that for you. {"action": "book"...}" (Do not add
           let toolResult = "";
 
           if (command.action === 'check') {
-            const endT = command.end || new Date(new Date(command.start).getTime() + 60 * 60000).toISOString();
-            const check = await aiTools.checkAvailability(businessConfig.userId, command.start, endT);
+            // Converte a string da IA (Business Time) para UTC Date real
+            const startZoned = fromZonedTime(command.start, timeZone);
+            let endZoned;
+
+            if (command.end) {
+                endZoned = fromZonedTime(command.end, timeZone);
+            } else {
+                endZoned = new Date(startZoned.getTime() + 60 * 60000);
+            }
+
+            const check = await aiTools.checkAvailability(businessConfig.userId, startZoned, endZoned);
             toolResult = check.available 
               ? "O horário está LIVRE. Pode oferecer." 
-              : `O horário está OCUPADO. Motivo: ${check.reason}.`;
+              : `O horário está INDISPONÍVEL. Motivo: ${check.reason}.`;
           }
 
           if (command.action === 'book') {
-            const endT = command.end || new Date(new Date(command.start).getTime() + 60 * 60000).toISOString();
+            // Converte a string da IA (Business Time) para UTC Date real
+            const startZoned = fromZonedTime(command.start, timeZone);
+            let endZoned;
+
+            if (command.end) {
+                endZoned = fromZonedTime(command.end, timeZone);
+            } else {
+                endZoned = new Date(startZoned.getTime() + 60 * 60000);
+            }
 
             const booking = await aiTools.createAppointmentByAI(businessConfig.userId, {
               clientName: command.clientName || name || "Cliente",
               clientPhone: from,
               title: command.title || "Agendamento via IA",
-              start: command.start,
-              end: endT
+              start: startZoned,
+              end: endZoned
             });
 
             if (booking.success) {

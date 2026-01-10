@@ -13,6 +13,9 @@ const businessConfigSchema = new mongoose.Schema({
   whatsappProvider: { type: String, enum: ['twilio', 'wwebjs'], default: 'wwebjs' },
   phoneNumber: { type: String, unique: true, sparse: true }, // <--- ADICIONADO: Número do WhatsApp para roteamento de Webhook
 
+  timezone: { type: String, default: 'America/Sao_Paulo' }, // <--- NOVO: Timezone do Negócio
+  minSchedulingNoticeMinutes: { type: Number, default: 60 }, // <--- NOVO: Antecedência mínima para agendamento
+
   // === NOVO: CENTRAL DE PROMPTS (O CÉREBRO) ===
   prompts: {
     // 1. Personalidade do Chat (DeepSeek)

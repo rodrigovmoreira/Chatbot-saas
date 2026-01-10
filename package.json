@@ -11,6 +11,7 @@
     "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "concurrently": "^7.6.0"
   },
   "dependencies": {
