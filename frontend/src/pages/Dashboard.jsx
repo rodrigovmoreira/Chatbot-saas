@@ -1,26 +1,28 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import {
   Box, Flex, Heading, Text, Button, VStack, HStack,
   useToast, useColorModeValue, FormControl, FormLabel, Input,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
   useDisclosure, Drawer, DrawerOverlay, DrawerContent,
-  Menu, MenuButton, MenuList, MenuItem, Avatar, IconButton
+  Menu, MenuButton, MenuList, MenuItem, Avatar, IconButton, Spinner, Center
 } from '@chakra-ui/react';
 import {
   EditIcon, WarningTwoIcon, ChevronDownIcon,
 } from '@chakra-ui/icons';
 import { useApp } from '../context/AppContext';
 import { authAPI, businessAPI } from '../services/api';
-import ScheduleTab from '../components/ScheduleTab';
 
 // Imported Components
 import { SidebarContent, LinkItems, MobileNav } from '../components/Sidebar';
-import ConnectionTab from '../components/dashboard-tabs/ConnectionTab';
-import IntelligenceTab from '../components/dashboard-tabs/IntelligenceTab';
-import QuickRepliesTab from '../components/dashboard-tabs/QuickRepliesTab';
-import CatalogTab from '../components/dashboard-tabs/CatalogTab';
-import CampaignTab from '../components/dashboard-tabs/CampaignTab'; // Import CampaignTab
-import LiveChatTab from '../components/dashboard-tabs/LiveChatTab';
+
+// Lazy Loaded Components for Performance Optimization
+const ConnectionTab = lazy(() => import('../components/dashboard-tabs/ConnectionTab'));
+const IntelligenceTab = lazy(() => import('../components/dashboard-tabs/IntelligenceTab'));
+const QuickRepliesTab = lazy(() => import('../components/dashboard-tabs/QuickRepliesTab'));
+const CatalogTab = lazy(() => import('../components/dashboard-tabs/CatalogTab'));
+const CampaignTab = lazy(() => import('../components/dashboard-tabs/CampaignTab'));
+const LiveChatTab = lazy(() => import('../components/dashboard-tabs/LiveChatTab'));
+const ScheduleTab = lazy(() => import('../components/ScheduleTab'));
 
 const Dashboard = () => {
   const { state, dispatch } = useApp();
@@ -128,6 +130,12 @@ const Dashboard = () => {
     </Menu>
   );
 
+  const LoadingFallback = () => (
+    <Center h="50vh">
+      <Spinner size="xl" color="brand.500" thickness="4px" />
+    </Center>
+  );
+
   return (
     <Box minH="100vh" bg={mainBg}>
       {/* SIDEBAR PARA DESKTOP !!!*/}
@@ -210,14 +218,15 @@ const Dashboard = () => {
         </Flex>
 
         {/* --- CONTEÚDO DAS ABAS (Render Condicional) --- */}
-
-        {activeTab === 0 && <ConnectionTab />}
-        {activeTab === 1 && <IntelligenceTab />}
-        {activeTab === 2 && <QuickRepliesTab />}
-        {activeTab === 3 && <CatalogTab />}
-        {activeTab === 4 && <CampaignTab />}
-        {activeTab === 5 && <LiveChatTab />}
-        {activeTab === 6 && <ScheduleTab />}
+        <Suspense fallback={<LoadingFallback />}>
+          {activeTab === 0 && <ConnectionTab />}
+          {activeTab === 1 && <IntelligenceTab />}
+          {activeTab === 2 && <QuickRepliesTab />}
+          {activeTab === 3 && <CatalogTab />}
+          {activeTab === 4 && <CampaignTab />}
+          {activeTab === 5 && <LiveChatTab />}
+          {activeTab === 6 && <ScheduleTab />}
+        </Suspense>
 
       </Box>
 
