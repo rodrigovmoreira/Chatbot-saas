@@ -173,10 +173,11 @@ const CampaignTab = () => {
             </CardBody>
         </Card>
       ) : (
-        <Card overflowX="auto">
-          <Table variant="simple">
-            <Thead>
-              <Tr>
+        <Card>
+          <CardBody overflowX="auto">
+            <Table variant="simple">
+              <Thead>
+                <Tr>
                 <Th>Nome</Th>
                 <Th>Tipo</Th>
                 <Th>Alvo (Tags)</Th>
@@ -209,8 +210,9 @@ const CampaignTab = () => {
                   </Td>
                 </Tr>
               ))}
-            </Tbody>
-          </Table>
+              </Tbody>
+            </Table>
+          </CardBody>
         </Card>
       )}
 
@@ -389,7 +391,7 @@ const CampaignTab = () => {
                             {currentCampaign?.schedule?.frequency === 'weekly' && (
                                 <FormControl mt={3}>
                                     <FormLabel fontSize="sm">Dias da Semana</FormLabel>
-                                    <SimpleGrid columns={{ base: 2, md: 4 }} spacing={2}>
+                                    <SimpleGrid columns={{ base: 1, sm: 2, md: 4 }} spacing={2}>
                                         {DAYS_OF_WEEK.map(day => (
                                             <Checkbox
                                                 key={day.value}

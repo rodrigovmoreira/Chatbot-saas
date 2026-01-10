@@ -169,6 +169,14 @@ const Dashboard = () => {
         </DrawerContent>
       </Drawer>
 
+      {/* Navbar Mobile Customizada (Com Avatar e Menu) - Moved outside content Box for better stacking context */}
+      <MobileNav
+        onOpen={onSidebarOpen}
+        title={LinkItems[activeTab]?.name || 'Painel'}
+      >
+        {ProfileMenu}
+      </MobileNav>
+
       {/* CONTEÚDO PRINCIPAL (Área à direita) */}
       <Box
         ml={{ base: 0, lg: isCollapsed ? 20 : 60 }}
@@ -177,14 +185,6 @@ const Dashboard = () => {
         mt={{ base: 20, lg: 0 }} // Add margin top on mobile because MobileNav is fixed
         transition="margin-left 0.2s"
       >
-
-        {/* Navbar Mobile Customizada (Com Avatar e Menu) */}
-        <MobileNav
-          onOpen={onSidebarOpen}
-          title={LinkItems[activeTab]?.name || 'Painel'}
-        >
-          {ProfileMenu}
-        </MobileNav>
 
         {/* HEADER DESKTOP (TopBar) */}
         <Flex
