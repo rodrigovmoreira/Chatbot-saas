@@ -60,6 +60,11 @@ async function processTimeCampaign(campaign) {
   const daysMap = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
   const currentDay = daysMap[weekdayStr];
 
+  // Debug for Testing
+  if (process.env.NODE_ENV === 'test') {
+    console.log(`[DEBUG] Time Check: Campaign=${campaign.name}, Schedule=${campaign.schedule.time}, Current=${currentHM}, Day=${currentDay}`);
+  }
+
   // Check Days
   if (campaign.schedule.days.length > 0 && !campaign.schedule.days.includes(currentDay)) {
     return; // Not today
@@ -225,11 +230,15 @@ OUTPUT: Only the message text.
   // 3. Humanized Dispatch
   const minDelay = (campaign.delayRange?.min || 0) * 1000;
   const maxDelay = (campaign.delayRange?.max || 5) * 1000; // Default 5s if 0
-  const delay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+  let delay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+
+  if (process.env.NODE_ENV === 'test') {
+    delay = 0;
+  }
 
   console.log(`⏳ Scheduling send to ${contact.phone} in ${delay}ms`);
 
-  setTimeout(async () => {
+  const executeDispatch = async () => {
     try {
       const sent = await sendUnifiedMessage(contact.phone, messageToSend, 'wwebjs', campaign.userId);
 
@@ -248,12 +257,18 @@ OUTPUT: Only the message text.
       console.error(`💥 Failed to send campaign message to ${contact.phone}:`, err);
       await CampaignLog.create({
         campaignId: campaign._id,
-        contactId: contact._id,
+        contactId: contact._id || new mongoose.Types.ObjectId(),
         status: 'failed',
         error: err.message
       });
     }
-  }, delay);
+  };
+
+  if (delay === 0) {
+    await executeDispatch();
+  } else {
+    setTimeout(executeDispatch, delay);
+  }
 }
 
 function initScheduler() {
