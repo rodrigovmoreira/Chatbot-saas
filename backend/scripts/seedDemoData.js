@@ -5,21 +5,24 @@ const fs = require('fs');
 
 // Load env vars
 // Try to find .env in current directory or ../.env or ./backend/.env
-let envPath;
-if (fs.existsSync(path.resolve(process.cwd(), '.env'))) {
-    envPath = path.resolve(process.cwd(), '.env');
-} else if (fs.existsSync(path.resolve(__dirname, '../.env'))) {
-    envPath = path.resolve(__dirname, '../.env');
-} else if (fs.existsSync(path.resolve(__dirname, '../../backend/.env'))) {
-     envPath = path.resolve(__dirname, '../../backend/.env');
-}
+const envFile = '.env';
+// Caminhos possíveis onde o .env pode estar
+const possiblePaths = [
+    path.resolve(process.cwd(), envFile),                // Pasta atual
+    path.join(__dirname, '..', envFile),                 // Um nível acima do script
+    path.join(__dirname, '..', '..', envFile) // Caso esteja rodando de muito longe
+];
+
+let envPath = possiblePaths.find(p => fs.existsSync(p));
 
 if (envPath) {
-    console.log(`Loading .env from: ${envPath}`);
+    console.log(`✅ Carregando .env de: ${envPath}`);
     dotenv.config({ path: envPath });
 } else {
-    console.warn('⚠️ No .env file found. Relying on process.env variables.');
+    console.warn('⚠️ AVISO: Nenhum arquivo .env encontrado nos caminhos padrões.');
+    console.warn('Procurado em:', possiblePaths);
 }
+// ---------------------------
 
 const SystemUser = require('../models/SystemUser');
 const BusinessConfig = require('../models/BusinessConfig');
