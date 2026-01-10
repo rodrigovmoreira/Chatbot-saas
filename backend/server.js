@@ -174,7 +174,9 @@ io.on('connection', (socket) => {
 // ==========================================
 async function start() {
   try {
-    await connectDB();
+    if (process.env.NODE_ENV !== 'test') {
+      await connectDB();
+    }
     startScheduler();
     initCampaignScheduler(); // Initialize the new Campaign Scheduler
     
