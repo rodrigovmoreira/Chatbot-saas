@@ -197,36 +197,37 @@ const IntelligenceTab = () => {
         {/* 1. SELEÇÃO DE PRESET DO SISTEMA */}
         <Card bg={cardBg} boxShadow="sm" borderLeft="4px solid" borderColor="blue.500">
           <CardBody>
-            <Grid templateColumns={{ base: '1fr', md: '2fr 1fr' }} gap={4} alignItems="center">
+            <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" align="center" spacing={4}>
               <Box>
                 <Heading size="sm" mb={1}>Modelos Padrão (Sistema)</Heading>
                 <Text fontSize="sm" color="gray.600">Use um modelo pronto da plataforma.</Text>
               </Box>
-              <Stack direction={{ base: 'column', md: 'row' }} spacing={4}>
-                <Select placeholder="Selecione..." bg={gray50Bg} onChange={(e) => setSelectedPreset(e.target.value)} value={selectedPreset} size={{ base: 'lg', md: 'md' }}>
+              <Stack direction={{ base: 'column', md: 'row' }} spacing={4} w={{ base: 'full', md: 'auto' }}>
+                <Select placeholder="Selecione..." bg={gray50Bg} onChange={(e) => setSelectedPreset(e.target.value)} value={selectedPreset} size={{ base: 'lg', md: 'md' }} w={{ base: 'full', md: '300px' }}>
                   {presets.map(p => (<option key={p.key} value={p.key}>{p.icon} {p.name}</option>))}
                 </Select>
                 <Button colorScheme="blue" onClick={handleApplyPreset} isDisabled={!selectedPreset} leftIcon={<StarIcon />} width={{ base: 'full', md: 'auto' }} size={{ base: 'lg', md: 'md' }}>Aplicar</Button>
               </Stack>
-            </Grid>
+            </Stack>
           </CardBody>
         </Card>
 
         {/* 2. MEUS MODELOS SALVOS */}
         <Card bg={orangeBg} boxShadow="sm" borderLeft="4px solid" borderColor="orange.400">
           <CardBody>
-            <Grid templateColumns={{ base: '1fr', md: '2fr 1fr' }} gap={4} alignItems="center">
+            <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" align="center" spacing={4}>
               <Box>
                 <Heading size="sm" mb={1} color={orange800}>Meus Modelos Pessoais</Heading>
                 <Text fontSize="sm" color={orange700}>Carregue suas edições salvas anteriormente.</Text>
               </Box>
-              <Stack direction={{ base: 'column', md: 'row' }} spacing={4}>
+              <Stack direction={{ base: 'column', md: 'row' }} spacing={4} w={{ base: 'full', md: 'auto' }}>
                 <Select
                   placeholder="Carregar meus prompts..."
                   bg={cardBg}
                   onChange={(e) => handleLoadCustomPrompt(e.target.value)}
                   value={selectedCustomPrompt}
                   size={{ base: 'lg', md: 'md' }}
+                  w={{ base: 'full', md: '300px' }}
                 >
                   {customPrompts.map(p => (
                     <option key={p._id} value={p._id}>📄 {p.name}</option>
@@ -242,14 +243,14 @@ const IntelligenceTab = () => {
                   />
                 )}
               </Stack>
-            </Grid>
+            </Stack>
           </CardBody>
         </Card>
 
         <Divider />
 
         {/* 3. EDITORES DE TEXTO (CHAT E VISÃO) */}
-        <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={6}>
+        <Grid templateColumns={{ base: '1fr', xl: '1fr 1fr' }} gap={6}>
           <Card bg={cardBg} boxShadow="sm">
             <CardHeader pb={0}><Heading size="sm">🧠 Personalidade (Chat)</Heading></CardHeader>
             <CardBody>

@@ -74,7 +74,7 @@ const QuickRepliesTab = () => {
           </Stack>
         </CardHeader>
         <CardBody>
-          <Grid templateColumns={{ base: '1fr', md: 'repeat(auto-fill, minmax(280px, 1fr))' }} gap={4}>
+          <Grid templateColumns={{ base: '1fr', sm: 'repeat(auto-fill, minmax(250px, 1fr))' }} gap={4}>
             {menuOptions.map((opt, idx) => (
               <Card key={idx} variant="outline" size="sm">
                 <CardBody p={3}>

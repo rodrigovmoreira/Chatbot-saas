@@ -41,7 +41,7 @@ const NavItem = ({ icon, children, isActive, color, isCollapsed, ...rest }) => {
   return (
     <Flex
       align="center"
-      p="4"
+      p={{ base: 5, md: 4 }}
       mx={isCollapsed ? 2 : 4}
       borderRadius="lg"
       role="group"
@@ -167,8 +167,10 @@ export const MobileNav = ({ onOpen, title, children, ...rest }) => {
     >
       <HStack spacing={3}>
         <IconButton
+          display={{ base: 'flex', lg: 'none' }}
           onClick={onOpen}
           variant="ghost"
+          size="lg" // Increased size for better touch target
           aria-label="open menu"
           icon={<HamburgerIcon />}
         />
