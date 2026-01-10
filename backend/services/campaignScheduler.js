@@ -36,43 +36,71 @@ async function processCampaigns() {
 }
 
 async function processTimeCampaign(campaign) {
-  // 1. Validate Schedule (Day & Time)
   const config = await BusinessConfig.findOne({ userId: campaign.userId });
   const timeZone = config?.operatingHours?.timezone || 'America/Sao_Paulo';
-
   const now = new Date();
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    hour: '2-digit',
-    minute: '2-digit',
-    weekday: 'short', // Sun, Mon, Tue...
-    hour12: false
-  });
+  let shouldTrigger = false;
 
-  const parts = formatter.formatToParts(now);
-  const hour = parts.find(p => p.type === 'hour').value;
-  const minute = parts.find(p => p.type === 'minute').value;
-  const weekdayStr = parts.find(p => p.type === 'weekday').value; // 'Sun', 'Mon' etc.
+  const frequency = campaign.schedule?.frequency;
 
-  const currentHM = `${hour}:${minute}`;
+  if (['minutes_30', 'hours_1', 'hours_6', 'hours_12'].includes(frequency)) {
+    // INTERVAL LOGIC
+    const lastRun = campaign.stats?.lastRun ? new Date(campaign.stats.lastRun) : null;
+    let intervalMs = 0;
 
-  // Map weekday string to index (0-6)
-  const daysMap = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
-  const currentDay = daysMap[weekdayStr];
+    switch (frequency) {
+      case 'minutes_30': intervalMs = 30 * 60 * 1000; break;
+      case 'hours_1': intervalMs = 60 * 60 * 1000; break;
+      case 'hours_6': intervalMs = 6 * 60 * 60 * 1000; break;
+      case 'hours_12': intervalMs = 12 * 60 * 60 * 1000; break;
+    }
 
-  // Debug for Testing
-  if (process.env.NODE_ENV === 'test') {
-    console.log(`[DEBUG] Time Check: Campaign=${campaign.name}, Schedule=${campaign.schedule.time}, Current=${currentHM}, Day=${currentDay}`);
+    if (!lastRun || (now.getTime() - lastRun.getTime()) >= intervalMs) {
+      shouldTrigger = true;
+      // Update lastRun immediately to prevent double firing in next tick
+      await Campaign.updateOne({ _id: campaign._id }, { 'stats.lastRun': now });
+    }
+  } else {
+    // CLOCK TIME LOGIC (Daily, Weekly, Monthly, Once)
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      hour: '2-digit',
+      minute: '2-digit',
+      weekday: 'short', // Sun, Mon, Tue...
+      hour12: false
+    });
+
+    const parts = formatter.formatToParts(now);
+    const hour = parts.find(p => p.type === 'hour').value;
+    const minute = parts.find(p => p.type === 'minute').value;
+    const weekdayStr = parts.find(p => p.type === 'weekday').value; // 'Sun', 'Mon' etc.
+
+    const currentHM = `${hour}:${minute}`;
+
+    // Map weekday string to index (0-6)
+    const daysMap = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
+    const currentDay = daysMap[weekdayStr];
+
+    // Debug for Testing
+    if (process.env.NODE_ENV === 'test') {
+      console.log(`[DEBUG] Time Check: Campaign=${campaign.name}, Schedule=${campaign.schedule.time}, Current=${currentHM}, Day=${currentDay}`);
+    }
+
+    // Check Days
+    if (campaign.schedule.days.length > 0 && !campaign.schedule.days.includes(currentDay)) {
+      return; // Not today
+    }
+
+    // Check Time
+    if (campaign.schedule.time === currentHM) {
+      shouldTrigger = true;
+      // For clock-based, we also update lastRun to track history, though logic uses clock time
+      await Campaign.updateOne({ _id: campaign._id }, { 'stats.lastRun': now });
+    }
   }
 
-  // Check Days
-  if (campaign.schedule.days.length > 0 && !campaign.schedule.days.includes(currentDay)) {
-    return; // Not today
-  }
-
-  // Check Time
-  if (campaign.schedule.time !== currentHM) {
-    return; // Not now
+  if (!shouldTrigger) {
+    return;
   }
 
   console.log(`🎯 Triggering TIME campaign: ${campaign.name} (${campaign._id})`);
