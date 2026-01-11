@@ -76,6 +76,7 @@ export const SidebarContent = ({ onClose, activeTab, setActiveTab, isCollapsed =
   const bg = useColorModeValue('white', 'gray.900');
   const borderRightColor = useColorModeValue('gray.200', 'gray.700');
 
+  // Mobile Responsiveness: Sidebar renders as full width inside Drawer on mobile
   return (
     <Flex
       direction="column"

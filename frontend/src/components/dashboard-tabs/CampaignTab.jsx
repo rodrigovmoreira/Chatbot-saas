@@ -309,7 +309,7 @@ const CampaignTab = () => {
                             value={currentCampaign?.contentMode}
                             onChange={val => setCurrentCampaign({...currentCampaign, contentMode: val})}
                         >
-                            <Stack direction="row" spacing={4}>
+                            <Stack direction={{ base: 'column', sm: 'row' }} spacing={4}>
                                 <Radio value="static">Mensagem Fixa (Padrão)</Radio>
                                 <Radio value="ai_prompt">Gerado por IA (Dinâmico)</Radio>
                             </Stack>
@@ -346,7 +346,7 @@ const CampaignTab = () => {
                             value={currentCampaign?.triggerType}
                             onChange={val => setCurrentCampaign({...currentCampaign, triggerType: val})}
                         >
-                            <Stack direction="row">
+                            <Stack direction={{ base: 'column', sm: 'row' }} spacing={4}>
                                 <Radio value="time">Horário Fixo / Recorrente</Radio>
                                 <Radio value="event">Lembrete da Agenda</Radio>
                             </Stack>
