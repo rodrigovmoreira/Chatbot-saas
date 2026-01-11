@@ -68,7 +68,11 @@ const io = new Server(server, {
 });
 
 // Middlewares Globais
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  frameguard: false // Allows the chat widget to be embedded via iframe
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
