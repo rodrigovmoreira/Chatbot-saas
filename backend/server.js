@@ -19,6 +19,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require("socket.io");
 const cors = require('cors');
+const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const passport = require('passport');
 
@@ -67,6 +68,11 @@ const io = new Server(server, {
 });
 
 // Middlewares Globais
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  frameguard: false // Allows the chat widget to be embedded via iframe
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
