@@ -23,6 +23,7 @@
     "express-session": "^1.17.3",
     "firebase-admin": "^13.6.0",
     "form-data": "^4.0.5",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.0",
     "mongodb": "^6.16.0",
     "mongoose": "^8.21.0",
