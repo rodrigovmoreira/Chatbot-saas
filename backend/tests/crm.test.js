@@ -7,7 +7,7 @@ jest.mock('../services/wwebjsService', () => mockWWebJS);
 jest.mock('../services/aiService', () => mockAIService);
 jest.mock('../services/responseService', () => mockResponseService);
 
-const { app } = require('../server');
+const app = require('../server');
 const SystemUser = require('../models/SystemUser');
 const Contact = require('../models/Contact');
 const BusinessConfig = require('../models/BusinessConfig');
