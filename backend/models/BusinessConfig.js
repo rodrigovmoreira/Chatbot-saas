@@ -4,7 +4,8 @@ const businessConfigSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'SystemUser',
-    required: true
+    required: true,
+    index: true
   },
 
   businessName: { type: String, default: 'Estúdio Tattoo' },
