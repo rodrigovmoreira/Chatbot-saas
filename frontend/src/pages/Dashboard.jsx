@@ -147,7 +147,7 @@ const Dashboard = () => {
         toggleCollapse={() => setIsCollapsed(!isCollapsed)}
       />
 
-      {/* DRAWER PARA MOBILE */}
+      {/* DRAWER PARA MOBILE - Navigation Refactor Implemented */}
       <Drawer
         autoFocus={false}
         isOpen={isSidebarOpen}

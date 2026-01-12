@@ -234,7 +234,7 @@ const LiveChatTab = () => {
         </Button>
       </Stack>
 
-      <Card h="75vh" overflow="hidden" border="1px solid" borderColor="gray.200">
+      <Card h={{ base: "calc(100dvh - 150px)", md: "75vh" }} overflow="hidden" border="1px solid" borderColor="gray.200">
         <Stack direction={{ base: 'column', md: 'row' }} h="100%" spacing={0} align="stretch">
 
           {/* LADO ESQUERDO: LISTA DE CONTATOS */}
@@ -329,9 +329,9 @@ const LiveChatTab = () => {
                         </Box>
                       </HStack>
 
-                      <Stack direction="row" alignItems="center" justify={{ base: 'space-between', md: 'flex-end' }} w={{ base: 'full', md: 'auto' }}>
+                      <Stack direction={{ base: 'column', sm: 'row' }} alignItems={{ base: 'stretch', sm: 'center' }} justify={{ base: 'space-between', md: 'flex-end' }} w={{ base: 'full', md: 'auto' }} spacing={2}>
                           {/* Handover Toggle */}
-                           <FormControl display='flex' alignItems='center' w="auto">
+                           <FormControl display='flex' alignItems='center' justifyContent={{ base: 'space-between', sm: 'flex-start' }} w={{ base: 'full', sm: 'auto' }}>
                               <FormLabel htmlFor='handover-switch' mb='0' fontSize="xs" color={selectedContact.isHandover ? "orange.500" : "gray.500"} mr={2}>
                                 {selectedContact.isHandover ? "Pausado (Humano)" : "Robô Ativo"}
                               </FormLabel>
@@ -345,14 +345,16 @@ const LiveChatTab = () => {
                             </FormControl>
 
                           <Tooltip label="Limpar Histórico">
-                            <IconButton
-                              icon={<DeleteIcon />}
+                            <Button
+                              leftIcon={<DeleteIcon />}
                               size="sm"
                               colorScheme="red"
                               variant="ghost"
                               onClick={handleClearHistory}
-                              aria-label="Limpar histórico"
-                            />
+                              w={{ base: 'full', sm: 'auto' }}
+                            >
+                              Limpar
+                            </Button>
                           </Tooltip>
                       </Stack>
                     </Stack>
