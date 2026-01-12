@@ -160,7 +160,7 @@ export const MobileNav = ({ onOpen, title, children, ...rest }) => {
       top="0"
       left="0"
       right="0"
-      zIndex="999" // High z-index for mobile nav
+      zIndex={2000}
       boxShadow="sm"
       transition="all 0.3s" // Smooth transition for appearance
       {...rest}
@@ -173,6 +173,7 @@ export const MobileNav = ({ onOpen, title, children, ...rest }) => {
           size="lg" // Increased size for better touch target
           aria-label="open menu"
           icon={<HamburgerIcon />}
+          zIndex={2001}
         />
 
         <Text

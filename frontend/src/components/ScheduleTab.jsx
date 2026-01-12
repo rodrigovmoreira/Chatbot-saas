@@ -301,15 +301,15 @@ const ScheduleTab = () => {
 
       {/* MOBILE CARD VIEW */}
       <Box display={{ base: 'block', md: 'none' }} h="90%" overflowY="auto">
-        <HStack justify="space-between" mb={4}>
+        <Stack direction={{ base: 'column', xs: 'row' }} justify="space-between" mb={4} spacing={2}>
            <Text fontWeight="bold" fontSize="lg">Agenda</Text>
-           <HStack>
-               <IconButton icon={<SettingsIcon />} size="sm" onClick={onSettingsOpen} aria-label="Configurações" />
-               <Button leftIcon={<AddIcon />} colorScheme="blue" size="sm" onClick={() => handleSelectSlot({ start: new Date(), end: new Date() })}>
+           <Stack direction="row" spacing={2}>
+               <IconButton icon={<SettingsIcon />} size={{ base: 'md', md: 'sm' }} onClick={onSettingsOpen} aria-label="Configurações" />
+               <Button leftIcon={<AddIcon />} colorScheme="blue" size={{ base: 'md', md: 'sm' }} onClick={() => handleSelectSlot({ start: new Date(), end: new Date() })}>
                  Novo
                </Button>
-           </HStack>
-        </HStack>
+           </Stack>
+        </Stack>
 
         <VStack spacing={3} align="stretch">
           {filteredEvents.length === 0 ? (

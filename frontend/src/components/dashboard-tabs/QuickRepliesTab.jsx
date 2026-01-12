@@ -68,7 +68,7 @@ const QuickRepliesTab = () => {
     <Box>
       <Card bg={cardBg} boxShadow="md">
         <CardHeader>
-          <Stack direction={{ base: 'column', md: 'row' }} justify="space-between">
+          <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" spacing={4}>
             <Box><Heading size="md">Menu de Respostas</Heading><Text fontSize="sm" color="gray.500">Palavras-chave que o bot responde instantaneamente.</Text></Box>
             <Button leftIcon={<AddIcon />} colorScheme="green" onClick={() => { setEditingMenuIndex(null); setNewMenuOption({ keyword: '', description: '', response: '', requiresHuman: false, useAI: false }); onOpen(); }}>Nova Regra</Button>
           </Stack>
@@ -82,10 +82,10 @@ const QuickRepliesTab = () => {
                     <Badge colorScheme="purple">{idx + 1}. {opt.keyword.split(',')[0]}</Badge>
                     <HStack spacing={1}>
                       <Tooltip label="Editar regra">
-                        <IconButton icon={<EditIcon />} aria-label="Editar regra" size="xs" colorScheme="blue" variant="ghost" onClick={() => handleEditMenuOption(idx)} />
+                        <IconButton icon={<EditIcon />} aria-label="Editar regra" size={{ base: 'sm', md: 'xs' }} colorScheme="blue" variant="ghost" onClick={() => handleEditMenuOption(idx)} />
                       </Tooltip>
                       <Tooltip label="Excluir regra">
-                        <IconButton icon={<DeleteIcon />} aria-label="Excluir regra" size="xs" colorScheme="red" variant="ghost" onClick={() => handleRemoveMenuOption(idx)} />
+                        <IconButton icon={<DeleteIcon />} aria-label="Excluir regra" size={{ base: 'sm', md: 'xs' }} colorScheme="red" variant="ghost" onClick={() => handleRemoveMenuOption(idx)} />
                       </Tooltip>
                     </HStack>
                   </HStack>

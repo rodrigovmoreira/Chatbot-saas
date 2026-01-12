@@ -320,7 +320,7 @@ const IntelligenceTab = () => {
 
         {/* 4. RECUPERAÇÃO DE INATIVIDADE (Formerly Funnel) */}
         <Box>
-          <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" mb={4}>
+            <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" mb={4} spacing={4}>
             <Box>
               <Heading size="md">Recuperação de Inatividade</Heading>
               <Text fontSize="sm" color="gray.500">Mensagens automáticas para recuperar clientes que pararam de responder.</Text>
@@ -357,10 +357,10 @@ const IntelligenceTab = () => {
                     </Stack>
                     <HStack>
                       <Tooltip label="Editar passo">
-                        <IconButton icon={<EditIcon />} aria-label="Editar passo" size="sm" variant="ghost" colorScheme="blue" onClick={() => handleEditFollowUp(idx)} />
+                        <IconButton icon={<EditIcon />} aria-label="Editar passo" size={{ base: 'md', md: 'sm' }} variant="ghost" colorScheme="blue" onClick={() => handleEditFollowUp(idx)} />
                       </Tooltip>
                       <Tooltip label="Excluir passo">
-                        <IconButton icon={<DeleteIcon />} aria-label="Excluir passo" size="sm" variant="ghost" colorScheme="red" onClick={() => handleRemoveFollowUp(idx)} />
+                        <IconButton icon={<DeleteIcon />} aria-label="Excluir passo" size={{ base: 'md', md: 'sm' }} variant="ghost" colorScheme="red" onClick={() => handleRemoveFollowUp(idx)} />
                       </Tooltip>
                     </HStack>
                   </Stack>

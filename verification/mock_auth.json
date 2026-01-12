@@ -1,0 +1,1 @@
+{"token": "fake-jwt-token", "user": {"id": "123", "name": "Test User", "email": "test@example.com", "company": "Test Company"}}

@@ -177,7 +177,8 @@ const CampaignTab = () => {
         </Card>
       ) : (
         <Card>
-          <CardBody overflowX="auto">
+          <CardBody>
+            <Box overflowX="auto">
             <Table variant="simple">
               <Thead>
                 <Tr>
@@ -208,13 +209,14 @@ const CampaignTab = () => {
                       </Badge>
                   </Td>
                   <Td>
-                    <IconButton icon={<EditIcon />} size="sm" mr={2} onClick={() => openModal(c)} />
-                    <IconButton icon={<DeleteIcon />} size="sm" colorScheme="red" onClick={() => handleDelete(c._id)} />
+                    <IconButton icon={<EditIcon />} size={{ base: 'md', md: 'sm' }} mr={2} onClick={() => openModal(c)} />
+                    <IconButton icon={<DeleteIcon />} size={{ base: 'md', md: 'sm' }} colorScheme="red" onClick={() => handleDelete(c._id)} />
                   </Td>
                 </Tr>
               ))}
               </Tbody>
             </Table>
+            </Box>
           </CardBody>
         </Card>
       )}

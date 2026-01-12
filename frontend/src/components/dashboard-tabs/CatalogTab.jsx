@@ -108,7 +108,7 @@ const CatalogTab = () => {
     <Box>
       <Card bg={cardBg} boxShadow="md">
         <CardHeader>
-          <Stack direction={{ base: 'column', md: 'row' }} justify="space-between">
+          <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" spacing={4}>
             <Box><Heading size="md">Produtos & Serviços</Heading><Text fontSize="sm" color="gray.500">Para a IA consultar preços e enviar fotos.</Text></Box>
             <Button leftIcon={<AddIcon />} variant="outline" colorScheme="blue" onClick={() => { setEditingProductIndex(null); setNewProduct({ name: '', price: '', description: '', imageUrls: [], tags: [] }); onProductModalOpen(); }}>Novo Item</Button>
           </Stack>
@@ -133,10 +133,10 @@ const CatalogTab = () => {
                 </VStack>
                 <HStack>
                   <Tooltip label="Editar produto">
-                    <IconButton icon={<EditIcon />} aria-label="Editar produto" size="sm" variant="ghost" onClick={() => { setNewProduct(prod); setEditingProductIndex(idx); onProductModalOpen(); }} />
+                    <IconButton icon={<EditIcon />} aria-label="Editar produto" size={{ base: 'md', md: 'sm' }} variant="ghost" onClick={() => { setNewProduct(prod); setEditingProductIndex(idx); onProductModalOpen(); }} />
                   </Tooltip>
                   <Tooltip label="Excluir produto">
-                    <IconButton icon={<DeleteIcon />} aria-label="Excluir produto" size="sm" colorScheme="red" variant="ghost" onClick={() => handleRemoveProduct(idx)} />
+                    <IconButton icon={<DeleteIcon />} aria-label="Excluir produto" size={{ base: 'md', md: 'sm' }} colorScheme="red" variant="ghost" onClick={() => handleRemoveProduct(idx)} />
                   </Tooltip>
                 </HStack>
               </Stack>

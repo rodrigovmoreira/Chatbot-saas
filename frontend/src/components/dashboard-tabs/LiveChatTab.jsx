@@ -347,7 +347,7 @@ const LiveChatTab = () => {
                           <Tooltip label="Limpar Histórico">
                             <IconButton
                               icon={<DeleteIcon />}
-                              size="sm"
+                              size={{ base: 'md', md: 'sm' }}
                               colorScheme="red"
                               variant="ghost"
                               onClick={handleClearHistory}
