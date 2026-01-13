@@ -15,6 +15,7 @@ const CrmSidebar = ({ contact, onUpdate, availableTags, onAddTag, onRemoveTag, o
   const [dealValue, setDealValue] = useState('0.00');
   const [funnelStage, setFunnelStage] = useState('new');
   const [notes, setNotes] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   // Tag local state
   const [newTag, setNewTag] = useState('');
@@ -31,14 +32,22 @@ const CrmSidebar = ({ contact, onUpdate, availableTags, onAddTag, onRemoveTag, o
     }
   }, [contact]);
 
-  const handleSave = () => {
-    // Parse the current string state to a float for the API
-    const numericValue = parseFloat(dealValue);
-    onUpdate({
-      dealValue: isNaN(numericValue) ? 0 : numericValue,
-      funnelStage,
-      notes
-    });
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      // Parse the current string state to a float for the API
+      const numericValue = parseFloat(dealValue);
+      await onUpdate({
+        dealValue: isNaN(numericValue) ? 0 : numericValue,
+        funnelStage,
+        notes
+      });
+    } catch (error) {
+      // Error handling is managed by parent (LiveChatTab) via toast
+      console.error("Failed to save CRM data", error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const funnelOptions = [
@@ -224,7 +233,13 @@ const CrmSidebar = ({ contact, onUpdate, availableTags, onAddTag, onRemoveTag, o
         </FormControl>
 
         {/* Action */}
-        <Button colorScheme="brand" onClick={handleSave} w="full">
+        <Button
+          colorScheme="brand"
+          onClick={handleSave}
+          w="full"
+          isLoading={isSaving}
+          loadingText="Salvando..."
+        >
           Salvar Dados
         </Button>
 
