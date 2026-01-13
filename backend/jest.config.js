@@ -6,5 +6,5 @@ module.exports = {
     '^.+\\.jsx?$': 'babel-jest',
   },
   testMatch: ['**/tests/**/*.test.js'],
-  // setupFilesAfterEnv: ['./tests/setup.js'],
+  setupFilesAfterEnv: ['./tests/setup.js'],
 };

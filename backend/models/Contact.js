@@ -30,6 +30,16 @@ const contactSchema = new mongoose.Schema({
 
   // === CAMPOS DO FUNIL ===
   followUpStage: { type: Number, default: 0 },
+
+  // === DADOS CRM (CRM Data) ===
+  dealValue: { type: Number, default: 0 },
+  funnelStage: {
+    type: String,
+    enum: ['new', 'negotiation', 'scheduled', 'closed_won', 'closed_lost'],
+    default: 'new'
+  },
+  notes: { type: String, default: '' },
+  lastInteraction: { type: Date, default: Date.now },
   
   // Controle de Ativação (Importante para o Scheduler)
   followUpActive: { type: Boolean, default: false }, 
@@ -41,7 +51,6 @@ const contactSchema = new mongoose.Schema({
   isHandover: { type: Boolean, default: false },
 
   // Histórico básico
-  lastInteraction: { type: Date, default: Date.now },
   lastSender: { type: String, enum: ['user', 'bot', 'agent'] },
   
   totalMessages: { type: Number, default: 0 },
