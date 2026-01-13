@@ -4,14 +4,15 @@ import {
   useColorModeValue, Alert, Icon,
   Avatar, Modal, ModalOverlay, ModalContent, ModalHeader,
   ModalCloseButton, ModalBody, ModalFooter, useDisclosure, Code, IconButton, Tooltip, useToast,
-  Badge, Input, Switch, FormControl, FormLabel,
-  Popover, PopoverTrigger, PopoverContent, PopoverBody, PopoverHeader, PopoverArrow, PopoverCloseButton,
-  List, ListItem
+  Badge, Switch, FormControl, FormLabel,
+  Drawer, DrawerOverlay, DrawerContent, DrawerCloseButton, DrawerBody,
+  useBreakpointValue
 } from '@chakra-ui/react';
-import { ChatIcon, LinkIcon, DeleteIcon, ArrowBackIcon, AddIcon, SmallCloseIcon } from '@chakra-ui/icons';
+import { ChatIcon, LinkIcon, DeleteIcon, ArrowBackIcon, InfoIcon } from '@chakra-ui/icons';
 import { FaWhatsapp, FaGlobe, FaRobot, FaUser } from 'react-icons/fa';
 import { businessAPI } from '../../services/api'; // Ensure this service has updateContact method
 import { useApp } from '../../context/AppContext';
+import CrmSidebar from '../crm/CrmSidebar';
 import axios from 'axios'; // For direct call if needed, but better via service
 
 const LiveChatTab = () => {
@@ -20,16 +21,18 @@ const LiveChatTab = () => {
   const [selectedContact, setSelectedContact] = useState(null);
   const [messages, setMessages] = useState([]);
 
-  // Tag Input State
-  const [newTag, setNewTag] = useState('');
-  const [isTagPopoverOpen, setIsTagPopoverOpen] = useState(false);
+  // CRM UI State
+  const [showDesktopCrm, setShowDesktopCrm] = useState(true);
+  const { isOpen: isCrmOpen, onOpen: onCrmOpen, onClose: onCrmClose } = useDisclosure();
 
   // Mobile View State
   const [showMobileChat, setShowMobileChat] = useState(false);
 
   // Modal de Embed
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen: isEmbedOpen, onOpen: onEmbedOpen, onClose: onEmbedClose } = useDisclosure();
   const toast = useToast();
+
+  const isLargeScreen = useBreakpointValue({ base: false, lg: true });
 
   const cardBg = useColorModeValue('white', 'gray.800');
   const gray50Bg = useColorModeValue('gray.50', 'gray.700');
@@ -53,6 +56,11 @@ const LiveChatTab = () => {
         // Update list
         setConversations(prev => prev.map(c => c._id === selectedContact._id ? { ...c, ...response.data } : c));
 
+        // Show success toast for CRM updates (if it's not just a tag/handover update)
+        if (updates.dealValue !== undefined || updates.funnelStage || updates.notes) {
+             toast({ title: "CRM atualizado.", status: "success", duration: 2000 });
+        }
+
         return response.data;
     } catch (error) {
         console.error("Error updating contact:", error);
@@ -61,35 +69,22 @@ const LiveChatTab = () => {
     }
   };
 
-  // Adiciona tag ao contato. Se a tag não existir em availableTags, pergunta se quer criar.
-  // Como o usuário pediu para "LiveChat tbm deve aparecer uma lista para seleção das tags existentes ou criar uma nova tag que salva no banco",
-  // Vamos implementar lógica para salvar no banco se não existir.
-  const handleAddTag = async (tagToAdd = null) => {
-    const tag = tagToAdd || newTag.trim();
-    if (!tag) return;
+  const handleAddTag = async (tag) => {
+    if (!tag || !selectedContact) return;
 
     const currentTags = selectedContact.tags || [];
-    if (currentTags.includes(tag)) {
-        setNewTag('');
-        setIsTagPopoverOpen(false);
-        return;
-    }
+    if (currentTags.includes(tag)) return;
 
-    // Verifica se tag existe em availableTags
+    // Verifica se tag existe em availableTags e adiciona globalmente se não existir
     const availableTags = state.businessConfig?.availableTags || [];
     if (!availableTags.includes(tag)) {
-       // Se não existe, adiciona ao BusinessConfig primeiro
        try {
            const newAvailableTags = [...availableTags, tag];
-           // Atualiza config no backend
            await businessAPI.updateConfig({ availableTags: newAvailableTags });
-
-           // Update global context immediately for UX
            dispatch({
              type: 'SET_BUSINESS_CONFIG',
              payload: { ...state.businessConfig, availableTags: newAvailableTags }
            });
-
        } catch (error) {
            console.error("Erro ao criar nova tag global:", error);
            toast({ title: "Erro ao salvar nova tag no sistema.", status: "error" });
@@ -99,11 +94,10 @@ const LiveChatTab = () => {
 
     const updatedTags = [...currentTags, tag];
     await updateContact({ tags: updatedTags });
-    setNewTag('');
-    setIsTagPopoverOpen(false);
   };
 
   const handleRemoveTag = async (tagToRemove) => {
+      if (!selectedContact) return;
       const currentTags = selectedContact.tags || [];
       const updatedTags = currentTags.filter(t => t !== tagToRemove);
       await updateContact({ tags: updatedTags });
@@ -195,6 +189,14 @@ const LiveChatTab = () => {
     setSelectedContact(null);
   };
 
+  const handleCrmToggle = () => {
+      if (isLargeScreen) {
+          setShowDesktopCrm(!showDesktopCrm);
+      } else {
+          onCrmOpen();
+      }
+  };
+
   // Helper de Formatação
   const formatTime = (isoString) => {
     if (!isoString) return '';
@@ -229,7 +231,7 @@ const LiveChatTab = () => {
     <Box>
       <Stack direction={{ base: 'column', md: 'row' }} mb={4} justify="space-between" spacing={2}>
         <Text fontSize="xs" color="gray.400">Debug ID: {state.businessConfig?._id || 'N/A'}</Text>
-        <Button leftIcon={<LinkIcon />} size="sm" onClick={onOpen} colorScheme="brand">
+        <Button leftIcon={<LinkIcon />} size="sm" onClick={onEmbedOpen} colorScheme="brand">
           Instalar no Site
         </Button>
       </Stack>
@@ -344,102 +346,32 @@ const LiveChatTab = () => {
                               />
                             </FormControl>
 
-                          <Tooltip label="Limpar Histórico">
-                            <Button
-                              leftIcon={<DeleteIcon />}
-                              size="sm"
-                              colorScheme="red"
-                              variant="ghost"
-                              onClick={handleClearHistory}
-                              w={{ base: 'full', sm: 'auto' }}
-                            >
-                              Limpar
-                            </Button>
-                          </Tooltip>
+                            <HStack>
+                              <Tooltip label="Informações do Cliente (CRM)">
+                                <IconButton
+                                    icon={<InfoIcon />}
+                                    onClick={handleCrmToggle}
+                                    variant={showDesktopCrm && isLargeScreen ? "solid" : "ghost"}
+                                    colorScheme={showDesktopCrm && isLargeScreen ? "brand" : "gray"}
+                                    aria-label="CRM"
+                                    size="sm"
+                                />
+                              </Tooltip>
+
+                              <Tooltip label="Limpar Histórico">
+                                <Button
+                                  leftIcon={<DeleteIcon />}
+                                  size="sm"
+                                  colorScheme="red"
+                                  variant="ghost"
+                                  onClick={handleClearHistory}
+                                >
+                                  Limpar
+                                </Button>
+                              </Tooltip>
+                            </HStack>
                       </Stack>
                     </Stack>
-
-                    {/* Bottom Row: Tags */}
-                    <HStack spacing={2} overflowX="auto" pb={1} alignItems="center">
-                        <Text fontSize="xs" color="gray.500">Tags:</Text>
-                        {selectedContact.tags && selectedContact.tags.map(tag => (
-                            <Badge key={tag} colorScheme={getTagColor(tag)} borderRadius="full" px={2} cursor="default">
-                                {tag}
-                                <Icon as={SmallCloseIcon} ml={1} cursor="pointer" onClick={() => handleRemoveTag(tag)} />
-                            </Badge>
-                        ))}
-
-                        <Popover
-                            isOpen={isTagPopoverOpen}
-                            onClose={() => setIsTagPopoverOpen(false)}
-                            placement="bottom-start"
-                        >
-                            <PopoverTrigger>
-                                <Button
-                                    size="xs"
-                                    leftIcon={<AddIcon />}
-                                    onClick={() => setIsTagPopoverOpen(!isTagPopoverOpen)}
-                                    colorScheme="gray"
-                                    variant="outline"
-                                >
-                                    Tag
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent w="200px">
-                                <PopoverHeader fontSize="sm" fontWeight="bold">Adicionar Tag</PopoverHeader>
-                                <PopoverArrow />
-                                <PopoverCloseButton />
-                                <PopoverBody p={2}>
-                                    <Input
-                                        size="sm"
-                                        placeholder="Busca ou Nova Tag"
-                                        value={newTag}
-                                        onChange={(e) => setNewTag(e.target.value)}
-                                        mb={2}
-                                    />
-                                    <List spacing={1} maxH="150px" overflowY="auto">
-                                        {/* Filter available tags based on input and exclude already assigned tags */}
-                                        {(state.businessConfig?.availableTags || [])
-                                            .filter(t =>
-                                                t.toLowerCase().includes(newTag.toLowerCase()) &&
-                                                !selectedContact.tags?.includes(t)
-                                            )
-                                            .map(tag => (
-                                                <ListItem
-                                                    key={tag}
-                                                    px={2} py={1}
-                                                    _hover={{ bg: "gray.100", cursor: "pointer" }}
-                                                    onClick={() => handleAddTag(tag)}
-                                                    borderRadius="md"
-                                                    fontSize="sm"
-                                                >
-                                                    {tag}
-                                                </ListItem>
-                                            ))
-                                        }
-                                        {/* Option to create new tag if it doesn't exist */}
-                                        {newTag &&
-                                         !(state.businessConfig?.availableTags || []).some(t => t.toLowerCase() === newTag.toLowerCase()) &&
-                                         !selectedContact.tags?.includes(newTag) && (
-                                            <ListItem
-                                                px={2} py={1}
-                                                color="brand.500"
-                                                fontWeight="bold"
-                                                cursor="pointer"
-                                                _hover={{ bg: "brand.50" }}
-                                                onClick={() => handleAddTag()}
-                                                borderRadius="md"
-                                                fontSize="sm"
-                                            >
-                                                + Criar "{newTag}"
-                                            </ListItem>
-                                        )}
-                                    </List>
-                                </PopoverBody>
-                            </PopoverContent>
-                        </Popover>
-
-                    </HStack>
                 </Box>
 
                 {/* Área de Mensagens */}
@@ -497,11 +429,28 @@ const LiveChatTab = () => {
 
           </Box>
 
+          {/* LADO DIREITO: CRM SIDEBAR (DESKTOP) */}
+          {selectedContact && showDesktopCrm && (
+              <Box
+                  display={{ base: 'none', lg: 'block' }}
+                  h="100%"
+              >
+                  <CrmSidebar
+                      contact={selectedContact}
+                      onUpdate={updateContact}
+                      availableTags={state.businessConfig?.availableTags || []}
+                      onAddTag={handleAddTag}
+                      onRemoveTag={handleRemoveTag}
+                      onClose={() => setShowDesktopCrm(false)}
+                  />
+              </Box>
+          )}
+
         </Stack>
       </Card>
 
       {/* Modal de Instalação */}
-      <Modal isOpen={isOpen} onClose={onClose} size="lg">
+      <Modal isOpen={isEmbedOpen} onClose={onEmbedClose} size="lg">
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>Instalar Widget no Site</ModalHeader>
@@ -515,12 +464,32 @@ const LiveChatTab = () => {
             </Box>
           </ModalBody>
           <ModalFooter>
-             <Button colorScheme="blue" onClick={() => { navigator.clipboard.writeText(getEmbedCode()); onClose(); }}>
+             <Button colorScheme="blue" onClick={() => { navigator.clipboard.writeText(getEmbedCode()); onEmbedClose(); }}>
                 Copiar Código
              </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      {/* Drawer: CRM (MOBILE) */}
+      <Drawer isOpen={isCrmOpen} placement="right" onClose={onCrmClose} size="sm">
+        <DrawerOverlay />
+        <DrawerContent>
+            <DrawerCloseButton />
+            <DrawerBody p={0}>
+                 {selectedContact && (
+                    <CrmSidebar
+                        contact={selectedContact}
+                        onUpdate={(data) => { updateContact(data); }}
+                        availableTags={state.businessConfig?.availableTags || []}
+                        onAddTag={handleAddTag}
+                        onRemoveTag={handleRemoveTag}
+                        onClose={onCrmClose}
+                    />
+                )}
+            </DrawerBody>
+        </DrawerContent>
+      </Drawer>
 
     </Box>
   );
