@@ -2,14 +2,17 @@ import React, { useState, useEffect } from 'react';
 import {
   Box, VStack, Text, FormControl, FormLabel, Select, Textarea,
   Button, Badge, Icon, IconButton,
-  NumberInput, NumberInputField,
+  NumberInput, NumberInputField, NumberInputStepper, NumberIncrementStepper, NumberDecrementStepper,
+  InputGroup, InputLeftAddon,
   Popover, PopoverTrigger, PopoverContent, PopoverBody, PopoverHeader, PopoverArrow, PopoverCloseButton,
   List, ListItem, useColorModeValue, Flex, Input
 } from '@chakra-ui/react';
 import { SmallCloseIcon, AddIcon, CloseIcon } from '@chakra-ui/icons';
 
 const CrmSidebar = ({ contact, onUpdate, availableTags, onAddTag, onRemoveTag, onClose }) => {
-  const [dealValue, setDealValue] = useState(0);
+  // dealValue stores the raw string/number representation.
+  // We initialize with string '0.00' to match input behavior or number 0.
+  const [dealValue, setDealValue] = useState('0.00');
   const [funnelStage, setFunnelStage] = useState('new');
   const [notes, setNotes] = useState('');
 
@@ -20,23 +23,23 @@ const CrmSidebar = ({ contact, onUpdate, availableTags, onAddTag, onRemoveTag, o
   // Sync state with contact
   useEffect(() => {
     if (contact) {
-      setDealValue(contact.dealValue || 0);
+      // Ensure we have a valid number or string
+      const val = contact.dealValue !== undefined ? contact.dealValue : 0;
+      setDealValue(val.toString());
       setFunnelStage(contact.funnelStage || 'new');
       setNotes(contact.notes || '');
     }
   }, [contact]);
 
   const handleSave = () => {
+    // Parse the current string state to a float for the API
+    const numericValue = parseFloat(dealValue);
     onUpdate({
-      dealValue: parseFloat(dealValue),
+      dealValue: isNaN(numericValue) ? 0 : numericValue,
       funnelStage,
       notes
     });
   };
-
-  // Currency Formatter
-  const formatCurrency = (val) => `R$ ` + val;
-  const parseCurrency = (val) => val.replace(/^\D+/g, '');
 
   const funnelOptions = [
     { value: 'new', label: 'Novos' },
@@ -93,14 +96,23 @@ const CrmSidebar = ({ contact, onUpdate, availableTags, onAddTag, onRemoveTag, o
         {/* Deal Value */}
         <FormControl>
           <FormLabel fontSize="sm" color="gray.500">Valor da Oportunidade</FormLabel>
-          <NumberInput
-            value={formatCurrency(dealValue)}
-            onChange={(valueString) => setDealValue(parseCurrency(valueString))}
-            min={0}
-            precision={2}
-          >
-            <NumberInputField />
-          </NumberInput>
+          <InputGroup size="sm">
+            <InputLeftAddon children="R$" />
+            <NumberInput
+              value={dealValue}
+              onChange={(valString) => setDealValue(valString)}
+              min={0}
+              precision={2}
+              step={10}
+              w="full"
+            >
+              <NumberInputField borderTopLeftRadius={0} borderBottomLeftRadius={0} />
+              <NumberInputStepper>
+                <NumberIncrementStepper />
+                <NumberDecrementStepper />
+              </NumberInputStepper>
+            </NumberInput>
+          </InputGroup>
         </FormControl>
 
         {/* Funnel Stage */}
