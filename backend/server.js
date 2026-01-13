@@ -207,4 +207,8 @@ const cleanup = async () => {
 process.on('SIGINT', cleanup);
 process.on('SIGTERM', cleanup);
 
-start();
+if (require.main === module) {
+  start();
+}
+
+module.exports = { app, server, start };
