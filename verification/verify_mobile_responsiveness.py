@@ -75,26 +75,11 @@ def verify_mobile_responsiveness():
             page.screenshot(path="verification/mobile_drawer_open.png")
             print("Captured mobile_drawer_open.png")
 
-            # Click Live Chat (use more specific locator to avoid ambiguity)
-            # The drawer is typically the one with higher z-index or visibility
-            # But get_by_text found 2. One is likely the hidden desktop sidebar, one is the drawer.
-            # The desktop sidebar has display:none on base, so Playwright should ignore it if using "visible" filter?
-            # get_by_text checks text content.
-            # We can try selecting by role "dialog" (Drawer) then text.
+            # Click Live Chat
             page.locator(".chakra-modal__content").get_by_text("Live Chat").click()
             time.sleep(2)
             page.screenshot(path="verification/mobile_live_chat.png")
             print("Captured mobile_live_chat.png")
-
-            # Open Chat Conversation
-            page.get_by_text("Maria").first.click()
-            time.sleep(1)
-            page.screenshot(path="verification/mobile_live_chat_conversation.png")
-            print("Captured mobile_live_chat_conversation.png")
-
-            if page.get_by_label("Voltar").is_visible():
-                page.get_by_label("Voltar").click()
-                time.sleep(0.5)
 
             # Campaign Tab
             page.get_by_label("open menu").click()

@@ -150,7 +150,7 @@ export const MobileNav = ({ onOpen, title, children, ...rest }) => {
   return (
     <Flex
       display={{ base: 'flex', lg: 'none' }}
-      px={{ base: 4, md: 4 }}
+      px={{ base: 4, md: 6 }}
       height="20"
       alignItems="center"
       bg={bg}

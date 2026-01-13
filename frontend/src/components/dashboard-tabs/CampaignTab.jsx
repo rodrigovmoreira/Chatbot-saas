@@ -177,10 +177,11 @@ const CampaignTab = () => {
         </Card>
       ) : (
         <Card>
-          <CardBody overflowX="auto">
-            <Table variant="simple">
-              <Thead>
-                <Tr>
+          <CardBody>
+            <Box overflowX="auto">
+              <Table variant="simple">
+                <Thead>
+                  <Tr>
                 <Th>Nome</Th>
                 <Th>Tipo</Th>
                 <Th>Alvo (Tags)</Th>
@@ -213,8 +214,9 @@ const CampaignTab = () => {
                   </Td>
                 </Tr>
               ))}
-              </Tbody>
-            </Table>
+                </Tbody>
+              </Table>
+            </Box>
           </CardBody>
         </Card>
       )}
