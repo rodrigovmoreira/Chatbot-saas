@@ -1,4 +1,3 @@
-import React from 'react';
 import { Droppable } from '@hello-pangea/dnd';
 import { Box, Text, Flex, Badge, useColorModeValue } from '@chakra-ui/react';
 import FunnelCard from './FunnelCard';
