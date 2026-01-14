@@ -1,18 +1,44 @@
-import React, { useState } from 'react';
-import { Box, Button, Center, Heading, Text, VStack, useDisclosure, useToast } from '@chakra-ui/react';
+import React, { useState, useEffect } from 'react';
+import { Box, Button, Center, Heading, Text, useDisclosure, useToast, Spinner, Flex } from '@chakra-ui/react';
 import { SettingsIcon } from '@chakra-ui/icons';
 import { useApp } from '../context/AppContext';
 import { businessAPI } from '../services/api';
 import FunnelConfigModal from '../components/funnel/FunnelConfigModal';
+import FunnelBoard from '../components/funnel/FunnelBoard';
 
 const SalesFunnel = () => {
   const { state, dispatch } = useApp();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
 
+  const [contacts, setContacts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const businessConfig = state.businessConfig || {};
   const funnelSteps = businessConfig.funnelSteps || [];
   const availableTags = businessConfig.availableTags || [];
+
+  // Fetch Contacts on Mount
+  useEffect(() => {
+    const fetchContacts = async () => {
+      try {
+        setLoading(true);
+        const { data } = await businessAPI.getContacts();
+        setContacts(data);
+      } catch (error) {
+        console.error("Error fetching contacts:", error);
+        toast({ title: 'Erro ao carregar contatos', status: 'error' });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (funnelSteps.length > 0) {
+        fetchContacts();
+    } else {
+        setLoading(false);
+    }
+  }, [funnelSteps.length, toast]);
 
   const handleSaveConfig = async (newSteps) => {
     try {
@@ -22,11 +48,12 @@ const SalesFunnel = () => {
 
       // Update Context
       dispatch({ type: 'SET_BUSINESS_CONFIG', payload: data });
+      // Reload contacts not needed really unless tags changed drastically,
+      // but re-render will happen automatically due to context update
 
-      // Toast is handled in Modal, but good to have safety
     } catch (error) {
       console.error('Error saving funnel config:', error);
-      throw error; // Re-throw so Modal handles loading state
+      throw error;
     }
   };
 
@@ -61,30 +88,25 @@ const SalesFunnel = () => {
   }
 
   return (
-    <Box h="calc(100vh - 100px)">
-      <Box mb={4} display="flex" justifyContent="space-between" alignItems="center">
+    <Box h="calc(100vh - 100px)" display="flex" flexDirection="column">
+      <Flex mb={4} justify="space-between" align="center">
         <Heading size="md">Funil de Vendas</Heading>
         <Button size="sm" leftIcon={<SettingsIcon />} onClick={onOpen}>
           Configurar Etapas
         </Button>
-      </Box>
+      </Flex>
 
-      {/* Placeholder for Kanban Board (Step 3.2) */}
-      <Box
-        p={8}
-        border="2px dashed"
-        borderColor="gray.200"
-        borderRadius="lg"
-        bg="gray.50"
-        textAlign="center"
-        h="full"
-      >
-        <Text fontSize="xl" fontWeight="bold" color="gray.500" mt={10}>
-          Kanban Board Configurado!
-        </Text>
-        <Text mt={4}>
-          Etapas: {funnelSteps.map(s => s.label).join(' -> ')}
-        </Text>
+      <Box flex="1" overflow="hidden">
+        {loading ? (
+            <Center h="full">
+                <Spinner size="xl" color="brand.500" />
+            </Center>
+        ) : (
+            <FunnelBoard
+                columns={funnelSteps}
+                contacts={contacts}
+            />
+        )}
       </Box>
 
       <FunnelConfigModal
