@@ -3,8 +3,10 @@ const router = express.Router();
 const BusinessConfig = require('../models/BusinessConfig');
 const IndustryPreset = require('../models/IndustryPreset');
 const CustomPrompt = require('../models/CustomPrompt');
+const Contact = require('../models/Contact');
 const authenticateToken = require('../middleware/auth');
 const messageService = require('../services/message'); // <--- IMPORTEI O SERVICE
+const { sendWWebJSMessage } = require('../services/wwebjsService');
 const { upload, bucket } = require('../config/upload'); // Destructuring to get bucket too
 const { deleteFromFirebase } = require('../utils/firebaseHelper');
 const sharp = require('sharp');
@@ -302,6 +304,52 @@ router.get('/conversations/:contactId/messages', authenticateToken, async (req, 
   } catch (error) {
     console.error('Erro GET /messages:', error);
     res.status(500).json({ message: 'Erro ao buscar mensagens' });
+  }
+});
+
+// POST /conversations/:contactId/messages (Agent Send Message)
+router.post('/conversations/:contactId/messages', authenticateToken, async (req, res) => {
+  try {
+    const { message } = req.body;
+    const { contactId } = req.params;
+
+    if (!message) return res.status(400).json({ message: 'Mensagem vazia.' });
+
+    const config = await BusinessConfig.findOne({ userId: req.user.userId });
+    if (!config) return res.status(404).json({ message: 'Negócio não encontrado' });
+
+    // 1. Validar e buscar contato
+    const contact = await Contact.findOne({ _id: contactId, businessId: config._id });
+    if (!contact) return res.status(404).json({ message: 'Contato não encontrado ou não autorizado.' });
+
+    // 2. Enviar Mensagem
+    let sent = false;
+    if (contact.channel === 'whatsapp') {
+       sent = await sendWWebJSMessage(req.user.userId, contact.phone, message);
+       if (!sent) {
+           // Se falhar o envio (WhatsApp desconectado, etc), avisa o front mas salva?
+           // Melhor retornar erro para o agente saber.
+           return res.status(500).json({ message: 'Falha ao enviar mensagem para o WhatsApp. Verifique a conexão.' });
+       }
+    } else if (contact.channel === 'web') {
+       if (req.io) {
+           req.io.to(contact.sessionId).emit('bot_message', { sender: 'agent', text: message });
+           sent = true;
+       }
+    }
+
+    // 3. Salvar no Banco (Como Agente)
+    // identifier, role, content, messageType, visionResult, businessId, channel
+    const identifier = contact.channel === 'web' ? contact.sessionId : contact.phone;
+
+    // Usamos 'agent' como role para diferenciar de 'bot' e 'user'
+    await messageService.saveMessage(identifier, 'agent', message, 'text', null, config._id, contact.channel);
+
+    res.json({ success: true, message: 'Mensagem enviada.' });
+
+  } catch (error) {
+    console.error('Erro POST /messages:', error);
+    res.status(500).json({ message: 'Erro interno ao enviar mensagem.' });
   }
 });
 
