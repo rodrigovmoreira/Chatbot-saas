@@ -1,6 +1,6 @@
 import React from 'react';
 import { Draggable } from '@hello-pangea/dnd';
-import { Box, Text, HStack, Tag, Avatar, Flex, useColorModeValue } from '@chakra-ui/react';
+import { Box, Text, HStack, Avatar, Flex, useColorModeValue } from '@chakra-ui/react';
 import moment from 'moment';
 
 const FunnelCard = ({ contact, index }) => {
