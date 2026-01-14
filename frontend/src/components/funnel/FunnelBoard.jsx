@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DragDropContext } from '@hello-pangea/dnd';
-import { Box, Flex } from '@chakra-ui/react';
+import { Flex } from '@chakra-ui/react';
 import FunnelColumn from './FunnelColumn';
 
 const FunnelBoard = ({ columns, contacts }) => {
