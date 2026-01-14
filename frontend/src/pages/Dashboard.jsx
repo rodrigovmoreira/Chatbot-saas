@@ -23,8 +23,9 @@ const CatalogTab = lazy(() => import('../components/dashboard-tabs/CatalogTab'))
 const CampaignTab = lazy(() => import('../components/dashboard-tabs/CampaignTab'));
 const LiveChatTab = lazy(() => import('../components/dashboard-tabs/LiveChatTab'));
 const ScheduleTab = lazy(() => import('../components/ScheduleTab'));
+const SalesFunnel = lazy(() => import('./SalesFunnel'));
 
-const Dashboard = () => {
+const Dashboard = ({ initialTab = 0 }) => {
   const { state, dispatch } = useApp();
   const toast = useToast();
   const fileInputRef = React.useRef();
@@ -39,7 +40,7 @@ const Dashboard = () => {
 
   // Navigation State
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState(initialTab);
 
   // Profile Data
   const [profileData, setProfileData] = useState({ name: '', email: '', company: '', avatarUrl: '' });
@@ -226,6 +227,7 @@ const Dashboard = () => {
           {activeTab === 4 && <CampaignTab />}
           {activeTab === 5 && <LiveChatTab />}
           {activeTab === 6 && <ScheduleTab />}
+          {activeTab === 7 && <SalesFunnel />}
         </Suspense>
 
       </Box>

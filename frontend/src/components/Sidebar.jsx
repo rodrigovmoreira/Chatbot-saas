@@ -21,7 +21,7 @@ import {
 } from '@chakra-ui/icons';
 import ColorModeToggle from './ColorModeToggle';
 
-import { FaBullhorn } from 'react-icons/fa';
+import { FaBullhorn, FaFilter } from 'react-icons/fa';
 
 const LinkItems = [
   { name: 'Conexão & Geral', icon: SettingsIcon, index: 0 },
@@ -31,6 +31,7 @@ const LinkItems = [
   { name: 'Campanhas', icon: FaBullhorn, index: 4, color: 'orange.500' }, // Reordered/Added
   { name: 'Live Chat', icon: ChatIcon, index: 5, color: 'purple.500' },
   { name: 'Agendamentos', icon: TimeIcon, index: 6, color: 'blue.500' },
+  { name: 'Funil de Vendas', icon: FaFilter, index: 7, color: 'teal.500' },
 ];
 
 const NavItem = ({ icon, children, isActive, color, isCollapsed, ...rest }) => {
