@@ -20,6 +20,7 @@ const LiveChatTab = () => {
   const [conversations, setConversations] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [hasScrolled, setHasScrolled] = useState(false);
 
   // CRM UI State
   const [showDesktopCrm, setShowDesktopCrm] = useState(true);
@@ -159,11 +160,14 @@ const LiveChatTab = () => {
   useEffect(() => {
     if (!selectedContact) return;
 
+    // Reset scroll flag when contact changes
+    setHasScrolled(false);
+
     const fetchMessages = async () => {
       try {
         const { data } = await businessAPI.getMessages(selectedContact._id);
         setMessages(data);
-        scrollToBottom();
+        // Removed scrollToBottom() from here to prevent auto-scrolling on poll
       } catch (error) {
         console.error("Erro ao carregar mensagens:", error);
       }
@@ -174,6 +178,14 @@ const LiveChatTab = () => {
     const interval = setInterval(fetchMessages, 5000);
     return () => clearInterval(interval);
   }, [selectedContact]);
+
+  // Effect to scroll once per contact load
+  useEffect(() => {
+    if (!hasScrolled && messages.length > 0) {
+        scrollToBottom();
+        setHasScrolled(true);
+    }
+  }, [messages, hasScrolled]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
