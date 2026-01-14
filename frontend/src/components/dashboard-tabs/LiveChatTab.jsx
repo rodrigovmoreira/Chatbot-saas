@@ -33,6 +33,7 @@ const LiveChatTab = () => {
   // Message Input State
   const [inputMessage, setInputMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const inputRef = useRef(null);
 
   // Modal de Embed
   const { isOpen: isEmbedOpen, onOpen: onEmbedOpen, onClose: onEmbedClose } = useDisclosure();
@@ -228,6 +229,12 @@ const LiveChatTab = () => {
           }]);
           setInputMessage('');
           setHasScrolled(false); // Trigger scroll to bottom
+
+          // Restore focus to input
+          setTimeout(() => {
+              inputRef.current?.focus();
+          }, 50);
+
       } catch (error) {
           console.error("Error sending message:", error);
           toast({ title: "Erro ao enviar mensagem.", status: "error" });
@@ -413,7 +420,7 @@ const LiveChatTab = () => {
                 <Box flex="1" p={4} overflowY="auto" bgImage="linear-gradient(to bottom, #f0f2f5, #e1e5ea)">
                   <VStack spacing={3} align="stretch">
                     {messages.map((msg, index) => {
-                       const isMe = msg.role === 'bot' || msg.role === 'system';
+                       const isMe = msg.role === 'bot' || msg.role === 'system' || msg.role === 'agent';
 
                        return (
                          <HStack key={index} justify={isMe ? 'flex-end' : 'flex-start'} align="flex-start">
@@ -458,6 +465,7 @@ const LiveChatTab = () => {
                     {/* Actual Input Field */}
                     <HStack>
                         <Input
+                            ref={inputRef}
                             placeholder="Digite sua resposta..."
                             value={inputMessage}
                             onChange={(e) => setInputMessage(e.target.value)}
@@ -469,6 +477,7 @@ const LiveChatTab = () => {
                             }}
                             isDisabled={isSending}
                             bg={inputBg}
+                            autoFocus
                         />
                         <IconButton
                             icon={<Icon as={IoMdSend} />}
