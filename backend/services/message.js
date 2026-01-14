@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Contact = require('../models/Contact');
 const Message = require('../models/Message');
 
-async function saveMessage(identifier, role, content, messageType = 'text', visionResult = null, businessId, channel = 'whatsapp') {
+async function saveMessage(identifier, role, content, messageType = 'text', visionResult = null, businessId, channel = 'whatsapp', pushName = null) {
   try {
     if (!businessId) {
       console.error("❌ ERRO GRAVE: Tentativa de salvar mensagem sem businessId!");
@@ -18,6 +18,21 @@ async function saveMessage(identifier, role, content, messageType = 'text', visi
     }
 
     let contact = await Contact.findOne(query);
+
+    // AUTO-UPDATE NAME LOGIC
+    // Se temos um pushName válido (vindo do WhatsApp) e o nome atual é genérico ou número, atualizamos.
+    if (contact && role === 'user' && pushName && pushName !== 'Cliente' && pushName !== 'Visitante') {
+        const currentName = contact.name || '';
+        const isGeneric = ['Visitante', 'Cliente', 'Visitante Web'].includes(currentName);
+        // Verifica se é número (remove não dígitos e compara, ou regex básico)
+        const isPhone = (contact.phone && currentName.replace(/\D/g, '') === contact.phone.replace(/\D/g, '')) || /^\+?\d[\d\s-]*$/.test(currentName);
+
+        if (isGeneric || isPhone) {
+            console.log(`📝 Auto-updating contact name from "${currentName}" to "${pushName}"`);
+            contact.name = pushName;
+            // O save() final já vai persistir isso junto com outras mudanças
+        }
+    }
 
     if (!contact) {
       // Create new contact
@@ -35,7 +50,11 @@ async function saveMessage(identifier, role, content, messageType = 'text', visi
           delete newContactData.phone; // Garantir que não envia null
       } else {
           newContactData.phone = identifier;
-          // Name defaults to Visitante if not provided (handled by Schema default or update later)
+          // Se tivermos o pushName logo de cara, já usamos
+          if (pushName && pushName !== 'Cliente' && pushName !== 'Visitante') {
+             newContactData.name = pushName;
+          }
+          // Name defaults to Visitante if not provided (handled by Schema default)
       }
 
       contact = await Contact.create(newContactData);

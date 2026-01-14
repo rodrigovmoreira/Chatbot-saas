@@ -2,11 +2,13 @@ const { handleIncomingMessage } = require('../../messageHandler');
 const { sendUnifiedMessage } = require('../../services/responseService');
 const { saveMessage, getLastMessages } = require('../../services/message');
 const BusinessConfig = require('../../models/BusinessConfig');
+const Contact = require('../../models/Contact');
 
 // Mocks
 jest.mock('../../services/responseService');
 jest.mock('../../services/message');
 jest.mock('../../models/BusinessConfig');
+jest.mock('../../models/Contact');
 jest.mock('../../services/aiTools', () => ({
   checkAvailability: jest.fn(),
   createAppointmentByAI: jest.fn(),
@@ -24,7 +26,8 @@ const axios = require('axios');
 jest.mock('axios');
 
 describe('Message Flow Integration Test', () => {
-  const mockBusinessId = 'biz_123';
+  // Must be a valid 24-char hex string to satisfy Mongoose ObjectId casting
+  const mockBusinessId = '507f1f77bcf86cd799439011';
   const mockFrom = '5511999998888@c.us';
 
   beforeEach(() => {
@@ -43,6 +46,13 @@ describe('Message Flow Integration Test', () => {
 
     // Mock History
     getLastMessages.mockResolvedValue([]);
+
+    // Mock Contact
+    Contact.findOne.mockResolvedValue({
+      _id: 'contact_123',
+      isHandover: false,
+      name: 'Test User'
+    });
   });
 
   afterEach(() => {
@@ -131,7 +141,8 @@ describe('Message Flow Integration Test', () => {
       'text',
       null,
       mockBusinessId,
-      'whatsapp'
+      'whatsapp',
+      'Test User' // pushName
     );
 
     // 7. Verify DeepSeek was called

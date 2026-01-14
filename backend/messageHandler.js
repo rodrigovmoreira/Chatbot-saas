@@ -111,7 +111,7 @@ async function processBufferedMessages(uniqueKey) {
     const contact = await Contact.findOne(contactQuery);
 
     // Salva a mensagem combinada como 'user'
-    await saveMessage(from, 'user', userMessage, 'text', null, activeBusinessId, channel);
+    await saveMessage(from, 'user', userMessage, 'text', null, activeBusinessId, channel, name);
 
     if (contact && contact.isHandover) {
         console.log(`🛑 Handover ativo para ${from}. Robô silenciado.`);

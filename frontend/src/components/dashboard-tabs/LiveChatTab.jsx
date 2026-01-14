@@ -229,8 +229,7 @@ const LiveChatTab = () => {
 
   return (
     <Box>
-      <Stack direction={{ base: 'column', md: 'row' }} mb={4} justify="space-between" spacing={2}>
-        <Text fontSize="xs" color="gray.400">Debug ID: {state.businessConfig?._id || 'N/A'}</Text>
+      <Stack direction={{ base: 'column', md: 'row' }} mb={4} justify="flex-end" spacing={2}>
         <Button leftIcon={<LinkIcon />} size="sm" onClick={onEmbedOpen} colorScheme="brand">
           Instalar no Site
         </Button>
@@ -279,9 +278,6 @@ const LiveChatTab = () => {
                     </HStack>
                     <Text fontSize="xs" color="gray.500">{formatTime(contact.lastInteraction)}</Text>
                   </HStack>
-                  <Text fontSize="xs" color="gray.500" noOfLines={1}>
-                    {contact.phone || contact.sessionId}
-                  </Text>
                   {/* Tags Preview */}
                   {contact.tags && contact.tags.length > 0 && (
                       <HStack mt={1} spacing={1}>
