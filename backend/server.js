@@ -21,6 +21,7 @@ const { Server } = require("socket.io");
 const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
+const mongoSanitize = require('./middleware/mongoSanitize');
 const passport = require('passport');
 
 // Config do Passport
@@ -75,6 +76,7 @@ app.use(helmet({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(mongoSanitize); // 🛡️ Sanitização NoSQL
 app.use(cookieParser());
 app.use(cors({ origin: allowedOrigins, credentials: true, methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'] }));
 app.use(passport.initialize());
