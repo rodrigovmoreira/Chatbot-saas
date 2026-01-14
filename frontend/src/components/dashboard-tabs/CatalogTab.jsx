@@ -161,7 +161,7 @@ const CatalogTab = () => {
               <FormControl>
                 <FormLabel>Tags (Palavras-chave separadas por vírgula)</FormLabel>
                 <Input
-                  placeholder="Escreva as palavras que correspondem ao produto"
+                  placeholder="Escreva as palavras que correspondem ao produto."
                   value={Array.isArray(newProduct.tags) ? newProduct.tags.join(', ') : newProduct.tags}
                   onChange={e => setNewProduct({ ...newProduct, tags: e.target.value })}
                   size={{ base: 'lg', md: 'md' }}
