@@ -98,7 +98,7 @@ const CrmSidebar = ({ contact, onUpdate, availableTags, onAddTag, onRemoveTag, o
       />
 
       <VStack spacing={5} align="stretch">
-        <Text fontWeight="bold" fontSize="lg" mb={2}>CRM</Text>
+        <Text fontWeight="bold" fontSize="lg" mb={2}>Ficha do Cliente</Text>
 
         {/* Deal Value */}
         <FormControl>
