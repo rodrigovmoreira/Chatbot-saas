@@ -47,6 +47,14 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/funnel"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard initialTab={7} />
+                  </ProtectedRoute>
+                }
+              />
             </Routes>
           </div>
         </Router>

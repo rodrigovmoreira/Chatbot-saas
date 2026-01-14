@@ -75,6 +75,14 @@ const businessConfigSchema = new mongoose.Schema({
     }
   ],
 
+  // === ADICIONADO: FUNIL DE VENDAS (Fase 3) ===
+  funnelSteps: [{
+    tag: { type: String, required: true },
+    label: { type: String, required: true },
+    order: { type: Number, required: true },
+    color: { type: String }
+  }],
+
   // === ADICIONADO: ENGINE DE NOTIFICAÇÕES (Fase 2) ===
   notificationRules: [{
     id: { type: String, required: true }, // UUID
