@@ -6,10 +6,11 @@ import {
   ModalCloseButton, ModalBody, ModalFooter, useDisclosure, Code, IconButton, Tooltip, useToast,
   Badge, Switch, FormControl, FormLabel,
   Drawer, DrawerOverlay, DrawerContent, DrawerCloseButton, DrawerBody,
-  useBreakpointValue
+  useBreakpointValue, Input
 } from '@chakra-ui/react';
 import { ChatIcon, LinkIcon, DeleteIcon, ArrowBackIcon, InfoIcon } from '@chakra-ui/icons';
 import { FaWhatsapp, FaGlobe, FaRobot, FaUser } from 'react-icons/fa';
+import { IoMdSend } from 'react-icons/io';
 import { businessAPI } from '../../services/api'; // Ensure this service has updateContact method
 import { useApp } from '../../context/AppContext';
 import CrmSidebar from '../crm/CrmSidebar';
@@ -29,6 +30,11 @@ const LiveChatTab = () => {
   // Mobile View State
   const [showMobileChat, setShowMobileChat] = useState(false);
 
+  // Message Input State
+  const [inputMessage, setInputMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const inputRef = useRef(null);
+
   // Modal de Embed
   const { isOpen: isEmbedOpen, onOpen: onEmbedOpen, onClose: onEmbedClose } = useDisclosure();
   const toast = useToast();
@@ -38,6 +44,7 @@ const LiveChatTab = () => {
   const cardBg = useColorModeValue('white', 'gray.800');
   const gray50Bg = useColorModeValue('gray.50', 'gray.700');
   const gray100 = useColorModeValue("gray.100", "gray.900");
+  const inputBg = useColorModeValue('white', 'gray.50');
 
   const messagesEndRef = useRef(null);
 
@@ -206,6 +213,33 @@ const LiveChatTab = () => {
           setShowDesktopCrm(!showDesktopCrm);
       } else {
           onCrmOpen();
+      }
+  };
+
+  const handleSendMessage = async () => {
+      if (!inputMessage.trim() || !selectedContact) return;
+      setIsSending(true);
+      try {
+          await businessAPI.sendMessage(selectedContact._id, inputMessage);
+          // Add to local list immediately for better UX
+          setMessages(prev => [...prev, {
+              role: 'agent',
+              content: inputMessage,
+              timestamp: new Date().toISOString()
+          }]);
+          setInputMessage('');
+          setHasScrolled(false); // Trigger scroll to bottom
+
+          // Restore focus to input
+          setTimeout(() => {
+              inputRef.current?.focus();
+          }, 50);
+
+      } catch (error) {
+          console.error("Error sending message:", error);
+          toast({ title: "Erro ao enviar mensagem.", status: "error" });
+      } finally {
+          setIsSending(false);
       }
   };
 
@@ -386,7 +420,7 @@ const LiveChatTab = () => {
                 <Box flex="1" p={4} overflowY="auto" bgImage="linear-gradient(to bottom, #f0f2f5, #e1e5ea)">
                   <VStack spacing={3} align="stretch">
                     {messages.map((msg, index) => {
-                       const isMe = msg.role === 'bot' || msg.role === 'system';
+                       const isMe = msg.role === 'bot' || msg.role === 'system' || msg.role === 'agent';
 
                        return (
                          <HStack key={index} justify={isMe ? 'flex-end' : 'flex-start'} align="flex-start">
@@ -413,19 +447,46 @@ const LiveChatTab = () => {
                   </VStack>
                 </Box>
 
-                {/* Input Area (Visual Only for now) */}
+                {/* Input Area */}
                 <Box p={4} bg={cardBg} borderTop="1px solid" borderColor={gray50Bg}>
+                    {/* Status Banners */}
                     {selectedContact.isHandover ? (
-                       <Alert status="warning" size="sm" borderRadius="md">
+                       <Alert status="success" variant="subtle" size="sm" borderRadius="md" mb={3} bg="green.100" color="green.800">
                           <Icon as={FaUser} mr={2} />
-                          Robô pausado. Responda pelo seu celular ou app do WhatsApp.
+                          🤖 Robô Pausado. Você está no controle da conversa.
                        </Alert>
                     ) : (
-                       <Alert status="info" size="sm" borderRadius="md">
+                       <Alert status="info" variant="subtle" size="sm" borderRadius="md" mb={3}>
                           <Icon as={FaRobot} mr={2} />
                           IA Ativa. Monitorando conversa...
                        </Alert>
                     )}
+
+                    {/* Actual Input Field */}
+                    <HStack>
+                        <Input
+                            ref={inputRef}
+                            placeholder="Digite sua resposta..."
+                            value={inputMessage}
+                            onChange={(e) => setInputMessage(e.target.value)}
+                            onKeyPress={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSendMessage();
+                                }
+                            }}
+                            isDisabled={isSending}
+                            bg={inputBg}
+                            autoFocus
+                        />
+                        <IconButton
+                            icon={<Icon as={IoMdSend} />}
+                            colorScheme="brand"
+                            onClick={handleSendMessage}
+                            isLoading={isSending}
+                            aria-label="Enviar"
+                        />
+                    </HStack>
                 </Box>
               </>
             ) : (
