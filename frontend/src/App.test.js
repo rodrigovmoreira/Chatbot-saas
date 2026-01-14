@@ -14,14 +14,22 @@ Object.defineProperty(window, 'getComputedStyle', {
     })
 });
 
+// Mock matchMedia
+window.matchMedia = window.matchMedia || function() {
+    return {
+        matches: false,
+        addListener: function() {},
+        removeListener: function() {}
+    };
+};
+
 test('renders landing page by default', () => {
-    // Rely on setupTests.js for matchMedia
   render(
     <ChakraProvider theme={theme}>
       <App />
     </ChakraProvider>
   );
 
-  const linkElement = screen.getByText(/Automate your WhatsApp Service with AI/i);
+  const linkElement = screen.getByText(/Evolua seus atendimentos com Inteligência Artificial/i);
   expect(linkElement).toBeInTheDocument();
 });

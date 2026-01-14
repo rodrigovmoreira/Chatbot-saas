@@ -6,6 +6,7 @@ import FunnelCard from './FunnelCard';
 const FunnelColumn = ({ step, contacts, droppableId }) => {
   const bg = useColorModeValue('gray.50', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const draggingBg = useColorModeValue('blue.50', 'whiteAlpha.100');
 
   // Calculate Total Value
   const totalValue = contacts.reduce((sum, c) => sum + (c.dealValue || 0), 0);
@@ -50,7 +51,7 @@ const FunnelColumn = ({ step, contacts, droppableId }) => {
             flex="1"
             p={2}
             overflowY="auto"
-            bg={snapshot.isDraggingOver ? useColorModeValue('blue.50', 'whiteAlpha.100') : 'transparent'}
+            bg={snapshot.isDraggingOver ? draggingBg : 'transparent'}
             transition="background-color 0.2s"
           >
             {contacts.map((contact, index) => (

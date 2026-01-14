@@ -174,6 +174,7 @@ const Dashboard = ({ initialTab = 0 }) => {
       <MobileNav
         onOpen={onSidebarOpen}
         title={LinkItems[activeTab]?.name || 'Painel'}
+        zIndex={1000}
       >
         {ProfileMenu}
       </MobileNav>

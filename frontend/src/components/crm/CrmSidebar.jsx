@@ -103,7 +103,7 @@ const CrmSidebar = ({ contact, onUpdate, availableTags, onAddTag, onRemoveTag, o
         {/* Deal Value */}
         <FormControl>
           <FormLabel fontSize="sm" color="gray.500">Valor da Oportunidade</FormLabel>
-          <InputGroup size="sm">
+          <InputGroup size={{ base: 'lg', md: 'sm' }}>
             <InputLeftAddon children="R$" />
             <Input
               type="text"
@@ -122,6 +122,7 @@ const CrmSidebar = ({ contact, onUpdate, availableTags, onAddTag, onRemoveTag, o
           <Select
             value={funnelStage}
             onChange={(e) => setFunnelStage(e.target.value)}
+            size={{ base: 'lg', md: 'sm' }}
           >
             {funnelOptions.map(opt => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
