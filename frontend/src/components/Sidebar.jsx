@@ -7,6 +7,9 @@ import {
   IconButton,
   HStack,
   useColorModeValue,
+  Drawer,
+  DrawerOverlay,
+  DrawerContent,
 } from '@chakra-ui/react';
 import {
   SettingsIcon,
@@ -189,6 +192,44 @@ export const MobileNav = ({ onOpen, title, children, ...rest }) => {
         {children}
       </HStack>
     </Flex>
+  );
+};
+
+// Unified Sidebar Component handling both Desktop and Mobile logic
+export const Sidebar = ({ isOpen, onClose, activeTab, setActiveTab, isCollapsed, toggleCollapse }) => {
+  return (
+    <>
+      {/* Desktop Sidebar (Fixed) */}
+      <SidebarContent
+        display={{ base: 'none', lg: 'flex' }}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        isCollapsed={isCollapsed}
+        toggleCollapse={toggleCollapse}
+      />
+
+      {/* Mobile Sidebar (Drawer) */}
+      <Drawer
+        autoFocus={false}
+        isOpen={isOpen}
+        placement="left"
+        onClose={onClose}
+        returnFocusOnClose={false}
+        onOverlayClick={onClose}
+        size="xs"
+      >
+        <DrawerOverlay />
+        <DrawerContent>
+          <SidebarContent
+            onClose={onClose}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            pos="relative"
+            w="full"
+          />
+        </DrawerContent>
+      </Drawer>
+    </>
   );
 };
 

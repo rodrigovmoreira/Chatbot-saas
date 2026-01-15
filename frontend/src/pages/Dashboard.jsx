@@ -13,7 +13,7 @@ import { useApp } from '../context/AppContext';
 import { authAPI, businessAPI } from '../services/api';
 
 // Imported Components
-import { SidebarContent, LinkItems, MobileNav } from '../components/Sidebar';
+import { Sidebar, LinkItems, MobileNav } from '../components/Sidebar';
 
 // Lazy Loaded Components for Performance Optimization
 const ConnectionTab = lazy(() => import('../components/dashboard-tabs/ConnectionTab'));
@@ -139,36 +139,15 @@ const Dashboard = ({ initialTab = 0 }) => {
 
   return (
     <Box minH="100vh" bg={mainBg}>
-      {/* SIDEBAR PARA DESKTOP !!!*/}
-      <SidebarContent
-        display={{ base: 'none', lg: 'flex' }}
+      {/* Unified Sidebar (Handles Desktop Fixed & Mobile Drawer) */}
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={onSidebarClose}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         isCollapsed={isCollapsed}
         toggleCollapse={() => setIsCollapsed(!isCollapsed)}
       />
-
-      {/* DRAWER PARA MOBILE - Navigation Refactor Implemented */}
-      <Drawer
-        autoFocus={false}
-        isOpen={isSidebarOpen}
-        placement="left"
-        onClose={onSidebarClose}
-        returnFocusOnClose={false}
-        onOverlayClick={onSidebarClose}
-        size="xs"
-      >
-        <DrawerOverlay />
-        <DrawerContent>
-          <SidebarContent
-            onClose={onSidebarClose}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            pos="relative"
-            w="full"
-          />
-        </DrawerContent>
-      </Drawer>
 
       {/* Navbar Mobile Customizada (Com Avatar e Menu) - Moved outside content Box for better stacking context */}
       <MobileNav

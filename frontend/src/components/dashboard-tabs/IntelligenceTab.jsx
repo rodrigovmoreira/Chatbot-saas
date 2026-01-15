@@ -256,7 +256,7 @@ const IntelligenceTab = () => {
         <Divider />
 
         {/* 3. EDITORES DE TEXTO (CHAT E VISÃO) */}
-        <Grid templateColumns={{ base: '1fr', lg: '1fr 1fr' }} gap={6}>
+        <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={6}>
           <Card bg={cardBg} boxShadow="sm">
             <CardHeader pb={0}><Heading size="sm">🧠 Personalidade (Chat)</Heading></CardHeader>
             <CardBody>
