@@ -51,7 +51,7 @@ function App() {
                 path="/funnel"
                 element={
                   <ProtectedRoute>
-                    <Dashboard initialTab={7} />
+                    <Dashboard initialTab={8} />
                   </ProtectedRoute>
                 }
               />

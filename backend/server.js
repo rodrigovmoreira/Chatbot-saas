@@ -47,6 +47,7 @@ const whatsappRoutes = require('./routes/whatsappRoutes');
 const publicChatRoutes = require('./routes/publicChatRoutes');
 const campaignRoutes = require('./routes/campaignRoutes');
 const contactRoutes = require('./routes/contactRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
 
 // Carregar Models (Garantia de registro)
 require('./models/SystemUser');
@@ -110,7 +111,10 @@ app.use('/api/campaigns', campaignRoutes);
 // 7. Contatos (Active CRM)
 app.use('/api/contacts', contactRoutes);
 
-// 8. Webhook (Mantido aqui por ser externo)
+// 8. Dashboard (Visão Geral)
+app.use('/api/dashboard', dashboardRoutes);
+
+// 9. Webhook (Mantido aqui por ser externo)
 app.post('/api/webhook', async (req, res) => {
   try {
     res.status(200).send('<Response></Response>');

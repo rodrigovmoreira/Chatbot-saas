@@ -15,6 +15,7 @@ import { authAPI, businessAPI } from '../services/api';
 import { Sidebar, LinkItems, MobileNav } from '../components/Sidebar';
 
 // Lazy Loaded Components for Performance Optimization
+const OverviewTab = lazy(() => import('../components/dashboard-tabs/OverviewTab'));
 const ConnectionTab = lazy(() => import('../components/dashboard-tabs/ConnectionTab'));
 const IntelligenceTab = lazy(() => import('../components/dashboard-tabs/IntelligenceTab'));
 const QuickRepliesTab = lazy(() => import('../components/dashboard-tabs/QuickRepliesTab'));
@@ -198,14 +199,15 @@ const Dashboard = ({ initialTab = 0 }) => {
 
         {/* --- CONTEÚDO DAS ABAS (Render Condicional) --- */}
         <Suspense fallback={<LoadingFallback />}>
-          {activeTab === 0 && <ConnectionTab />}
-          {activeTab === 1 && <IntelligenceTab />}
-          {activeTab === 2 && <QuickRepliesTab />}
-          {activeTab === 3 && <CatalogTab />}
-          {activeTab === 4 && <CampaignTab />}
-          {activeTab === 5 && <LiveChatTab />}
-          {activeTab === 6 && <ScheduleTab />}
-          {activeTab === 7 && <SalesFunnel />}
+          {activeTab === 0 && <OverviewTab />}
+          {activeTab === 1 && <ConnectionTab />}
+          {activeTab === 2 && <IntelligenceTab />}
+          {activeTab === 3 && <QuickRepliesTab />}
+          {activeTab === 4 && <CatalogTab />}
+          {activeTab === 5 && <CampaignTab />}
+          {activeTab === 6 && <LiveChatTab />}
+          {activeTab === 7 && <ScheduleTab />}
+          {activeTab === 8 && <SalesFunnel />}
         </Suspense>
 
       </Box>
