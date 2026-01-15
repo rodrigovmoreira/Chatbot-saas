@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { DragDropContext } from '@hello-pangea/dnd';
-import { Flex } from '@chakra-ui/react';
+import { Flex, useToast } from '@chakra-ui/react';
 import FunnelColumn from './FunnelColumn';
+import { businessAPI } from '../../services/api';
 
 const FunnelBoard = ({ columns, contacts }) => {
   const [boardData, setBoardData] = useState({});
+  const toast = useToast();
 
   // Initialize/Reset Board Data when props change
   useEffect(() => {
@@ -50,8 +52,8 @@ const FunnelBoard = ({ columns, contacts }) => {
     setBoardData(initialData);
   }, [columns, contacts]);
 
-  const onDragEnd = (result) => {
-    const { source, destination } = result;
+  const onDragEnd = async (result) => {
+    const { source, destination, draggableId } = result;
 
     // Dropped outside
     if (!destination) return;
@@ -64,23 +66,54 @@ const FunnelBoard = ({ columns, contacts }) => {
       return;
     }
 
-    // Reordering Logic (Visual Only for now)
     const sourceColId = source.droppableId;
     const destColId = destination.droppableId;
 
+    // Clone source and dest lists
     const sourceList = [...boardData[sourceColId]];
     const destList = sourceColId === destColId ? sourceList : [...boardData[destColId]];
 
+    // Move contact
     const [movedContact] = sourceList.splice(source.index, 1);
-    destList.splice(destination.index, 0, movedContact);
 
-    setBoardData({
+    // Prepare updated contact object for local state (Optimistic UI)
+    const currentTags = movedContact.tags || [];
+    let newTags = currentTags;
+
+    if (sourceColId !== destColId) {
+      // Remove source tag, Add destination tag
+      newTags = currentTags.filter(t => t !== sourceColId).concat(destColId);
+    }
+
+    const updatedContact = { ...movedContact, tags: newTags };
+    destList.splice(destination.index, 0, updatedContact);
+
+    const newBoardData = {
       ...boardData,
       [sourceColId]: sourceList,
       [destColId]: destList
-    });
+    };
 
-    // TODO: In Step 3.3, we will call API here
+    // Optimistic Update
+    setBoardData(newBoardData);
+
+    // Call API if column changed
+    if (sourceColId !== destColId) {
+      try {
+        await businessAPI.updateContact(draggableId, { tags: newTags });
+      } catch (error) {
+        console.error("Failed to update contact tags:", error);
+        toast({
+          title: 'Erro ao mover contato',
+          description: 'Não foi possível salvar a alteração.',
+          status: 'error',
+          duration: 5000,
+          isClosable: true,
+        });
+        // Revert UI change
+        setBoardData(boardData);
+      }
+    }
   };
 
   return (
