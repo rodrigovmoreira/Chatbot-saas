@@ -85,4 +85,8 @@ export const businessAPI = {
   updateContact: (id, data) => api.put(`/api/contacts/${id}`, data),
 };
 
+export const dashboardAPI = {
+  getSummary: () => api.get('/api/dashboard/summary'),
+};
+
 export default api;

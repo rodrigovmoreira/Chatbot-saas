@@ -24,17 +24,18 @@ import {
 } from '@chakra-ui/icons';
 import ColorModeToggle from './ColorModeToggle';
 
-import { FaBullhorn, FaFilter } from 'react-icons/fa';
+import { FaBullhorn, FaFilter, FaHome } from 'react-icons/fa';
 
 const LinkItems = [
-  { name: 'Conexão & Geral', icon: SettingsIcon, index: 0 },
-  { name: 'Inteligência & Nicho', icon: StarIcon, index: 1 },
-  { name: 'Respostas Rápidas', icon: EditIcon, index: 2 },
-  { name: 'Catálogo', icon: AttachmentIcon, index: 3 },
-  { name: 'Campanhas', icon: FaBullhorn, index: 4, color: 'orange.500' }, // Reordered/Added
-  { name: 'Live Chat', icon: ChatIcon, index: 5, color: 'purple.500' },
-  { name: 'Agendamentos', icon: TimeIcon, index: 6, color: 'blue.500' },
-  { name: 'Funil de Vendas', icon: FaFilter, index: 7, color: 'teal.500' },
+  { name: 'Visão Geral', icon: FaHome, index: 0 },
+  { name: 'Conexão & Negócio', icon: SettingsIcon, index: 1 },
+  { name: 'Inteligência & Nicho', icon: StarIcon, index: 2 },
+  { name: 'Respostas Rápidas', icon: EditIcon, index: 3 },
+  { name: 'Catálogo', icon: AttachmentIcon, index: 4 },
+  { name: 'Campanhas', icon: FaBullhorn, index: 5, color: 'orange.500' }, // Reordered/Added
+  { name: 'Chat Ao vivo', icon: ChatIcon, index: 6, color: 'purple.500' },
+  { name: 'Agendamentos', icon: TimeIcon, index: 7, color: 'blue.500' },
+  { name: 'Funil de Vendas', icon: FaFilter, index: 8, color: 'teal.500' },
 ];
 
 const NavItem = ({ icon, children, isActive, color, isCollapsed, ...rest }) => {
