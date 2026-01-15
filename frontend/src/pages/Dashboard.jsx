@@ -3,8 +3,7 @@ import {
   Box, Flex, Heading, Text, Button, VStack, HStack,
   useToast, useColorModeValue, FormControl, FormLabel, Input,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
-  useDisclosure, Drawer, DrawerOverlay, DrawerContent,
-  Menu, MenuButton, MenuList, MenuItem, Avatar, IconButton, Spinner, Center
+  useDisclosure, Menu, MenuButton, MenuList, MenuItem, Avatar, IconButton, Spinner, Center
 } from '@chakra-ui/react';
 import {
   EditIcon, WarningTwoIcon, ChevronDownIcon,
