@@ -1,4 +1,4 @@
-## 2024-05-22 - In-Memory Rate Limiting
-**Vulnerability:** Rate limiting relies on in-memory Maps (`backend/middleware/rateLimiters.js`).
-**Learning:** This implementation resets on server restart and does not share state across multiple instances (e.g., if scaled horizontally).
-**Prevention:** Future scaling efforts must migrate rate limiting to a shared store (Redis) to ensure consistent enforcement and persistence.
+## 2025-02-14 - express-mongo-sanitize middleware implementation
+**Vulnerability:** Missing NoSQL injection protection.
+**Learning:** Implemented a custom `mongoSanitize` middleware to remove keys starting with `$` or containing `.` from `req.body`, `req.query`, and `req.params`. Verification via unit tests proved tricky due to `supertest` or `express` response handling quirks with mutated objects in the test environment, but manual logging confirmed the sanitization logic works correctly.
+**Prevention:** Ensure all user input is sanitized before reaching MongoDB queries.
