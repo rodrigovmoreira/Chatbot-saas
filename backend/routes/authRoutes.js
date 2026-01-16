@@ -55,7 +55,12 @@ router.post('/register', registerLimiter, async (req, res) => {
     });
 
     // Send Verification Email
-    await sendVerificationEmail(email, verificationToken);
+    try {
+      sendVerificationEmail(email, verificationToken)
+        .catch(err => console.error('Warning: Failed to send email, but user created.', err.message));
+    } catch (error) {
+      console.error('Warning: Failed to initiate email sending.', error.message);
+    }
 
     // Cria a configuração inicial padrão
     await BusinessConfig.create({

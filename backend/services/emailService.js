@@ -40,6 +40,11 @@ const initializeTransporter = async () => {
 };
 
 const sendVerificationEmail = async (to, token) => {
+  if (!process.env.SMTP_HOST) {
+    console.log('SMTP not configured, skipping email.');
+    return;
+  }
+
   const t = await initializeTransporter();
   if (!t) {
     console.error('💥 Email Transporter not initialized.');
