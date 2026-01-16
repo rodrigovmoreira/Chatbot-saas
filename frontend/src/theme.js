@@ -7,19 +7,41 @@ const config = {
 };
 
 const colors = {
-  brand: {
-    50: '#f0fff4',
-    100: '#c6f6d5',
-    200: '#9ae6b4',
-    300: '#68d391',
-    400: '#48bb78',
-    500: '#25D366',
-    600: '#128C7E',
-    700: '#065f46',
-    800: '#064e3b',
-    900: '#022c22',
-    neon: '#A801E5',
+  // GitHub-like Dark Mode Palette
+  github: {
+    bg: '#0D1117',        // Deepest Slate (Global Bg)
+    surface: '#161B22',   // Slightly lighter slate (Cards/Sidebar)
+    surfaceHigh: '#21262d', // For elevated elements on top of surface
+    border: '#30363D',    // Subtle separation
+    text: '#E6EDF3',      // Off-white / Silver
+    textMuted: '#8B949E', // Muted Gray
   },
+  // Dusty Lavender Brand Scale (Primary)
+  brand: {
+    50: '#F3E5F5',
+    100: '#E1BEE7',
+    200: '#CE93D8',
+    300: '#B794F4', // Purple 300
+    400: '#A78BFA', // Suggested Pastel
+    500: '#9F7AEA', // Dusty Lavender (Primary) - Purple 400
+    600: '#805AD5', // Purple 500
+    700: '#6B46C1', // Purple 600
+    800: '#553C9A',
+    900: '#44337A',
+  },
+  // Sage/Moss Green Scale (Success/Action)
+  green: {
+    50: '#F0FFF4',
+    100: '#C6F6D5',
+    200: '#9AE6B4', // Light Sage
+    300: '#68D391',
+    400: '#48BB78',
+    500: '#68A063', // Sage Green (Success) - requested
+    600: '#2F855A',
+    700: '#276749',
+    800: '#22543D',
+    900: '#1C4532',
+  }
 };
 
 const fonts = {
@@ -34,24 +56,24 @@ const theme = extendTheme({
   semanticTokens: {
     shadows: {
       sm: {
-        default: '0 1px 2px 0 rgba(168, 1, 229, 0.5)',
-        _dark: '0px 0px 4px 1px #A801E5',
+        default: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+        _dark: '0 1px 2px 0 rgba(0, 0, 0, 0.5)',
       },
       base: {
-        default: '0 1px 3px 0 rgba(168, 1, 229, 0.6), 0 1px 2px 0 rgba(168, 1, 229, 0.3)',
-        _dark: '0px 0px 6px 1px #A801E5',
+        default: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+        _dark: '0 1px 3px 0 rgba(0, 0, 0, 0.5), 0 1px 2px 0 rgba(0, 0, 0, 0.4)',
       },
       md: {
-        default: '0 4px 6px -1px rgba(168, 1, 229, 0.6), 0 2px 4px -1px rgba(168, 1, 229, 0.3)',
-        _dark: '0px 0px 6px 1px #A801E5',
+        default: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        _dark: '0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.4)',
       },
       lg: {
-        default: '0 10px 15px -3px rgba(168, 1, 229, 0.6), 0 4px 6px -2px rgba(168, 1, 229, 0.3)',
-        _dark: '0px 0px 10px 2px #A801E5',
+        default: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        _dark: '0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -2px rgba(0, 0, 0, 0.5)',
       },
       xl: {
-        default: '0 20px 25px -5px rgba(168, 1, 229, 0.6), 0 10px 10px -5px rgba(168, 1, 229, 0.3)',
-        _dark: '0px 0px 12px 3px #A801E5',
+        default: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+        _dark: '0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.5)',
       },
     }
   },
@@ -59,13 +81,10 @@ const theme = extendTheme({
     Card: {
       baseStyle: (props) => ({
         container: {
-          // Define borderColor using mode() for dynamic switching without high-specificity selector nesting
-          borderColor: mode('rgba(168, 1, 229, 0.3)', 'rgba(168, 1, 229, 0.4)')(props),
+          borderColor: mode('gray.200', 'github.border')(props),
           borderWidth: '1px',
           boxShadow: 'md',
-          _dark: {
-            bg: 'gray.900',
-          },
+          bg: mode('white', 'github.surface')(props),
         }
       })
     },
@@ -76,7 +95,7 @@ const theme = extendTheme({
           color: 'white',
           _hover: {
             bg: 'brand.600',
-            boxShadow: mode('md', '0 0 10px 1px #A801E5')(props),
+            boxShadow: 'md',
             _disabled: {
               bg: 'brand.500',
             }
@@ -92,8 +111,8 @@ const theme = extendTheme({
         outline: (props) => ({
           field: {
             _focus: {
-              borderColor: 'brand.neon',
-              boxShadow: '0 0 0 1px #A801E5',
+              borderColor: 'brand.500',
+              boxShadow: '0 0 0 1px var(--chakra-colors-brand-500)',
             },
           },
         }),
@@ -104,8 +123,8 @@ const theme = extendTheme({
         outline: (props) => ({
           field: {
             _focus: {
-              borderColor: 'brand.neon',
-              boxShadow: '0 0 0 1px #A801E5',
+              borderColor: 'brand.500',
+              boxShadow: '0 0 0 1px var(--chakra-colors-brand-500)',
             },
           },
         }),
@@ -114,59 +133,53 @@ const theme = extendTheme({
     Menu: {
       baseStyle: (props) => ({
         list: {
-          bg: mode('white', 'gray.800')(props),
-          borderColor: 'brand.neon',
+          bg: mode('white', 'github.surface')(props),
+          borderColor: mode('gray.200', 'github.border')(props),
           boxShadow: 'md',
           borderWidth: '1px',
-          _dark: {
-             borderColor: 'rgba(168, 1, 229, 0.4)',
-          }
+        },
+        item: {
+          bg: mode('white', 'github.surface')(props),
+          _focus: {
+            bg: mode('gray.100', 'github.surfaceHigh')(props),
+          },
         },
       }),
     },
     Modal: {
       baseStyle: (props) => ({
         overlay: {
-          bg: 'blackAlpha.400',
-          backdropFilter: 'blur(14px)',
+          bg: 'blackAlpha.600',
+          backdropFilter: 'blur(4px)',
         },
         dialog: {
-          bg: mode('white', 'gray.800')(props),
-          borderColor: 'brand.neon',
-          boxShadow: 'lg',
+          bg: mode('white', 'github.surface')(props),
+          borderColor: mode('gray.200', 'github.border')(props),
+          boxShadow: 'xl',
           borderWidth: '1px',
-           _dark: {
-             borderColor: 'rgba(168, 1, 229, 0.4)',
-          }
         },
       }),
     },
     Drawer: {
       baseStyle: (props) => ({
         overlay: {
-          bg: 'blackAlpha.400',
-          backdropFilter: 'blur(14px)',
+          bg: 'blackAlpha.600',
+          backdropFilter: 'blur(4px)',
         },
         dialog: {
-          bg: mode('white', 'gray.800')(props),
-          borderColor: 'brand.neon',
-          boxShadow: 'lg',
-          // Drawers often have a border on the side edge
-          _dark: {
-             borderColor: 'rgba(168, 1, 229, 0.4)',
-          }
+          bg: mode('white', 'github.surface')(props),
+          borderColor: mode('gray.200', 'github.border')(props),
+          boxShadow: 'xl',
         },
       }),
     },
     Popover: {
       baseStyle: (props) => ({
         content: {
-           borderColor: 'brand.neon',
+           bg: mode('white', 'github.surface')(props),
+           borderColor: mode('gray.200', 'github.border')(props),
            boxShadow: 'md',
            borderWidth: '1px',
-           _dark: {
-             borderColor: 'rgba(168, 1, 229, 0.4)',
-          }
         }
       })
     }
@@ -174,13 +187,15 @@ const theme = extendTheme({
   styles: {
     global: (props) => ({
       body: {
-        bg: mode('gray.50', 'gray.900')(props),
+        bg: mode('gray.50', 'github.bg')(props),
+        color: mode('gray.800', 'github.text')(props),
         transitionProperty: 'background-color, color',
         transitionDuration: '200ms',
       },
       '*': {
         transitionProperty: 'background-color, border-color, color, box-shadow',
         transitionDuration: '200ms',
+        borderColor: mode('gray.200', 'github.border')(props),
       },
     }),
   },

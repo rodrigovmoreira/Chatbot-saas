@@ -40,7 +40,7 @@ const LinkItems = [
 
 const NavItem = ({ icon, children, isActive, color, isCollapsed, ...rest }) => {
   const hoverBg = useColorModeValue('brand.500', 'brand.200');
-  const activeBg = useColorModeValue('brand.100', 'gray.700');
+  const activeBg = useColorModeValue('brand.100', 'github.surfaceHigh');
   const activeColor = useColorModeValue('brand.600', 'brand.200');
 
   return (
@@ -78,8 +78,8 @@ const NavItem = ({ icon, children, isActive, color, isCollapsed, ...rest }) => {
 };
 
 export const SidebarContent = ({ onClose, activeTab, setActiveTab, isCollapsed = false, toggleCollapse, pos = 'fixed', ...rest }) => {
-  const bg = useColorModeValue('white', 'gray.900');
-  const borderRightColor = useColorModeValue('gray.200', 'gray.700');
+  const bg = useColorModeValue('white', 'github.surface');
+  const borderRightColor = useColorModeValue('gray.200', 'github.border');
 
   // Mobile Responsiveness: Sidebar renders as full width inside Drawer on mobile
   return (
@@ -128,7 +128,7 @@ export const SidebarContent = ({ onClose, activeTab, setActiveTab, isCollapsed =
         p="4"
         mt="auto"
         borderTopWidth="1px"
-        borderColor={useColorModeValue('gray.200', 'gray.700')}
+        borderColor={useColorModeValue('gray.200', 'github.border')}
         justifyContent={isCollapsed ? 'center' : 'space-between'}
         alignItems="center"
         direction={isCollapsed ? 'column' : 'row'}
@@ -149,8 +149,8 @@ export const SidebarContent = ({ onClose, activeTab, setActiveTab, isCollapsed =
 };
 
 export const MobileNav = ({ onOpen, title, children, ...rest }) => {
-  const bg = useColorModeValue('white', 'gray.800');
-  const borderBottomColor = useColorModeValue('gray.200', 'gray.700');
+  const bg = useColorModeValue('white', 'github.surface');
+  const borderBottomColor = useColorModeValue('gray.200', 'github.border');
 
   return (
     <Flex

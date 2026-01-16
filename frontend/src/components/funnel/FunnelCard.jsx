@@ -4,8 +4,8 @@ import { Box, Text, HStack, Avatar, Flex, useColorModeValue } from '@chakra-ui/r
 import moment from 'moment';
 
 const FunnelCard = ({ contact, index }) => {
-  const bg = useColorModeValue('white', 'gray.700');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const bg = useColorModeValue('white', 'github.surfaceHigh');
+  const borderColor = useColorModeValue('gray.200', 'github.border');
 
   // Helper to format currency
   const formatMoney = (val) => {

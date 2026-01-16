@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Button, Center, Heading, Text, useDisclosure, useToast, Spinner, Flex } from '@chakra-ui/react';
+import { Box, Button, Center, Heading, Text, useDisclosure, useToast, Spinner, Flex, useColorModeValue } from '@chakra-ui/react';
 import { SettingsIcon } from '@chakra-ui/icons';
 import { useApp } from '../context/AppContext';
 import { businessAPI } from '../services/api';
@@ -17,6 +17,11 @@ const SalesFunnel = () => {
   const businessConfig = state.businessConfig || {};
   const funnelSteps = businessConfig.funnelSteps || [];
   const availableTags = businessConfig.availableTags || [];
+
+  const emptyStateBg = useColorModeValue('white', 'github.surface');
+  const emptyStateBorder = useColorModeValue('gray.100', 'github.border');
+  const emptyStateHeading = useColorModeValue('gray.600', 'github.text');
+  const emptyStateText = useColorModeValue('gray.500', 'github.textSecondary');
 
   // Fetch Contacts on Mount
   useEffect(() => {
@@ -59,10 +64,20 @@ const SalesFunnel = () => {
 
   if (funnelSteps.length === 0) {
     return (
-      <Box p={8} bg="white" borderRadius="lg" boxShadow="sm" minH="500px">
+      <Box
+        p={8}
+        bg={emptyStateBg}
+        border="1px solid"
+        borderColor={emptyStateBorder}
+        borderRadius="lg"
+        boxShadow="sm"
+        minH="500px"
+      >
         <Center h="100%" flexDirection="column">
-          <Heading size="lg" mb={4} color="gray.600">Seu Funil de Vendas está vazio</Heading>
-          <Text color="gray.500" mb={8} maxW="md" textAlign="center">
+          <Heading size="lg" mb={4} color={emptyStateHeading}>
+            Seu Funil de Vendas está vazio
+          </Heading>
+          <Text color={emptyStateText} mb={8} maxW="md" textAlign="center">
              Organize seus contatos em etapas (colunas) baseadas em Tags.
              Acompanhe o progresso de "Novo Lead" até "Venda Realizada".
           </Text>

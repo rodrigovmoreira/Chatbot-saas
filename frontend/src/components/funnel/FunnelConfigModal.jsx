@@ -15,7 +15,8 @@ import {
   Box,
   IconButton,
   Badge,
-  useToast
+  useToast,
+  useColorModeValue
 } from '@chakra-ui/react';
 import { ChevronUpIcon, ChevronDownIcon, CheckIcon } from '@chakra-ui/icons';
 
@@ -87,6 +88,10 @@ const FunnelConfigModal = ({ isOpen, onClose, availableTags = [], initialSteps =
     }
   };
 
+  const borderColor = useColorModeValue('gray.200', 'github.border');
+  const mutedColor = useColorModeValue('gray.500', 'github.textSecondary');
+  const itemBg = useColorModeValue('gray.50', 'github.surfaceHigh');
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
       <ModalOverlay />
@@ -96,9 +101,9 @@ const FunnelConfigModal = ({ isOpen, onClose, availableTags = [], initialSteps =
         <ModalBody>
           <HStack align="start" spacing={8}>
             {/* Left Column: Available Tags */}
-            <Box flex={1} borderRight="1px" borderColor="gray.200" pr={4}>
+            <Box flex={1} borderRight="1px" borderColor={borderColor} pr={4}>
               <Text fontWeight="bold" mb={4}>1. Selecione as Tags</Text>
-              <Text fontSize="sm" color="gray.500" mb={4}>
+              <Text fontSize="sm" color={mutedColor} mb={4}>
                 Escolha quais tags do sistema representarão colunas no seu funil.
               </Text>
               <VStack align="stretch" maxH="400px" overflowY="auto">
@@ -122,22 +127,22 @@ const FunnelConfigModal = ({ isOpen, onClose, availableTags = [], initialSteps =
             {/* Right Column: Order */}
             <Box flex={1}>
               <Text fontWeight="bold" mb={4}>2. Ordene as Colunas</Text>
-              <Text fontSize="sm" color="gray.500" mb={4}>
+              <Text fontSize="sm" color={mutedColor} mb={4}>
                 Defina a ordem da esquerda para a direita.
               </Text>
               <VStack align="stretch" spacing={2} maxH="400px" overflowY="auto">
                 {selectedSteps.length === 0 ? (
-                  <Text color="gray.400" fontSize="sm">Selecione tags ao lado para começar.</Text>
+                  <Text color={mutedColor} fontSize="sm">Selecione tags ao lado para começar.</Text>
                 ) : (
                   selectedSteps.map((step, index) => (
                     <HStack
                       key={step.tag}
                       p={2}
-                      bg="gray.50"
+                      bg={itemBg}
                       borderRadius="md"
                       justify="space-between"
                       border="1px solid"
-                      borderColor="gray.200"
+                      borderColor={borderColor}
                     >
                       <HStack>
                         <Badge colorScheme="blue" borderRadius="full" px={2}>{index + 1}</Badge>

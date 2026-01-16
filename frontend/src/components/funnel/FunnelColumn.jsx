@@ -5,8 +5,8 @@ import FunnelCard from './FunnelCard';
 
 const FunnelColumn = ({ step, contacts, droppableId }) => {
   // --- HOOKS (Sempre no topo) ---
-  const bg = useColorModeValue('gray.200', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  const bg = useColorModeValue('gray.200', 'github.surface');
+  const borderColor = useColorModeValue('gray.200', 'github.border');
   
   // CORREÇÃO: Definimos a cor do "arrastar" aqui fora, no nível raiz do componente
   const draggingBg = useColorModeValue('blue.50', 'whiteAlpha.100');
