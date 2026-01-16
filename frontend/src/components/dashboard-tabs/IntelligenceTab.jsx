@@ -443,7 +443,7 @@ const IntelligenceTab = () => {
               <Text fontSize="sm" color="gray.600">Dê um nome para salvar a configuração atual de prompts na sua biblioteca pessoal.</Text>
               <FormControl isRequired>
                 <FormLabel>Nome do Modelo</FormLabel>
-                <Input placeholder="Ex: Tatuador Agressivo v2" value={newPromptName} onChange={e => setNewPromptName(e.target.value)} size={{ base: 'lg', md: 'md' }} />
+                <Input placeholder="Meu modelo" value={newPromptName} onChange={e => setNewPromptName(e.target.value)} size={{ base: 'lg', md: 'md' }} />
               </FormControl>
             </VStack>
           </ModalBody>

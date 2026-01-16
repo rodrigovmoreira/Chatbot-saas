@@ -1,30 +1,8 @@
 import React, { useState } from 'react';
 import {
-  Box,
-  Container,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
-  FormControl,
-  FormLabel,
-  Input,
-  InputGroup,
-  InputRightElement,
-  IconButton,
-  Button,
-  Text,
-  useToast,
-  VStack,
-  Heading,
-  Card,
-  CardBody,
-  Alert,
-  AlertIcon,
-  useColorModeValue,
-  Flex,
-  Image
+  Box,  Container,  Tabs,  TabList,  TabPanels,  Tab,  TabPanel,  FormControl,  FormLabel,  Input,
+  InputGroup,  InputRightElement,  IconButton,  Button,  Text, useToast,  VStack,  Heading,  Card,
+  CardBody,  Alert,  AlertIcon,  useColorModeValue,  Flex,  Image
 } from '@chakra-ui/react';
 import { authAPI } from '../services/api';
 import { useApp } from '../context/AppContext';
