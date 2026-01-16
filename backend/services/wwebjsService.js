@@ -204,7 +204,8 @@ const sendWWebJSMessage = async (userId, to, message) => {
     let formattedNumber = to.replace(/\D/g, '');
     if (!formattedNumber.includes('@c.us')) formattedNumber = `${formattedNumber}@c.us`;
 
-    await client.sendMessage(formattedNumber, message);
+    // FIX: Pass { sendSeen: false } to prevent crash on 'markedUnread'
+    await client.sendMessage(formattedNumber, message, { sendSeen: false });
     return true;
   } catch (error) {
     console.error(`💥 Erro envio WWebJS (User ${userId}):`, error.message);
@@ -230,7 +231,8 @@ const sendImage = async (userId, to, imageUrl, caption) => {
     const media = await MessageMedia.fromUrl(imageUrl);
 
     // Envia com legenda (se houver)
-    await client.sendMessage(formattedNumber, media, { caption: caption || "" });
+    // FIX: Pass { sendSeen: false } to prevent crash on 'markedUnread'
+    await client.sendMessage(formattedNumber, media, { caption: caption || "", sendSeen: false });
     return true;
 
   } catch (error) {
