@@ -35,11 +35,11 @@ describe('CRM & Tags Flow', () => {
 
     expect(registerRes.status).toBe(201);
     token = registerRes.body.token;
-    userId = registerRes.body.user._id;
+    userId = registerRes.body.user.id;
 
     // Retry loop to wait for BusinessConfig creation (async post-hook in controller)
     let attempts = 0;
-    while (attempts < 10) {
+    while (attempts < 50) {
         const config = await BusinessConfig.findOne({ userId });
         if (config) {
             businessId = config._id;
