@@ -8,17 +8,17 @@ const config = {
 
 const colors = {
   brand: {
-    50: '#f0fff4',
-    100: '#c6f6d5',
-    200: '#9ae6b4',
-    300: '#68d391',
-    400: '#48bb78',
-    500: '#25D366',
-    600: '#128C7E',
-    700: '#065f46',
-    800: '#064e3b',
-    900: '#022c22',
-    neon: '#A801E5',
+    50: '#E8F5E9',
+    100: '#C8E6C9',
+    200: '#A5D6A7',
+    300: '#81C784',
+    400: '#66BB6A',
+    500: '#6FA374', // Moss Green (Primary)
+    600: '#578A5C', // Darker Moss (Hover)
+    700: '#388E3C',
+    800: '#2E7D32',
+    900: '#1B5E20',
+    neon: '#A78BFA', // Lavender
   },
 };
 
@@ -34,24 +34,24 @@ const theme = extendTheme({
   semanticTokens: {
     shadows: {
       sm: {
-        default: '0 1px 2px 0 rgba(168, 1, 229, 0.5)',
-        _dark: '0px 0px 4px 1px #A801E5',
+        default: '0 1px 2px 0 rgba(167, 139, 250, 0.5)',
+        _dark: 'none',
       },
       base: {
-        default: '0 1px 3px 0 rgba(168, 1, 229, 0.6), 0 1px 2px 0 rgba(168, 1, 229, 0.3)',
-        _dark: '0px 0px 6px 1px #A801E5',
+        default: '0 1px 3px 0 rgba(167, 139, 250, 0.6), 0 1px 2px 0 rgba(167, 139, 250, 0.3)',
+        _dark: 'none',
       },
       md: {
-        default: '0 4px 6px -1px rgba(168, 1, 229, 0.6), 0 2px 4px -1px rgba(168, 1, 229, 0.3)',
-        _dark: '0px 0px 6px 1px #A801E5',
+        default: '0 4px 6px -1px rgba(167, 139, 250, 0.6), 0 2px 4px -1px rgba(167, 139, 250, 0.3)',
+        _dark: 'none',
       },
       lg: {
-        default: '0 10px 15px -3px rgba(168, 1, 229, 0.6), 0 4px 6px -2px rgba(168, 1, 229, 0.3)',
-        _dark: '0px 0px 10px 2px #A801E5',
+        default: '0 10px 15px -3px rgba(167, 139, 250, 0.6), 0 4px 6px -2px rgba(167, 139, 250, 0.3)',
+        _dark: 'none',
       },
       xl: {
-        default: '0 20px 25px -5px rgba(168, 1, 229, 0.6), 0 10px 10px -5px rgba(168, 1, 229, 0.3)',
-        _dark: '0px 0px 12px 3px #A801E5',
+        default: '0 20px 25px -5px rgba(167, 139, 250, 0.6), 0 10px 10px -5px rgba(167, 139, 250, 0.3)',
+        _dark: 'none',
       },
     }
   },
@@ -59,13 +59,10 @@ const theme = extendTheme({
     Card: {
       baseStyle: (props) => ({
         container: {
-          // Define borderColor using mode() for dynamic switching without high-specificity selector nesting
-          borderColor: mode('rgba(168, 1, 229, 0.3)', 'rgba(168, 1, 229, 0.4)')(props),
+          borderColor: mode('rgba(167, 139, 250, 0.3)', '#30363D')(props),
           borderWidth: '1px',
           boxShadow: 'md',
-          _dark: {
-            bg: 'gray.900',
-          },
+          bg: mode('white', '#161B22')(props),
         }
       })
     },
@@ -76,7 +73,7 @@ const theme = extendTheme({
           color: 'white',
           _hover: {
             bg: 'brand.600',
-            boxShadow: mode('md', '0 0 10px 1px #A801E5')(props),
+            boxShadow: mode('md', 'none')(props),
             _disabled: {
               bg: 'brand.500',
             }
@@ -91,9 +88,11 @@ const theme = extendTheme({
       variants: {
         outline: (props) => ({
           field: {
+            bg: mode('white', '#0D1117')(props),
+            borderColor: mode('inherit', '#30363D')(props),
             _focus: {
               borderColor: 'brand.neon',
-              boxShadow: '0 0 0 1px #A801E5',
+              boxShadow: '0 0 0 1px #A78BFA',
             },
           },
         }),
@@ -103,9 +102,11 @@ const theme = extendTheme({
       variants: {
         outline: (props) => ({
           field: {
+            bg: mode('white', '#0D1117')(props),
+            borderColor: mode('inherit', '#30363D')(props),
             _focus: {
               borderColor: 'brand.neon',
-              boxShadow: '0 0 0 1px #A801E5',
+              boxShadow: '0 0 0 1px #A78BFA',
             },
           },
         }),
@@ -114,59 +115,47 @@ const theme = extendTheme({
     Menu: {
       baseStyle: (props) => ({
         list: {
-          bg: mode('white', 'gray.800')(props),
-          borderColor: 'brand.neon',
+          bg: mode('white', '#161B22')(props),
+          borderColor: mode('brand.neon', '#30363D')(props),
           boxShadow: 'md',
           borderWidth: '1px',
-          _dark: {
-             borderColor: 'rgba(168, 1, 229, 0.4)',
-          }
         },
       }),
     },
     Modal: {
       baseStyle: (props) => ({
         overlay: {
-          bg: 'blackAlpha.400',
-          backdropFilter: 'blur(14px)',
+          bg: 'blackAlpha.600',
+          backdropFilter: 'blur(4px)',
         },
         dialog: {
-          bg: mode('white', 'gray.800')(props),
-          borderColor: 'brand.neon',
+          bg: mode('white', '#161B22')(props),
+          borderColor: mode('brand.neon', '#30363D')(props),
           boxShadow: 'lg',
           borderWidth: '1px',
-           _dark: {
-             borderColor: 'rgba(168, 1, 229, 0.4)',
-          }
         },
       }),
     },
     Drawer: {
       baseStyle: (props) => ({
         overlay: {
-          bg: 'blackAlpha.400',
-          backdropFilter: 'blur(14px)',
+          bg: 'blackAlpha.600',
+          backdropFilter: 'blur(4px)',
         },
         dialog: {
-          bg: mode('white', 'gray.800')(props),
-          borderColor: 'brand.neon',
+          bg: mode('white', '#161B22')(props),
+          borderColor: mode('brand.neon', '#30363D')(props),
           boxShadow: 'lg',
-          // Drawers often have a border on the side edge
-          _dark: {
-             borderColor: 'rgba(168, 1, 229, 0.4)',
-          }
         },
       }),
     },
     Popover: {
       baseStyle: (props) => ({
         content: {
-           borderColor: 'brand.neon',
+           bg: mode('white', '#161B22')(props),
+           borderColor: mode('brand.neon', '#30363D')(props),
            boxShadow: 'md',
            borderWidth: '1px',
-           _dark: {
-             borderColor: 'rgba(168, 1, 229, 0.4)',
-          }
         }
       })
     }
@@ -174,7 +163,8 @@ const theme = extendTheme({
   styles: {
     global: (props) => ({
       body: {
-        bg: mode('gray.50', 'gray.900')(props),
+        bg: mode('gray.50', '#0D1117')(props),
+        color: mode('gray.800', '#C9D1D9')(props),
         transitionProperty: 'background-color, color',
         transitionDuration: '200ms',
       },

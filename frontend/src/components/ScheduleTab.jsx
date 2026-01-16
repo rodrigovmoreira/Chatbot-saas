@@ -247,52 +247,52 @@ const ScheduleTab = () => {
   // Custom Styles for Dark Mode Support in React Big Calendar
   const calendarSx = {
     '.rbc-calendar': {
-      color: useColorModeValue('gray.800', 'gray.200'),
+      color: useColorModeValue('gray.800', '#C9D1D9'),
     },
     '.rbc-off-range-bg': {
-      bg: useColorModeValue('gray.100', 'gray.700'),
+      bg: useColorModeValue('gray.100', 'transparent'),
     },
     '.rbc-today': {
       bg: useColorModeValue('blue.50', 'whiteAlpha.100'),
     },
     '.rbc-header': {
-      borderColor: useColorModeValue('gray.200', 'gray.600'),
+      borderColor: useColorModeValue('gray.200', '#30363D'),
     },
     '.rbc-time-view': {
-      borderColor: useColorModeValue('gray.200', 'gray.600'),
+      borderColor: useColorModeValue('gray.200', '#30363D'),
     },
     '.rbc-time-content': {
-      borderTopColor: useColorModeValue('gray.200', 'gray.600'),
+      borderTopColor: useColorModeValue('gray.200', '#30363D'),
     },
     '.rbc-timeslot-group': {
-      borderBottomColor: useColorModeValue('gray.200', 'gray.600'),
+      borderBottomColor: useColorModeValue('gray.200', '#30363D'),
     },
     '.rbc-day-slot': {
-      borderLeftColor: useColorModeValue('gray.200', 'gray.600'),
+      borderLeftColor: useColorModeValue('gray.200', '#30363D'),
     },
     '.rbc-time-header-content': {
-      borderLeftColor: useColorModeValue('gray.200', 'gray.600'),
+      borderLeftColor: useColorModeValue('gray.200', '#30363D'),
     },
     '.rbc-time-gutter': {
-      borderRightColor: useColorModeValue('gray.200', 'gray.600'),
+      borderRightColor: useColorModeValue('gray.200', '#30363D'),
     },
     '.rbc-day-bg': {
-      borderColor: useColorModeValue('gray.200', 'gray.600'),
+      borderColor: useColorModeValue('gray.200', '#30363D'),
     },
     '.rbc-toolbar button': {
-      color: useColorModeValue('gray.600', 'gray.200'),
-      borderColor: useColorModeValue('gray.300', 'gray.600'),
+      color: useColorModeValue('gray.600', '#C9D1D9'),
+      borderColor: useColorModeValue('gray.300', '#30363D'),
       _hover: {
-        bg: useColorModeValue('gray.100', 'gray.700'),
+        bg: useColorModeValue('gray.100', '#161B22'),
       },
       _active: {
-        bg: useColorModeValue('gray.200', 'gray.600'),
+        bg: useColorModeValue('gray.200', '#161B22'),
       }
     },
     '.rbc-toolbar button.rbc-active': {
-      bg: useColorModeValue('brand.500', 'brand.200'),
-      color: useColorModeValue('white', 'gray.900'),
-      borderColor: useColorModeValue('brand.500', 'brand.200'),
+      bg: useColorModeValue('brand.500', 'brand.500'),
+      color: 'white',
+      borderColor: useColorModeValue('brand.500', 'brand.500'),
     }
   };
 
