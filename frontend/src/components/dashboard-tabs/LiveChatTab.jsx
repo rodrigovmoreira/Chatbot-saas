@@ -44,7 +44,13 @@ const LiveChatTab = () => {
   const cardBg = useColorModeValue('white', 'gray.800');
   const gray50Bg = useColorModeValue('gray.50', 'gray.700');
   const gray100 = useColorModeValue("gray.100", "gray.900");
-  const inputBg = useColorModeValue('white', 'gray.50');
+  const inputBg = useColorModeValue('white', '#0D1117');
+  const chatBg = useColorModeValue('linear-gradient(to bottom, #f0f2f5, #e1e5ea)', '#0D1117');
+
+  const myMsgBg = useColorModeValue('brand.100', 'brand.600');
+  const otherMsgBg = useColorModeValue('white', '#21262D');
+  const myMsgColor = useColorModeValue('black', 'white');
+  const otherMsgColor = useColorModeValue('black', '#C9D1D9');
 
   const messagesEndRef = useRef(null);
 
@@ -417,7 +423,7 @@ const LiveChatTab = () => {
                 </Box>
 
                 {/* Área de Mensagens */}
-                <Box flex="1" p={4} overflowY="auto" bgImage="linear-gradient(to bottom, #f0f2f5, #e1e5ea)">
+                <Box flex="1" p={4} overflowY="auto" bg={chatBg}>
                   <VStack spacing={3} align="stretch">
                     {messages.map((msg, index) => {
                        const isMe = msg.role === 'bot' || msg.role === 'system' || msg.role === 'agent';
@@ -426,8 +432,8 @@ const LiveChatTab = () => {
                          <HStack key={index} justify={isMe ? 'flex-end' : 'flex-start'} align="flex-start">
                            {!isMe && <Avatar size="xs" name={selectedContact.name} mr={2} mt={1} />}
                            <Box
-                             bg={isMe ? 'brand.100' : 'white'}
-                             color="black"
+                             bg={isMe ? myMsgBg : otherMsgBg}
+                             color={isMe ? myMsgColor : otherMsgColor}
                              px={4} py={2}
                              borderRadius="lg"
                              boxShadow="sm"
