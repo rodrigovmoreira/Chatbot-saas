@@ -83,6 +83,9 @@ export const businessAPI = {
   // 7. Contatos (Active CRM)
   getContacts: () => api.get('/api/contacts'),
   updateContact: (id, data) => api.put(`/api/contacts/${id}`, data),
+  importContacts: (formData) => api.post('/api/contacts/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+  }),
 };
 
 export const dashboardAPI = {

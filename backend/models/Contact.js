@@ -11,6 +11,7 @@ const contactSchema = new mongoose.Schema({
 
   // Identificadores (Um dos dois deve existir)
   phone: { type: String }, // Optional
+  email: { type: String }, // Optional (Added for CRM Import)
   sessionId: { type: String }, // For Web Users
 
   channel: {

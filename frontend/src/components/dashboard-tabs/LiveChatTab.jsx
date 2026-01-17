@@ -6,19 +6,22 @@ import {
   ModalCloseButton, ModalBody, ModalFooter, useDisclosure, Code, IconButton, Tooltip, useToast,
   Badge, Switch, FormControl, FormLabel,
   Drawer, DrawerOverlay, DrawerContent, DrawerCloseButton, DrawerBody,
-  useBreakpointValue, Input
+  useBreakpointValue, Input,
+  Tabs, TabList, TabPanels, Tab, TabPanel
 } from '@chakra-ui/react';
 import { ChatIcon, LinkIcon, DeleteIcon, ArrowBackIcon, InfoIcon } from '@chakra-ui/icons';
-import { FaWhatsapp, FaGlobe, FaRobot, FaUser } from 'react-icons/fa';
+import { FaWhatsapp, FaGlobe, FaRobot, FaUser, FaCloudUploadAlt } from 'react-icons/fa';
 import { IoMdSend } from 'react-icons/io';
-import { businessAPI } from '../../services/api'; // Ensure this service has updateContact method
+import { businessAPI } from '../../services/api';
 import { useApp } from '../../context/AppContext';
 import CrmSidebar from '../crm/CrmSidebar';
-import axios from 'axios'; // For direct call if needed, but better via service
+import ImportModal from '../crm/ImportModal';
+import axios from 'axios';
 
 const LiveChatTab = () => {
   const { state, dispatch } = useApp();
   const [conversations, setConversations] = useState([]);
+  const [allContacts, setAllContacts] = useState([]); // NEW: All contacts for Tab 2
   const [selectedContact, setSelectedContact] = useState(null);
   const [messages, setMessages] = useState([]);
   const [hasScrolled, setHasScrolled] = useState(false);
@@ -26,6 +29,9 @@ const LiveChatTab = () => {
   // CRM UI State
   const [showDesktopCrm, setShowDesktopCrm] = useState(true);
   const { isOpen: isCrmOpen, onOpen: onCrmOpen, onClose: onCrmClose } = useDisclosure();
+
+  // Import Modal State
+  const { isOpen: isImportOpen, onOpen: onImportOpen, onClose: onImportClose } = useDisclosure();
 
   // Mobile View State
   const [showMobileChat, setShowMobileChat] = useState(false);
@@ -67,10 +73,11 @@ const LiveChatTab = () => {
         // Update local state immediately
         setSelectedContact(prev => ({ ...prev, ...response.data }));
 
-        // Update list
+        // Update lists
         setConversations(prev => prev.map(c => c._id === selectedContact._id ? { ...c, ...response.data } : c));
+        setAllContacts(prev => prev.map(c => c._id === selectedContact._id ? { ...c, ...response.data } : c));
 
-        // Show success toast for CRM updates (if it's not just a tag/handover update)
+        // Show success toast for CRM updates
         if (updates.dealValue !== undefined || updates.funnelStage || updates.notes) {
              toast({ title: "CRM atualizado.", status: "success", duration: 2000 });
         }
@@ -89,7 +96,7 @@ const LiveChatTab = () => {
     const currentTags = selectedContact.tags || [];
     if (currentTags.includes(tag)) return;
 
-    // Verifica se tag existe em availableTags e adiciona globalmente se não existir
+    // Check available tags
     const availableTags = state.businessConfig?.availableTags || [];
     if (!availableTags.includes(tag)) {
        try {
@@ -129,26 +136,14 @@ const LiveChatTab = () => {
 
   const handleClearHistory = async () => {
     if (!selectedContact) return;
-
     if (!window.confirm("Tem certeza que deseja limpar o histórico desta conversa? A memória da IA será apagada.")) return;
-
     try {
       await businessAPI.clearHistory(selectedContact._id);
       setMessages([]);
-      toast({
-        title: "Histórico limpo.",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
+      toast({ title: "Histórico limpo.", status: "success", duration: 3000, isClosable: true });
     } catch (error) {
       console.error("Erro ao limpar histórico:", error);
-      toast({
-        title: "Erro ao limpar histórico.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
+      toast({ title: "Erro ao limpar histórico.", status: "error", duration: 3000, isClosable: true });
     }
   };
 
@@ -162,10 +157,29 @@ const LiveChatTab = () => {
     }
   };
 
+  // 1b. Carregar Todos Contatos
+  const loadAllContacts = async () => {
+      try {
+          const { data } = await businessAPI.getContacts();
+          setAllContacts(data);
+      } catch (error) {
+          console.error("Erro ao carregar contatos:", error);
+      }
+  };
+
+  // Tab Change Handler
+  const handleTabChange = (index) => {
+      if (index === 0) loadConversations();
+      if (index === 1) loadAllContacts();
+  };
+
   useEffect(() => {
     loadConversations();
-    // Polling de contatos a cada 10s
-    const interval = setInterval(loadConversations, 10000);
+    // Polling de conversas a cada 10s
+    const interval = setInterval(() => {
+        // We could verify which tab is open, but refreshing conversation list generally is fine.
+        loadConversations();
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -173,26 +187,23 @@ const LiveChatTab = () => {
   useEffect(() => {
     if (!selectedContact) return;
 
-    // Reset scroll flag when contact changes
     setHasScrolled(false);
 
     const fetchMessages = async () => {
       try {
         const { data } = await businessAPI.getMessages(selectedContact._id);
-        setMessages(data);
-        // Removed scrollToBottom() from here to prevent auto-scrolling on poll
+        setMessages(data || []);
       } catch (error) {
         console.error("Erro ao carregar mensagens:", error);
+        setMessages([]); // On error or no messages, empty
       }
     };
 
     fetchMessages();
-    // Polling de mensagens a cada 5s
     const interval = setInterval(fetchMessages, 5000);
     return () => clearInterval(interval);
   }, [selectedContact]);
 
-  // Effect to scroll once per contact load
   useEffect(() => {
     if (!hasScrolled && messages.length > 0) {
         scrollToBottom();
@@ -206,7 +217,7 @@ const LiveChatTab = () => {
 
   const handleContactSelect = (contact) => {
     setSelectedContact(contact);
-    setShowMobileChat(true); // Switch to chat view on mobile
+    setShowMobileChat(true);
   };
 
   const handleBackToList = () => {
@@ -227,16 +238,13 @@ const LiveChatTab = () => {
       setIsSending(true);
       try {
           await businessAPI.sendMessage(selectedContact._id, inputMessage);
-          // Add to local list immediately for better UX
           setMessages(prev => [...prev, {
               role: 'agent',
               content: inputMessage,
               timestamp: new Date().toISOString()
           }]);
           setInputMessage('');
-          setHasScrolled(false); // Trigger scroll to bottom
-
-          // Restore focus to input
+          setHasScrolled(false);
           setTimeout(() => {
               inputRef.current?.focus();
           }, 50);
@@ -249,7 +257,6 @@ const LiveChatTab = () => {
       }
   };
 
-  // Helper de Formatação
   const formatTime = (isoString) => {
     if (!isoString) return '';
     const date = new Date(isoString);
@@ -258,26 +265,53 @@ const LiveChatTab = () => {
 
   const getEmbedCode = () => {
     const businessId = state.businessConfig?._id;
-
-    if (!businessId) {
-      return "<!-- Carregando ID do Negócio... -->";
-    }
-
+    if (!businessId) return "<!-- Carregando ID do Negócio... -->";
     const origin = window.location.origin;
-    return `<iframe
-  src="${origin}/chat/${businessId}"
-  width="350"
-  height="600"
-  style="border:none; position:fixed; bottom:20px; right:20px; z-index:9999; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 12px;">
-</iframe>`;
+    return `<iframe src="${origin}/chat/${businessId}" width="350" height="600" style="border:none; position:fixed; bottom:20px; right:20px; z-index:9999; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 12px;"></iframe>`;
   };
 
-  // Cores de Badge
   const getTagColor = (tag) => {
       const colors = ['purple', 'green', 'blue', 'orange', 'red', 'teal'];
       const hash = tag.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
       return colors[hash % colors.length];
   };
+
+  // Render Contact Item Helper
+  const renderContactItem = (contact) => (
+        <Box
+          key={contact._id}
+          p={4}
+          bg={selectedContact?._id === contact._id ? 'brand.50' : cardBg}
+          borderBottom="1px solid"
+          borderColor={gray50Bg}
+          cursor="pointer"
+          borderLeft={selectedContact?._id === contact._id ? "4px solid" : "4px solid transparent"}
+          borderLeftColor="brand.500"
+          _hover={{ bg: 'gray.100' }}
+          onClick={() => handleContactSelect(contact)}
+        >
+          <HStack justify="space-between" mb={1}>
+            <HStack>
+               {contact.channel === 'whatsapp'
+                 ? <Icon as={FaWhatsapp} color="green.500" />
+                 : <Icon as={FaGlobe} color="blue.500" />
+               }
+               <Text fontWeight="bold" fontSize="sm" noOfLines={1}>{contact.name || contact.phone}</Text>
+            </HStack>
+            {contact.lastInteraction && (
+                <Text fontSize="xs" color="gray.500">{formatTime(contact.lastInteraction)}</Text>
+            )}
+          </HStack>
+          {contact.tags && contact.tags.length > 0 && (
+              <HStack mt={1} spacing={1}>
+                  {contact.tags.slice(0, 2).map(tag => (
+                      <Badge key={tag} fontSize="xx-small" colorScheme={getTagColor(tag)}>{tag}</Badge>
+                  ))}
+                  {contact.tags.length > 2 && <Text fontSize="xx-small">+{contact.tags.length - 2}</Text>}
+              </HStack>
+          )}
+        </Box>
+  );
 
   return (
     <Box>
@@ -290,58 +324,65 @@ const LiveChatTab = () => {
       <Card h={{ base: "calc(100dvh - 150px)", md: "75vh" }} overflow="hidden" border="1px solid" borderColor="gray.200">
         <Stack direction={{ base: 'column', md: 'row' }} h="100%" spacing={0} align="stretch">
 
-          {/* LADO ESQUERDO: LISTA DE CONTATOS */}
+          {/* LADO ESQUERDO: LISTA DE CONTATOS E TABS */}
           <Box
             w={{ base: "100%", md: "300px" }}
-            display={{ base: showMobileChat ? 'none' : 'block', md: 'block' }}
+            display={{ base: showMobileChat ? 'none' : 'flex', md: 'flex' }}
+            flexDirection="column"
             h="100%"
             borderRight="1px solid"
             borderColor={gray50Bg}
             bg={gray50Bg}
-            overflowY="auto"
           >
-            <Box p={4} borderBottom="1px solid" borderColor={gray50Bg} bg={cardBg}>
-              <Heading size="sm" color="gray.600">Conversas</Heading>
-            </Box>
-            <VStack spacing={0} align="stretch">
-              {conversations.length === 0 && (
-                 <Text p={4} fontSize="sm" color="gray.500">Nenhuma conversa ainda.</Text>
-              )}
-              {conversations.map((contact) => (
-                <Box
-                  key={contact._id}
-                  p={4}
-                  bg={selectedContact?._id === contact._id ? 'brand.50' : cardBg}
-                  borderBottom="1px solid"
-                  borderColor={gray50Bg}
-                  cursor="pointer"
-                  borderLeft={selectedContact?._id === contact._id ? "4px solid" : "4px solid transparent"}
-                  borderLeftColor="brand.500"
-                  _hover={{ bg: 'gray.100' }}
-                  onClick={() => handleContactSelect(contact)}
-                >
-                  <HStack justify="space-between" mb={1}>
-                    <HStack>
-                       {contact.channel === 'whatsapp'
-                         ? <Icon as={FaWhatsapp} color="green.500" />
-                         : <Icon as={FaGlobe} color="blue.500" />
-                       }
-                       <Text fontWeight="bold" fontSize="sm" noOfLines={1}>{contact.name || contact.phone}</Text>
-                    </HStack>
-                    <Text fontSize="xs" color="gray.500">{formatTime(contact.lastInteraction)}</Text>
-                  </HStack>
-                  {/* Tags Preview */}
-                  {contact.tags && contact.tags.length > 0 && (
-                      <HStack mt={1} spacing={1}>
-                          {contact.tags.slice(0, 2).map(tag => (
-                              <Badge key={tag} fontSize="xx-small" colorScheme={getTagColor(tag)}>{tag}</Badge>
-                          ))}
-                          {contact.tags.length > 2 && <Text fontSize="xx-small">+{contact.tags.length - 2}</Text>}
-                      </HStack>
-                  )}
-                </Box>
-              ))}
-            </VStack>
+             {/* Header com Botão Importar */}
+            <HStack p={4} borderBottom="1px solid" borderColor={gray50Bg} bg={cardBg} justify="space-between">
+                <Heading size="sm" color="gray.600">Chats</Heading>
+                <Tooltip label="Importar Contatos (CSV/Excel)">
+                    <IconButton
+                        icon={<Icon as={FaCloudUploadAlt} />}
+                        size="sm"
+                        variant="ghost"
+                        colorScheme="brand"
+                        onClick={onImportOpen}
+                        aria-label="Importar"
+                    />
+                </Tooltip>
+            </HStack>
+
+            {/* Tabs */}
+            <Tabs isFitted variant="enclosed" onChange={handleTabChange} display="flex" flexDirection="column" flex="1">
+               <TabList mb={0} bg={cardBg}>
+                  <Tab fontSize="sm">Conversas</Tab>
+                  <Tab fontSize="sm">Contatos</Tab>
+               </TabList>
+
+               <TabPanels flex="1" overflow="hidden">
+
+                  {/* Tab 1: Conversas Ativas */}
+                  <TabPanel p={0} h="100%">
+                      <Box overflowY="auto" h="100%">
+                          <VStack spacing={0} align="stretch">
+                            {conversations.length === 0 && (
+                               <Text p={4} fontSize="sm" color="gray.500">Nenhuma conversa recente.</Text>
+                            )}
+                            {conversations.map(renderContactItem)}
+                          </VStack>
+                      </Box>
+                  </TabPanel>
+
+                  {/* Tab 2: Todos os Contatos */}
+                  <TabPanel p={0} h="100%">
+                       <Box overflowY="auto" h="100%">
+                          <VStack spacing={0} align="stretch">
+                            {allContacts.length === 0 && (
+                               <Text p={4} fontSize="sm" color="gray.500">Nenhum contato encontrado.</Text>
+                            )}
+                            {allContacts.map(renderContactItem)}
+                          </VStack>
+                       </Box>
+                  </TabPanel>
+               </TabPanels>
+            </Tabs>
           </Box>
 
           {/* LADO DIREITO: CHAT */}
@@ -352,14 +393,12 @@ const LiveChatTab = () => {
             display={{ base: showMobileChat ? 'flex' : 'none', md: 'flex' }}
             flexDirection="column"
             h="100%"
-            border={selectedContact?.isHandover ? "4px solid orange" : "none"} // Visual Cue for Handover
+            border={selectedContact?.isHandover ? "4px solid orange" : "none"}
           >
-
             {selectedContact ? (
               <>
                 {/* Header do Chat */}
                 <Box p={3} bg={cardBg} borderBottom="1px solid" borderColor={gray50Bg}>
-                    {/* Top Row: User Info & Actions */}
                     <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" mb={2} spacing={2}>
                       <HStack>
                         <IconButton
@@ -380,10 +419,9 @@ const LiveChatTab = () => {
                       </HStack>
 
                       <Stack direction={{ base: 'column', sm: 'row' }} alignItems={{ base: 'stretch', sm: 'center' }} justify={{ base: 'space-between', md: 'flex-end' }} w={{ base: 'full', md: 'auto' }} spacing={2}>
-                          {/* Handover Toggle */}
                            <FormControl display='flex' alignItems='center' justifyContent={{ base: 'space-between', sm: 'flex-start' }} w={{ base: 'full', sm: 'auto' }}>
                               <FormLabel htmlFor='handover-switch' mb='0' fontSize="xs" color={selectedContact.isHandover ? "orange.500" : "gray.500"} mr={2}>
-                                {selectedContact.isHandover ? "Pausado (Humano)" : "Robô Ativo"}
+                                {selectedContact.isHandover ? "Pausado" : "Robô Ativo"}
                               </FormLabel>
                               <Switch
                                 id='handover-switch'
@@ -425,9 +463,13 @@ const LiveChatTab = () => {
                 {/* Área de Mensagens */}
                 <Box flex="1" p={4} overflowY="auto" bg={chatBg}>
                   <VStack spacing={3} align="stretch">
+                    {messages.length === 0 && (
+                        <VStack justify="center" h="100%" pt={10}>
+                            <Text color="gray.400" fontSize="sm">Inicie a conversa ou adicione notas no CRM.</Text>
+                        </VStack>
+                    )}
                     {messages.map((msg, index) => {
                        const isMe = msg.role === 'bot' || msg.role === 'system' || msg.role === 'agent';
-
                        return (
                          <HStack key={index} justify={isMe ? 'flex-end' : 'flex-start'} align="flex-start">
                            {!isMe && <Avatar size="xs" name={selectedContact.name} mr={2} mt={1} />}
@@ -455,20 +497,18 @@ const LiveChatTab = () => {
 
                 {/* Input Area */}
                 <Box p={4} bg={cardBg} borderTop="1px solid" borderColor={gray50Bg}>
-                    {/* Status Banners */}
                     {selectedContact.isHandover ? (
                        <Alert status="success" variant="subtle" size="sm" borderRadius="md" mb={3} bg="green.100" color="green.800">
                           <Icon as={FaUser} mr={2} />
-                          🤖 Robô Pausado. Você está no controle da conversa.
+                          🤖 Robô Pausado.
                        </Alert>
                     ) : (
                        <Alert status="info" variant="subtle" size="sm" borderRadius="md" mb={3}>
                           <Icon as={FaRobot} mr={2} />
-                          IA Ativa. Monitorando conversa...
+                          IA Ativa.
                        </Alert>
                     )}
 
-                    {/* Actual Input Field */}
                     <HStack>
                         <Input
                             ref={inputRef}
@@ -526,7 +566,6 @@ const LiveChatTab = () => {
         </Stack>
       </Card>
 
-      {/* Modal de Instalação */}
       <Modal isOpen={isEmbedOpen} onClose={onEmbedClose} size="lg">
         <ModalOverlay />
         <ModalContent>
@@ -548,7 +587,6 @@ const LiveChatTab = () => {
         </ModalContent>
       </Modal>
 
-      {/* Drawer: CRM (MOBILE) */}
       <Drawer isOpen={isCrmOpen} placement="right" onClose={onCrmClose} size="sm">
         <DrawerOverlay />
         <DrawerContent>
@@ -567,6 +605,16 @@ const LiveChatTab = () => {
             </DrawerBody>
         </DrawerContent>
       </Drawer>
+
+      {/* Import Modal */}
+      <ImportModal
+        isOpen={isImportOpen}
+        onClose={onImportClose}
+        onSuccess={() => {
+            loadAllContacts();
+            loadConversations();
+        }}
+      />
 
     </Box>
   );

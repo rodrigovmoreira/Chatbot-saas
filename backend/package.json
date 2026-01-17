@@ -15,6 +15,7 @@
     "connect-mongo": "^5.1.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "csv-parser": "^3.2.0",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
     "dotenv": "^16.6.1",
@@ -39,7 +40,8 @@
     "socket.io": "^4.8.1",
     "twilio": "^5.10.6",
     "uuid": "^9.0.1",
-    "whatsapp-web.js": "github:pedroslopez/whatsapp-web.js"
+    "whatsapp-web.js": "github:pedroslopez/whatsapp-web.js",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@babel/core": "^7.28.5",
