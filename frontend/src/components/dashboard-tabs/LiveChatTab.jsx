@@ -483,6 +483,7 @@ const LiveChatTab = () => {
                             }}
                             isDisabled={isSending}
                             bg={inputBg}
+                            size={{ base: 'lg', md: 'md' }}
                             autoFocus
                         />
                         <IconButton
@@ -491,6 +492,7 @@ const LiveChatTab = () => {
                             onClick={handleSendMessage}
                             isLoading={isSending}
                             aria-label="Enviar"
+                            size={{ base: 'lg', md: 'md' }}
                         />
                     </HStack>
                 </Box>

@@ -304,8 +304,8 @@ const ScheduleTab = () => {
         <HStack justify="space-between" mb={4}>
            <Text fontWeight="bold" fontSize="lg">Agenda</Text>
            <HStack>
-               <IconButton icon={<SettingsIcon />} size="sm" onClick={onSettingsOpen} aria-label="Configurações" />
-               <Button leftIcon={<AddIcon />} colorScheme="blue" size="sm" onClick={() => handleSelectSlot({ start: new Date(), end: new Date() })}>
+               <IconButton icon={<SettingsIcon />} size={{ base: 'lg', md: 'md' }} onClick={onSettingsOpen} aria-label="Configurações" />
+               <Button leftIcon={<AddIcon />} colorScheme="blue" size={{ base: 'lg', md: 'md' }} onClick={() => handleSelectSlot({ start: new Date(), end: new Date() })}>
                  Novo
                </Button>
            </HStack>
