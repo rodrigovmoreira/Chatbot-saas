@@ -106,12 +106,33 @@ async function processTimeCampaign(campaign) {
   console.log(`🎯 Triggering TIME campaign: ${campaign.name} (${campaign._id})`);
 
   // 2. Find Targets
+
+  // Optimization: Exclude already contacted users in the main query to avoid N+1 queries
+  let excludedContactIds = [];
+  try {
+    if (campaign.type === 'broadcast') {
+      excludedContactIds = await CampaignLog.distinct('contactId', {
+        campaignId: campaign._id
+      });
+    } else if (campaign.type === 'recurring') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      excludedContactIds = await CampaignLog.distinct('contactId', {
+        campaignId: campaign._id,
+        sentAt: { $gte: today }
+      });
+    }
+  } catch (err) {
+    console.error(`⚠️ Failed to fetch exclusion list for campaign ${campaign._id}, falling back to individual checks:`, err);
+  }
+
   // Only users with phone numbers
   const contacts = await Contact.find({
     businessId: config._id,
     tags: { $in: campaign.targetTags },
     isHandover: false,
-    phone: { $exists: true, $ne: null }
+    phone: { $exists: true, $ne: null },
+    _id: { $nin: excludedContactIds }
   });
 
   console.log(`👥 Found ${contacts.length} potential targets for campaign ${campaign.name}`);
