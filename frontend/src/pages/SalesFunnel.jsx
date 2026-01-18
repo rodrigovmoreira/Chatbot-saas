@@ -88,7 +88,7 @@ const SalesFunnel = () => {
   }
 
   return (
-    <Box h="calc(100vh - 100px)" display="flex" flexDirection="column">
+    <Box h={{ base: "calc(100vh - 150px)", md: "calc(100vh - 100px)" }} display="flex" flexDirection="column">
       <Flex mb={4} justify="space-between" align="center">
         <Heading size="md">Funil de Vendas</Heading>
         <Button size="sm" leftIcon={<SettingsIcon />} onClick={onOpen}>
