@@ -104,7 +104,7 @@ const OverviewTab = () => {
         Visão Geral
       </Heading>
 
-      <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={{ base: 5, lg: 8 }}>
+      <SimpleGrid columns={{ base: 1, md: 3, lg: 4 }} spacing={{ base: 5, lg: 8 }}>
         <StatsCard
           title={'Pipeline Total'}
           stat={formatCurrency(data.pipelineValue)}
