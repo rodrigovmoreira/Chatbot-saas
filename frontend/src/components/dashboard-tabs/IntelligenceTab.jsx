@@ -325,7 +325,7 @@ const IntelligenceTab = () => {
               <Heading size="md">Recuperação de Inatividade</Heading>
               <Text fontSize="sm" color="gray.500">Mensagens automáticas para recuperar clientes que pararam de responder.</Text>
             </Box>
-            <Button leftIcon={<AddIcon />} colorScheme="purple" onClick={() => { setEditingFollowUpIndex(null); setNewFollowUp({ delayMinutes: 60, message: '', useAI: false }); onFollowUpOpen(); }}>
+            <Button size={{ base: 'lg', md: 'md' }} leftIcon={<AddIcon />} colorScheme="purple" onClick={() => { setEditingFollowUpIndex(null); setNewFollowUp({ delayMinutes: 60, message: '', useAI: false }); onFollowUpOpen(); }}>
               Novo Passo
             </Button>
           </Stack>
@@ -357,10 +357,10 @@ const IntelligenceTab = () => {
                     </Stack>
                     <HStack>
                       <Tooltip label="Editar passo">
-                        <IconButton icon={<EditIcon />} aria-label="Editar passo" size="sm" variant="ghost" colorScheme="blue" onClick={() => handleEditFollowUp(idx)} />
+                        <IconButton icon={<EditIcon />} aria-label="Editar passo" size={{ base: 'md', md: 'sm' }} variant="ghost" colorScheme="blue" onClick={() => handleEditFollowUp(idx)} />
                       </Tooltip>
                       <Tooltip label="Excluir passo">
-                        <IconButton icon={<DeleteIcon />} aria-label="Excluir passo" size="sm" variant="ghost" colorScheme="red" onClick={() => handleRemoveFollowUp(idx)} />
+                        <IconButton icon={<DeleteIcon />} aria-label="Excluir passo" size={{ base: 'md', md: 'sm' }} variant="ghost" colorScheme="red" onClick={() => handleRemoveFollowUp(idx)} />
                       </Tooltip>
                     </HStack>
                   </Stack>
@@ -374,7 +374,7 @@ const IntelligenceTab = () => {
 
           {followUpSteps.length > 0 && (
             <Box mt={4} textAlign="right">
-              <Button colorScheme="purple" variant="outline" onClick={handleSaveFollowUps}>Salvar Recuperação</Button>
+              <Button size={{ base: 'lg', md: 'md' }} colorScheme="purple" variant="outline" onClick={handleSaveFollowUps}>Salvar Recuperação</Button>
             </Box>
           )}
         </Box>

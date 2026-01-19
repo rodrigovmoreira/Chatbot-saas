@@ -534,7 +534,7 @@ const ScheduleTab = () => {
 
           <ModalFooter justifyContent="space-between">
             {selectedEvent ? (
-              <Button colorScheme="red" leftIcon={<DeleteIcon />} onClick={handleDelete}>
+              <Button size={{ base: 'lg', md: 'md' }} colorScheme="red" leftIcon={<DeleteIcon />} onClick={handleDelete}>
                 Cancelar
               </Button>
             ) : (
@@ -542,8 +542,8 @@ const ScheduleTab = () => {
             )}
 
             <HStack>
-              <Button variant="ghost" onClick={onClose}>Fechar</Button>
-              <Button colorScheme="blue" onClick={handleSave}>Salvar</Button>
+              <Button size={{ base: 'lg', md: 'md' }} variant="ghost" onClick={onClose}>Fechar</Button>
+              <Button size={{ base: 'lg', md: 'md' }} colorScheme="blue" onClick={handleSave}>Salvar</Button>
             </HStack>
           </ModalFooter>
         </ModalContent>

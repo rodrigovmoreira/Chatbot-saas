@@ -164,7 +164,7 @@ const CampaignTab = () => {
     <Box>
       <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" mb={6} spacing={4}>
         <Heading size="md">Automação & Funis</Heading>
-        <Button leftIcon={<AddIcon />} colorScheme="brand" onClick={() => openModal()}>
+        <Button size={{ base: 'lg', md: 'md' }} leftIcon={<AddIcon />} colorScheme="brand" onClick={() => openModal()} w={{ base: 'full', md: 'auto' }}>
           Nova Campanha
         </Button>
       </Stack>
@@ -209,8 +209,8 @@ const CampaignTab = () => {
                       </Badge>
                   </Td>
                   <Td>
-                    <IconButton icon={<EditIcon />} size="sm" mr={2} onClick={() => openModal(c)} />
-                    <IconButton icon={<DeleteIcon />} size="sm" colorScheme="red" onClick={() => handleDelete(c._id)} />
+                    <IconButton icon={<EditIcon />} size={{ base: 'md', md: 'sm' }} mr={2} onClick={() => openModal(c)} />
+                    <IconButton icon={<DeleteIcon />} size={{ base: 'md', md: 'sm' }} colorScheme="red" onClick={() => handleDelete(c._id)} />
                   </Td>
                 </Tr>
               ))}
@@ -505,8 +505,8 @@ const CampaignTab = () => {
                 </VStack>
               </ModalBody>
               <ModalFooter>
-                <Button variant="ghost" mr={3} onClick={onClose}>Cancelar</Button>
-                <Button colorScheme="brand" type="submit">Salvar Campanha</Button>
+                <Button size={{ base: 'lg', md: 'md' }} variant="ghost" mr={3} onClick={onClose}>Cancelar</Button>
+                <Button size={{ base: 'lg', md: 'md' }} colorScheme="brand" type="submit">Salvar Campanha</Button>
               </ModalFooter>
             </form>
         </ModalContent>
