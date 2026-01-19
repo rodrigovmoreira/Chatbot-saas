@@ -110,7 +110,7 @@ const CatalogTab = () => {
         <CardHeader>
           <Stack direction={{ base: 'column', md: 'row' }} justify="space-between">
             <Box><Heading size="md">Produtos & Serviços</Heading><Text fontSize="sm" color="gray.500">Para a IA consultar preços e enviar fotos.</Text></Box>
-            <Button leftIcon={<AddIcon />} variant="outline" colorScheme="blue" onClick={() => { setEditingProductIndex(null); setNewProduct({ name: '', price: '', description: '', imageUrls: [], tags: [] }); onProductModalOpen(); }}>Novo Item</Button>
+            <Button size={{ base: 'lg', md: 'md' }} leftIcon={<AddIcon />} variant="outline" colorScheme="blue" onClick={() => { setEditingProductIndex(null); setNewProduct({ name: '', price: '', description: '', imageUrls: [], tags: [] }); onProductModalOpen(); }}>Novo Item</Button>
           </Stack>
         </CardHeader>
         <CardBody>
@@ -133,16 +133,16 @@ const CatalogTab = () => {
                 </VStack>
                 <HStack>
                   <Tooltip label="Editar produto">
-                    <IconButton icon={<EditIcon />} aria-label="Editar produto" size="sm" variant="ghost" onClick={() => { setNewProduct(prod); setEditingProductIndex(idx); onProductModalOpen(); }} />
+                    <IconButton icon={<EditIcon />} aria-label="Editar produto" size={{ base: 'md', md: 'sm' }} variant="ghost" onClick={() => { setNewProduct(prod); setEditingProductIndex(idx); onProductModalOpen(); }} />
                   </Tooltip>
                   <Tooltip label="Excluir produto">
-                    <IconButton icon={<DeleteIcon />} aria-label="Excluir produto" size="sm" colorScheme="red" variant="ghost" onClick={() => handleRemoveProduct(idx)} />
+                    <IconButton icon={<DeleteIcon />} aria-label="Excluir produto" size={{ base: 'md', md: 'sm' }} colorScheme="red" variant="ghost" onClick={() => handleRemoveProduct(idx)} />
                   </Tooltip>
                 </HStack>
               </Stack>
             ))}
           </VStack>
-          {products.length > 0 && <Box mt={6} pt={4} textAlign="right"><Button colorScheme="brand" onClick={handleSaveProducts}>Salvar Catálogo</Button></Box>}
+          {products.length > 0 && <Box mt={6} pt={4} textAlign="right"><Button size={{ base: 'lg', md: 'md' }} colorScheme="brand" onClick={handleSaveProducts}>Salvar Catálogo</Button></Box>}
         </CardBody>
       </Card>
 
@@ -199,7 +199,7 @@ const CatalogTab = () => {
 
             </VStack>
           </ModalBody>
-          <ModalFooter><Button variant="ghost" mr={3} onClick={onProductModalClose}>Cancelar</Button><Button colorScheme="blue" onClick={handleAddProduct} isLoading={isUploading}>Salvar</Button></ModalFooter>
+          <ModalFooter><Button size={{ base: 'lg', md: 'md' }} variant="ghost" mr={3} onClick={onProductModalClose}>Cancelar</Button><Button size={{ base: 'lg', md: 'md' }} colorScheme="blue" onClick={handleAddProduct} isLoading={isUploading}>Salvar</Button></ModalFooter>
         </ModalContent>
       </Modal>
     </Box>

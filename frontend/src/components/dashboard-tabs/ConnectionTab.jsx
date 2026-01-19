@@ -84,14 +84,14 @@ const ConnectionTab = () => {
                     <Text fontWeight="bold" fontSize="lg" color="green.600">Sistema Online</Text>
                     <Text fontSize="sm" color="gray.500">O robô está respondendo seus clientes.</Text>
                   </Box>
-                  <Button colorScheme="red" variant="outline" onClick={handleLogoutWhatsApp}>Desconectar Sessão</Button>
+                  <Button size={{ base: 'lg', md: 'md' }} colorScheme="red" variant="outline" onClick={handleLogoutWhatsApp}>Desconectar Sessão</Button>
                 </VStack>
               ) : (
                 <VStack spacing={4} w="100%">
                   {state.whatsappStatus.qrCode ? (
                     <VStack>
                       <Box bg="white" p={4} borderRadius="lg"><QRCodeSVG value={state.whatsappStatus.qrCode} size={180} /></Box>
-                      <Button colorScheme="red" variant="outline" size="sm" onClick={handleLogoutWhatsApp}>Cancelar / Desligar</Button>
+                      <Button size={{ base: 'lg', md: 'sm' }} colorScheme="red" variant="outline" onClick={handleLogoutWhatsApp}>Cancelar / Desligar</Button>
                     </VStack>
                   ) : state.whatsappStatus.mode === 'Iniciando...' ? (
                     <VStack py={6}><Spinner size="xl" color="brand.500" thickness="4px" /><Text color="gray.500">Iniciando motor...</Text></VStack>
@@ -111,7 +111,7 @@ const ConnectionTab = () => {
         <GridItem>
           <Card bg={cardBg} h="100%" boxShadow="md">
             <CardHeader>
-              <HStack justify="space-between"><Heading size="md">Dados da Empresa</Heading><Button size="xs" onClick={() => setEditingHours(!editingHours)} leftIcon={<EditIcon />}>{editingHours ? 'Cancelar' : 'Editar'}</Button></HStack>
+              <HStack justify="space-between"><Heading size="md">Dados da Empresa</Heading><Button size={{ base: 'sm', md: 'xs' }} onClick={() => setEditingHours(!editingHours)} leftIcon={<EditIcon />}>{editingHours ? 'Cancelar' : 'Editar'}</Button></HStack>
             </CardHeader>
             <CardBody>
               <VStack spacing={4} align="stretch">
@@ -144,7 +144,7 @@ const ConnectionTab = () => {
                   <Input isDisabled={!editingHours} placeholder="Link externo (Drive, Behance...)" value={configForm.socialMedia.portfolio} onChange={e => setConfigForm({ ...configForm, socialMedia: { ...configForm.socialMedia, portfolio: e.target.value } })} size={{ base: 'lg', md: 'md' }} />
                 </FormControl>
 
-                {editingHours && <Button colorScheme="brand" onClick={handleSaveConfig} width="full">Salvar Alterações</Button>}
+                {editingHours && <Button size={{ base: 'lg', md: 'md' }} colorScheme="brand" onClick={handleSaveConfig} width="full">Salvar Alterações</Button>}
               </VStack>
             </CardBody>
           </Card>
