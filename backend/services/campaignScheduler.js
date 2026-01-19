@@ -105,16 +105,37 @@ async function processTimeCampaign(campaign) {
 
   console.log(`🎯 Triggering TIME campaign: ${campaign.name} (${campaign._id})`);
 
-  // 2. Find Targets
-  // Only users with phone numbers
+  // 2. Optimization: Pre-fetch excluded contacts to avoid N+1 queries
+  let excludedContactIds = [];
+
+  try {
+    if (campaign.type === 'broadcast') {
+      excludedContactIds = await CampaignLog.find({
+        campaignId: campaign._id
+      }).distinct('contactId');
+    } else if (campaign.type === 'recurring') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      excludedContactIds = await CampaignLog.find({
+        campaignId: campaign._id,
+        sentAt: { $gte: today }
+      }).distinct('contactId');
+    }
+  } catch (err) {
+    console.error(`⚠️ Failed to pre-fetch excluded contacts for campaign ${campaign._id}, falling back to individual checks:`, err);
+  }
+
+  // 3. Find Targets
+  // Only users with phone numbers and NOT in excluded list
   const contacts = await Contact.find({
     businessId: config._id,
     tags: { $in: campaign.targetTags },
     isHandover: false,
-    phone: { $exists: true, $ne: null }
+    phone: { $exists: true, $ne: null },
+    _id: { $nin: excludedContactIds }
   });
 
-  console.log(`👥 Found ${contacts.length} potential targets for campaign ${campaign.name}`);
+  console.log(`👥 Found ${contacts.length} potential targets for campaign ${campaign.name} (Excluded: ${excludedContactIds.length})`);
 
   for (const contact of contacts) {
     await dispatchCampaign(campaign, contact, null, config);
