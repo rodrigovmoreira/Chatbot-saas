@@ -11,6 +11,7 @@ import {
   Checkbox,
   VStack,
   HStack,
+  Stack,
   Text,
   Box,
   IconButton,
@@ -94,9 +95,17 @@ const FunnelConfigModal = ({ isOpen, onClose, availableTags = [], initialSteps =
         <ModalHeader>Configurar Funil de Vendas (Kanban)</ModalHeader>
         <ModalCloseButton />
         <ModalBody>
-          <HStack align="start" spacing={8}>
+          <Stack direction={{ base: 'column', md: 'row' }} align="start" spacing={8}>
             {/* Left Column: Available Tags */}
-            <Box flex={1} borderRight="1px" borderColor="gray.200" pr={4}>
+            <Box
+              flex={1}
+              borderRight={{ base: 'none', md: '1px' }}
+              borderBottom={{ base: '1px', md: 'none' }}
+              borderColor="gray.200"
+              pr={{ base: 0, md: 4 }}
+              pb={{ base: 4, md: 0 }}
+              w="full"
+            >
               <Text fontWeight="bold" mb={4}>1. Selecione as Tags</Text>
               <Text fontSize="sm" color="gray.500" mb={4}>
                 Escolha quais tags do sistema representarão colunas no seu funil.
@@ -120,7 +129,7 @@ const FunnelConfigModal = ({ isOpen, onClose, availableTags = [], initialSteps =
             </Box>
 
             {/* Right Column: Order */}
-            <Box flex={1}>
+            <Box flex={1} w="full">
               <Text fontWeight="bold" mb={4}>2. Ordene as Colunas</Text>
               <Text fontSize="sm" color="gray.500" mb={4}>
                 Defina a ordem da esquerda para a direita.
@@ -164,7 +173,7 @@ const FunnelConfigModal = ({ isOpen, onClose, availableTags = [], initialSteps =
                 )}
               </VStack>
             </Box>
-          </HStack>
+          </Stack>
         </ModalBody>
 
         <ModalFooter>

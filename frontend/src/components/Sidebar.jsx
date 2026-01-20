@@ -46,7 +46,7 @@ const NavItem = ({ icon, children, isActive, color, isCollapsed, ...rest }) => {
   return (
     <Flex
       align="center"
-      p={{ base: 5, md: 4 }}
+      p={{ base: 4, md: 6 }}
       mx={isCollapsed ? 2 : 4}
       borderRadius="lg"
       role="group"
@@ -166,7 +166,7 @@ export const MobileNav = ({ onOpen, title, children, ...rest }) => {
       top="0"
       left="0"
       right="0"
-      zIndex="999" // High z-index for mobile nav
+      zIndex="1000" // High z-index for mobile nav
       boxShadow="sm"
       transition="all 0.3s" // Smooth transition for appearance
       {...rest}
