@@ -14,6 +14,8 @@ const createRateLimiter = (options = {}) => {
   rateLimitMaps.set(keyPrefix, { map: limitMap, windowMs });
 
   return (req, res, next) => {
+    if (process.env.NODE_ENV === 'test') return next();
+
     // Get IP
     const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
     const now = Date.now();

@@ -16,6 +16,16 @@ const mockRes = () => {
 const mockNext = jest.fn();
 
 describe('Rate Limiters', () => {
+  const originalEnv = process.env.NODE_ENV;
+
+  beforeAll(() => {
+    process.env.NODE_ENV = 'production'; // Force non-test env to enable rate limiting logic
+  });
+
+  afterAll(() => {
+    process.env.NODE_ENV = originalEnv;
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     // We can't easily reset the internal Maps of the module without reloading it,
