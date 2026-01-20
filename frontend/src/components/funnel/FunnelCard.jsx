@@ -67,4 +67,4 @@ const FunnelCard = ({ contact, index }) => {
   );
 };
 
-export default FunnelCard;
+export default React.memo(FunnelCard);

@@ -69,4 +69,4 @@ const FunnelColumn = ({ step, contacts, droppableId }) => {
   );
 };
 
-export default FunnelColumn;
+export default React.memo(FunnelColumn);
