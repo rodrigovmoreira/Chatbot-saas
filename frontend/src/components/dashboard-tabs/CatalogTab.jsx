@@ -116,9 +116,9 @@ const CatalogTab = () => {
         <CardBody>
           <VStack align="stretch" spacing={3}>
             {products.map((prod, idx) => (
-              <Stack direction={{ base: 'column', md: 'row' }} key={idx} p={4} borderWidth="1px" borderRadius="md" justify="space-between" bg={gray50Bg} align="start">
+              <Stack direction={{ base: 'column', md: 'row' }} key={idx} p={4} borderWidth="1px" borderRadius="md" justify="space-between" bg={gray50Bg} align={{ base: 'stretch', md: 'start' }}>
                 {prod.imageUrls && prod.imageUrls.length > 0 && (
-                  <Box w="60px" h="60px" borderRadius="md" overflow="hidden" flexShrink={0}>
+                  <Box w={{ base: 'full', md: '60px' }} h={{ base: '200px', md: '60px' }} borderRadius="md" overflow="hidden" flexShrink={0}>
                     <img src={prod.imageUrls[0]} alt={prod.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </Box>
                 )}
@@ -131,7 +131,7 @@ const CatalogTab = () => {
                     </HStack>
                   )}
                 </VStack>
-                <HStack>
+                <HStack justify={{ base: 'flex-end', md: 'flex-start' }} w="full">
                   <Tooltip label="Editar produto">
                     <IconButton icon={<EditIcon />} aria-label="Editar produto" size="sm" variant="ghost" onClick={() => { setNewProduct(prod); setEditingProductIndex(idx); onProductModalOpen(); }} />
                   </Tooltip>

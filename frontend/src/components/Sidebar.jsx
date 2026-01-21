@@ -166,7 +166,7 @@ export const MobileNav = ({ onOpen, title, children, ...rest }) => {
       top="0"
       left="0"
       right="0"
-      zIndex="999" // High z-index for mobile nav
+      zIndex="1000" // High z-index for mobile nav
       boxShadow="sm"
       transition="all 0.3s" // Smooth transition for appearance
       {...rest}
