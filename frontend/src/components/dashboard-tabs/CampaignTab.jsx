@@ -164,7 +164,13 @@ const CampaignTab = () => {
     <Box>
       <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" mb={6} spacing={4}>
         <Heading size="md">Automação & Funis</Heading>
-        <Button leftIcon={<AddIcon />} colorScheme="brand" onClick={() => openModal()}>
+        <Button
+          leftIcon={<AddIcon />}
+          colorScheme="brand"
+          onClick={() => openModal()}
+          w={{ base: 'full', md: 'auto' }}
+          size={{ base: 'lg', md: 'md' }}
+        >
           Nova Campanha
         </Button>
       </Stack>

@@ -108,9 +108,18 @@ const CatalogTab = () => {
     <Box>
       <Card bg={cardBg} boxShadow="md">
         <CardHeader>
-          <Stack direction={{ base: 'column', md: 'row' }} justify="space-between">
+          <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" spacing={4}>
             <Box><Heading size="md">Produtos & Serviços</Heading><Text fontSize="sm" color="gray.500">Para a IA consultar preços e enviar fotos.</Text></Box>
-            <Button leftIcon={<AddIcon />} variant="outline" colorScheme="blue" onClick={() => { setEditingProductIndex(null); setNewProduct({ name: '', price: '', description: '', imageUrls: [], tags: [] }); onProductModalOpen(); }}>Novo Item</Button>
+            <Button
+              leftIcon={<AddIcon />}
+              variant="outline"
+              colorScheme="blue"
+              onClick={() => { setEditingProductIndex(null); setNewProduct({ name: '', price: '', description: '', imageUrls: [], tags: [] }); onProductModalOpen(); }}
+              w={{ base: 'full', md: 'auto' }}
+              size={{ base: 'lg', md: 'md' }}
+            >
+              Novo Item
+            </Button>
           </Stack>
         </CardHeader>
         <CardBody>
