@@ -46,7 +46,7 @@ const NavItem = ({ icon, children, isActive, color, isCollapsed, ...rest }) => {
   return (
     <Flex
       align="center"
-      p={{ base: 5, md: 4 }}
+      p={{ base: 4, md: 6 }}
       mx={isCollapsed ? 2 : 4}
       borderRadius="lg"
       role="group"
