@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { DragDropContext } from '@hello-pangea/dnd';
 import { Flex, useToast } from '@chakra-ui/react';
 import FunnelColumn from './FunnelColumn';
@@ -7,6 +7,16 @@ import { businessAPI } from '../../services/api';
 const FunnelBoard = ({ columns, contacts }) => {
   const [boardData, setBoardData] = useState({});
   const toast = useToast();
+
+  // Memoize sorted columns for rendering (Ascending) to avoid mutation and re-sorting
+  const sortedColumnsAsc = useMemo(() => {
+    return [...columns].sort((a, b) => a.order - b.order);
+  }, [columns]);
+
+  // Memoize sorted columns for grouping logic (Descending) to avoid re-sorting per contact
+  const sortedColumnsDesc = useMemo(() => {
+    return [...columns].sort((a, b) => b.order - a.order);
+  }, [columns]);
 
   // Initialize/Reset Board Data when props change
   useEffect(() => {
@@ -21,19 +31,13 @@ const FunnelBoard = ({ columns, contacts }) => {
     contacts.forEach(contact => {
       // Find matching steps
       // Logic: If contact has multiple tags that match columns, prioritize the one with highest order index
-      // But 'columns' array usually comes sorted by order from parent or we sort it here.
-      // Let's assume 'columns' is sorted 0..N
+      // We iterate through the sorted columns (Descending) and see if contact has that tag.
+      // Ideally, we want the "highest stage" (first in desc list).
 
       let assigned = false;
-      // We iterate backwards to find the highest order match if multiple exist?
-      // Or just first match? Use Case: Contact moved from Lead to Negotiation.
-      // Usually we remove old tag. But if they have both, usually the "furthest" one counts.
-      // Let's iterate through the sorted columns and see if contact has that tag.
-      // Ideally, we want the "highest stage" (last in list).
 
-      const sortedCols = [...columns].sort((a,b) => b.order - a.order); // Descending
-
-      for (const col of sortedCols) {
+      // Optimization: sortedColumnsDesc is pre-calculated outside the loop
+      for (const col of sortedColumnsDesc) {
          if (contact.tags && contact.tags.includes(col.tag)) {
             initialData[col.tag].push(contact);
             assigned = true;
@@ -43,14 +47,11 @@ const FunnelBoard = ({ columns, contacts }) => {
 
       if (!assigned) {
          // Optionally put in Unassigned or just ignore?
-         // Requirement says "display contacts grouped". If not in funnel, maybe don't show?
-         // Or show in a backlog? For now, let's ignore or we can have a "Backlog" column.
-         // Let's ignore unassigned for this specific Kanban view to keep it clean.
       }
     });
 
     setBoardData(initialData);
-  }, [columns, contacts]);
+  }, [columns, contacts, sortedColumnsDesc]);
 
   const onDragEnd = async (result) => {
     const { source, destination, draggableId } = result;
@@ -132,9 +133,7 @@ const FunnelBoard = ({ columns, contacts }) => {
           },
         }}
       >
-        {columns
-          .sort((a, b) => a.order - b.order)
-          .map(step => (
+        {sortedColumnsAsc.map(step => (
             <FunnelColumn
               key={step.tag}
               droppableId={step.tag}
