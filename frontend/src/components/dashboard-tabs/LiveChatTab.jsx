@@ -147,28 +147,36 @@ const LiveChatTab = () => {
     }
   };
 
-  // 1. Carregar Conversas
+  // 1. Carregar Conversas (Apenas com histórico)
   const loadConversations = async () => {
     try {
       const { data } = await businessAPI.getConversations();
-      setConversations(data);
+      // Ensure we only show active conversations (lastInteraction exists)
+      // and sort by date descending
+      const sorted = data.sort((a, b) => new Date(b.lastInteraction || 0) - new Date(a.lastInteraction || 0));
+      setConversations(sorted);
     } catch (error) {
       console.error("Erro ao carregar conversas:", error);
     }
   };
 
-  // 1b. Carregar Todos Contatos
+  // 1b. Carregar Todos Contatos (Ordenado por Nome)
   const loadAllContacts = async () => {
       try {
           const { data } = await businessAPI.getContacts();
-          setAllContacts(data);
+           // Sort by Name (A-Z)
+          const sorted = data.sort((a, b) => (a.name || a.phone).localeCompare(b.name || b.phone));
+          setAllContacts(sorted);
       } catch (error) {
           console.error("Erro ao carregar contatos:", error);
       }
   };
 
   // Tab Change Handler
+  const [tabIndex, setTabIndex] = useState(0);
+
   const handleTabChange = (index) => {
+      setTabIndex(index);
       if (index === 0) loadConversations();
       if (index === 1) loadAllContacts();
   };
@@ -177,11 +185,10 @@ const LiveChatTab = () => {
     loadConversations();
     // Polling de conversas a cada 10s
     const interval = setInterval(() => {
-        // We could verify which tab is open, but refreshing conversation list generally is fine.
-        loadConversations();
+        if (tabIndex === 0) loadConversations();
     }, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [tabIndex]);
 
   // 2. Carregar Mensagens ao selecionar
   useEffect(() => {
@@ -313,6 +320,17 @@ const LiveChatTab = () => {
         </Box>
   );
 
+  const renderContactList = (list, emptyMessage) => (
+       <Box flex="1" overflowY="auto" w="full">
+          <VStack spacing={0} align="stretch">
+            {list.length === 0 && (
+               <Text p={4} fontSize="sm" color="gray.500">{emptyMessage}</Text>
+            )}
+            {list.map(renderContactItem)}
+          </VStack>
+       </Box>
+  );
+
   return (
     <Box>
       <Stack direction={{ base: 'column', md: 'row' }} mb={4} justify="flex-end" spacing={2}>
@@ -326,16 +344,17 @@ const LiveChatTab = () => {
 
           {/* LADO ESQUERDO: LISTA DE CONTATOS E TABS */}
           <Box
-            w={{ base: "100%", md: "300px" }}
+            w={{ base: "100%", md: "350px" }}
             display={{ base: showMobileChat ? 'none' : 'flex', md: 'flex' }}
             flexDirection="column"
             h="100%"
             borderRight="1px solid"
             borderColor={gray50Bg}
             bg={gray50Bg}
+            overflow="hidden"
           >
              {/* Header com Botão Importar */}
-            <HStack p={4} borderBottom="1px solid" borderColor={gray50Bg} bg={cardBg} justify="space-between">
+            <HStack p={4} borderBottom="1px solid" borderColor={gray50Bg} bg={cardBg} justify="space-between" flexShrink={0}>
                 <Heading size="sm" color="gray.600">Chats</Heading>
                 <Tooltip label="Importar Contatos (CSV/Excel)">
                     <IconButton
@@ -350,36 +369,22 @@ const LiveChatTab = () => {
             </HStack>
 
             {/* Tabs */}
-            <Tabs isFitted variant="enclosed" onChange={handleTabChange} display="flex" flexDirection="column" flex="1">
-               <TabList mb={0} bg={cardBg}>
+            <Tabs isFitted variant="enclosed" onChange={handleTabChange} display="flex" flexDirection="column" flex="1" overflow="hidden">
+               <TabList mb={0} bg={cardBg} flexShrink={0}>
                   <Tab fontSize="sm">Conversas</Tab>
                   <Tab fontSize="sm">Contatos</Tab>
                </TabList>
 
-               <TabPanels flex="1" overflow="hidden">
+               <TabPanels flex="1" overflow="hidden" display="flex" flexDirection="column">
 
                   {/* Tab 1: Conversas Ativas */}
-                  <TabPanel p={0} h="100%">
-                      <Box overflowY="auto" h="100%">
-                          <VStack spacing={0} align="stretch">
-                            {conversations.length === 0 && (
-                               <Text p={4} fontSize="sm" color="gray.500">Nenhuma conversa recente.</Text>
-                            )}
-                            {conversations.map(renderContactItem)}
-                          </VStack>
-                      </Box>
+                  <TabPanel p={0} h="100%" display="flex" flexDirection="column">
+                      {renderContactList(conversations, "Nenhuma conversa recente.")}
                   </TabPanel>
 
                   {/* Tab 2: Todos os Contatos */}
-                  <TabPanel p={0} h="100%">
-                       <Box overflowY="auto" h="100%">
-                          <VStack spacing={0} align="stretch">
-                            {allContacts.length === 0 && (
-                               <Text p={4} fontSize="sm" color="gray.500">Nenhum contato encontrado.</Text>
-                            )}
-                            {allContacts.map(renderContactItem)}
-                          </VStack>
-                       </Box>
+                  <TabPanel p={0} h="100%" display="flex" flexDirection="column">
+                       {renderContactList(allContacts, "Nenhum contato encontrado.")}
                   </TabPanel>
                </TabPanels>
             </Tabs>
