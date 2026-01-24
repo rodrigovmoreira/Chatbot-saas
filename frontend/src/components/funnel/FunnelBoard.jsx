@@ -122,6 +122,7 @@ const FunnelBoard = ({ columns, contacts }) => {
         h="full"
         overflowX="auto"
         pb={4}
+        direction={{ base: 'column', md: 'row' }}
         css={{
           '&::-webkit-scrollbar': {
             height: '8px',

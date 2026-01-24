@@ -21,8 +21,8 @@ const FunnelColumn = ({ step, contacts, droppableId }) => {
 
   return (
     <Box
-      minW="300px"
-      w="300px"
+      minW={{ base: '0', md: '300px' }}
+      w={{ base: 'full', md: '300px' }}
       h="full"
       bg={bg}
       borderRadius="lg"
@@ -30,7 +30,8 @@ const FunnelColumn = ({ step, contacts, droppableId }) => {
       borderColor={borderColor}
       display="flex"
       flexDirection="column"
-      mr={4}
+      mr={{ base: 0, md: 4 }}
+      mb={{ base: 4, md: 0 }}
     >
       {/* Header */}
       <Box p={4} borderBottom="1px solid" borderColor={borderColor}>
