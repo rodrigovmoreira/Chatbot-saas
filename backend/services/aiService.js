@@ -1,18 +1,40 @@
 const axios = require('axios');
 
+function sanitizeContext(messages) {
+    return messages.filter(msg => {
+        // 1. Remove massive repeated character strings (The "Kkkkk" attack)
+        // Regex matches 5+ consecutive identical characters (case insensitive)
+        const spamRegex = /(.)\1{5,}/;
+        if (msg.role === 'assistant' && spamRegex.test(msg.content)) {
+            console.log('🗑️ Dropped Spam Message from Context:', msg.content.substring(0, 20) + '...');
+            return false;
+        }
+        return true;
+    });
+}
+
 async function callDeepSeek(messages) {
     try {
         const apiKey = process.env.DEEPSEEK_API_KEY;
         const apiUrl = process.env.DEEPSEEK_API_URL || "https://api.deepseek.com/chat/completions";
         const model = process.env.DEEPSEEK_MODEL || "deepseek-chat";
 
-        console.log('🔍 [DEEPSEEK PROMPT]', JSON.stringify(messages, null, 2));
+        // 1. Sanitize History
+        let finalMessages = sanitizeContext(messages);
+
+        // 2. Inject Circuit Breaker
+        finalMessages.push({
+            role: 'system',
+            content: '[SYSTEM URGENT: The assistant MUST stop laughing. Be concise, serious, and direct. Do not repeat previous offers.]'
+        });
+
+        console.log('🔍 [DEEPSEEK PROMPT]', JSON.stringify(finalMessages, null, 2));
 
         const response = await axios.post(
             apiUrl,
             {
                 model: model,
-                messages: messages,
+                messages: finalMessages,
                 max_tokens: 150,
                 temperature: 0.7,
                 stream: false,
