@@ -7,7 +7,7 @@ const wwebjsService = require('./services/wwebjsService');
 const BusinessConfig = require('./models/BusinessConfig');
 const Contact = require('./models/Contact'); // Import Contact model
 const aiTools = require('./services/aiTools');
-const { callDeepSeek } = require('./services/aiService');
+const { callDeepSeek, buildSystemPrompt } = require('./services/aiService');
 const { fromZonedTime, format } = require('date-fns-tz');
 
 const MAX_HISTORY = 30;
@@ -231,11 +231,10 @@ Cliente: ${userMessage}`;
     // B. System Prompt
     const { instagram, website, portfolio } = businessConfig.socialMedia || {};
 
-    const systemInstruction = `
-STYLE: WhatsApp Chat. Short messages (max 2 sentences). No formal introductions. Use emojis sparingly.
-BEHAVIOR: Answer ONLY what was asked. Do not offer help unless necessary.
+    const basePrompt = await buildSystemPrompt(activeBusinessId);
 
-Instruction: "CONTEXT AWARENESS: Before answering, check the last message sent by 'assistant' in the history. If you have already explained the business focus or pricing in the last turn, DO NOT repeat it. Answer only the specific new question (e.g., 'No, we don't have that option'). Be direct and conversational."
+    const systemInstruction = `
+${basePrompt}
 
 --- AUDIO & IMAGE HANDLING ---
 1. If you receive text marked as \`[Transcrição do Áudio]: "..."\`, it means the user sent a voice message that has been converted to text for you.
@@ -243,7 +242,6 @@ Instruction: "CONTEXT AWARENESS: Before answering, check the last message sent b
    - DO NOT say "I cannot listen to audio" or "I cannot play messages".
    - Answer the content of the transcription naturally.
 2. If you receive \`[VISÃO DA IMAGEM]\`, treat it as what the user is showing you.
-${businessConfig.prompts.chatSystem}
 
 --- CONTEXTO ATUAL ---
 Data/Hora Atual: ${contextDateTime}.
