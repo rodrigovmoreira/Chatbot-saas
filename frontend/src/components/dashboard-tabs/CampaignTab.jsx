@@ -209,8 +209,8 @@ const CampaignTab = () => {
                       </Badge>
                   </Td>
                   <Td>
-                    <IconButton icon={<EditIcon />} size="sm" mr={2} onClick={() => openModal(c)} />
-                    <IconButton icon={<DeleteIcon />} size="sm" colorScheme="red" onClick={() => handleDelete(c._id)} />
+                    <IconButton icon={<EditIcon />} size={{ base: 'md', md: 'sm' }} mr={2} onClick={() => openModal(c)} />
+                    <IconButton icon={<DeleteIcon />} size={{ base: 'md', md: 'sm' }} colorScheme="red" onClick={() => handleDelete(c._id)} />
                   </Td>
                 </Tr>
               ))}

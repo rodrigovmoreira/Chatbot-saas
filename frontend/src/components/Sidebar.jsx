@@ -32,7 +32,7 @@ const LinkItems = [
   { name: 'Inteligência & Nicho', icon: StarIcon, index: 2 },
   { name: 'Respostas Rápidas', icon: EditIcon, index: 3 },
   { name: 'Catálogo', icon: AttachmentIcon, index: 4 },
-  { name: 'Campanhas', icon: FaBullhorn, index: 5, color: 'orange.500' }, // Reordered/Added
+  { name: 'Campanhas', icon: FaBullhorn, index: 5, color: 'orange.500' },
   { name: 'Chat Ao vivo', icon: ChatIcon, index: 6, color: 'purple.500' },
   { name: 'Agendamentos', icon: TimeIcon, index: 7, color: 'blue.500' },
   { name: 'Funil de Vendas', icon: FaFilter, index: 8, color: 'teal.500' },
@@ -46,7 +46,7 @@ const NavItem = ({ icon, children, isActive, color, isCollapsed, ...rest }) => {
   return (
     <Flex
       align="center"
-      p={{ base: 5, md: 4 }}
+      p={{ base: 4, md: 3 }} // Adjusted padding for better touch/desktop balance
       mx={isCollapsed ? 2 : 4}
       borderRadius="lg"
       role="group"
@@ -64,7 +64,7 @@ const NavItem = ({ icon, children, isActive, color, isCollapsed, ...rest }) => {
       {icon && (
         <Icon
           mr={isCollapsed ? 0 : 4}
-          fontSize="16"
+          fontSize="18" // Slightly larger icon
           _groupHover={{
             color: 'white',
           }}
@@ -72,7 +72,9 @@ const NavItem = ({ icon, children, isActive, color, isCollapsed, ...rest }) => {
           color={isActive ? activeColor : (color || 'inherit')}
         />
       )}
-      {!isCollapsed && children}
+      {!isCollapsed && (
+         <Text fontSize="sm" fontWeight={isActive ? 'bold' : 'normal'}>{children}</Text>
+      )}
     </Flex>
   );
 };
@@ -81,7 +83,6 @@ export const SidebarContent = ({ onClose, activeTab, setActiveTab, isCollapsed =
   const bg = useColorModeValue('white', 'gray.900');
   const borderRightColor = useColorModeValue('gray.200', 'gray.700');
 
-  // Mobile Responsiveness: Sidebar renders as full width inside Drawer on mobile
   return (
     <Flex
       direction="column"
@@ -89,23 +90,28 @@ export const SidebarContent = ({ onClose, activeTab, setActiveTab, isCollapsed =
       bg={bg}
       borderRight="1px"
       borderRightColor={borderRightColor}
-      w={{ base: 'full', lg: isCollapsed ? 20 : 60 }}
+      w={{ base: 'full', lg: isCollapsed ? 20 : 64 }} // Increased expanded width slightly (60->64)
       pos={pos}
       h="full"
-      zIndex={pos === 'fixed' ? 100 : 'auto'} // Ensure fixed sidebar stays on top
+      zIndex={pos === 'fixed' ? 100 : 'auto'}
       {...rest}
     >
       <Flex h="20" alignItems="center" mx={isCollapsed ? 0 : 8} justifyContent={isCollapsed ? 'center' : 'space-between'}>
         {!isCollapsed && (
-          <Text fontSize="2xl" fontFamily="monospace" fontWeight="bold">
+          <Text fontSize="xl" fontFamily="monospace" fontWeight="bold">
             Painel
           </Text>
         )}
-        <Box display={{ base: 'flex', lg: 'none' }} onClick={onClose}>
-          <Icon as={ChevronLeftIcon} />
+        <Box display={{ base: 'flex', lg: 'none' }} onClick={onClose} cursor="pointer">
+          <Icon as={ChevronLeftIcon} boxSize={6} />
         </Box>
       </Flex>
-      <Box flex="1" overflowY="auto">
+
+      <Box flex="1" overflowY="auto" css={{
+        '&::-webkit-scrollbar': { width: '4px' },
+        '&::-webkit-scrollbar-track': { width: '6px' },
+        '&::-webkit-scrollbar-thumb': { background: '#CBD5E0', borderRadius: '24px' },
+      }}>
         {LinkItems.map((link) => (
           <NavItem
             key={link.name}
@@ -132,7 +138,7 @@ export const SidebarContent = ({ onClose, activeTab, setActiveTab, isCollapsed =
         justifyContent={isCollapsed ? 'center' : 'space-between'}
         alignItems="center"
         direction={isCollapsed ? 'column' : 'row'}
-        gap={isCollapsed ? 2 : 0}
+        gap={isCollapsed ? 4 : 0}
       >
         <ColorModeToggle />
         <IconButton
@@ -166,19 +172,18 @@ export const MobileNav = ({ onOpen, title, children, ...rest }) => {
       top="0"
       left="0"
       right="0"
-      zIndex="999" // High z-index for mobile nav
+      zIndex="999"
       boxShadow="sm"
-      transition="all 0.3s" // Smooth transition for appearance
+      transition="all 0.3s"
       {...rest}
     >
       <HStack spacing={3}>
         <IconButton
-          display={{ base: 'flex', lg: 'none' }}
           onClick={onOpen}
           variant="ghost"
-          size="lg" // Increased size for better touch target
+          size="lg"
           aria-label="open menu"
-          icon={<HamburgerIcon />}
+          icon={<HamburgerIcon boxSize={6} />}
         />
 
         <Text
@@ -217,7 +222,7 @@ export const Sidebar = ({ isOpen, onClose, activeTab, setActiveTab, isCollapsed,
         onClose={onClose}
         returnFocusOnClose={false}
         onOverlayClick={onClose}
-        size="xs"
+        size="xs" // roughly 320px
       >
         <DrawerOverlay />
         <DrawerContent>
@@ -234,5 +239,4 @@ export const Sidebar = ({ isOpen, onClose, activeTab, setActiveTab, isCollapsed,
   );
 };
 
-// Export LinkItems to get the title in Dashboard
 export { LinkItems };

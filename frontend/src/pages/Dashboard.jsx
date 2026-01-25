@@ -159,7 +159,7 @@ const Dashboard = ({ initialTab = 0 }) => {
 
       {/* CONTEÚDO PRINCIPAL (Área à direita) */}
       <Box
-        ml={{ base: 0, lg: isCollapsed ? 20 : 60 }}
+        ml={{ base: 0, lg: isCollapsed ? 20 : 64 }}
         p={{ base: 4, md: 6 }}
         pt={{ base: 4, lg: 6 }}
         mt={{ base: 20, lg: 0 }} // Add margin top on mobile because MobileNav is fixed

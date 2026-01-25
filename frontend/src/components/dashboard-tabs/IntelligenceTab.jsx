@@ -357,10 +357,10 @@ const IntelligenceTab = () => {
                     </Stack>
                     <HStack>
                       <Tooltip label="Editar passo">
-                        <IconButton icon={<EditIcon />} aria-label="Editar passo" size="sm" variant="ghost" colorScheme="blue" onClick={() => handleEditFollowUp(idx)} />
+                        <IconButton icon={<EditIcon />} aria-label="Editar passo" size={{ base: 'md', md: 'sm' }} variant="ghost" colorScheme="blue" onClick={() => handleEditFollowUp(idx)} />
                       </Tooltip>
                       <Tooltip label="Excluir passo">
-                        <IconButton icon={<DeleteIcon />} aria-label="Excluir passo" size="sm" variant="ghost" colorScheme="red" onClick={() => handleRemoveFollowUp(idx)} />
+                        <IconButton icon={<DeleteIcon />} aria-label="Excluir passo" size={{ base: 'md', md: 'sm' }} variant="ghost" colorScheme="red" onClick={() => handleRemoveFollowUp(idx)} />
                       </Tooltip>
                     </HStack>
                   </Stack>

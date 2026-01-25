@@ -282,7 +282,7 @@ const LiveChatTab = () => {
   return (
     <Box>
       <Stack direction={{ base: 'column', md: 'row' }} mb={4} justify="flex-end" spacing={2}>
-        <Button leftIcon={<LinkIcon />} size="sm" onClick={onEmbedOpen} colorScheme="brand">
+        <Button leftIcon={<LinkIcon />} size={{ base: 'lg', md: 'sm' }} onClick={onEmbedOpen} colorScheme="brand">
           Instalar no Site
         </Button>
       </Stack>
