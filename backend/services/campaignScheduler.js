@@ -106,18 +106,35 @@ async function processTimeCampaign(campaign) {
   console.log(`🎯 Triggering TIME campaign: ${campaign.name} (${campaign._id})`);
 
   // 2. Find Targets
-  // Only users with phone numbers
+  // ⚡ Bolt Optimization: Pre-fetch exclusion list to avoid N+1 queries
+  let excludedContactIds = [];
+
+  if (campaign.type === 'broadcast') {
+    const logs = await CampaignLog.find({ campaignId: campaign._id }).select('contactId');
+    excludedContactIds = logs.map(l => l.contactId);
+  } else if (campaign.type === 'recurring') {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const logs = await CampaignLog.find({
+      campaignId: campaign._id,
+      sentAt: { $gte: today }
+    }).select('contactId');
+    excludedContactIds = logs.map(l => l.contactId);
+  }
+
+  // Only users with phone numbers AND not in exclusion list
   const contacts = await Contact.find({
     businessId: config._id,
     tags: { $in: campaign.targetTags },
     isHandover: false,
-    phone: { $exists: true, $ne: null }
+    phone: { $exists: true, $ne: null },
+    _id: { $nin: excludedContactIds }
   });
 
   console.log(`👥 Found ${contacts.length} potential targets for campaign ${campaign.name}`);
 
   for (const contact of contacts) {
-    await dispatchCampaign(campaign, contact, null, config);
+    await dispatchCampaign(campaign, contact, null, config, true); // true = skipExclusionCheck
   }
 }
 
@@ -175,11 +192,11 @@ async function processEventCampaign(campaign) {
   }
 }
 
-async function dispatchCampaign(campaign, contact, appointment, config) {
+async function dispatchCampaign(campaign, contact, appointment, config, skipExclusionCheck = false) {
   // 1. Exclusion Logic (Already Sent?)
 
   // For Broadcast: Check if ANY log exists for this campaign + contact
-  if (campaign.type === 'broadcast') {
+  if (campaign.type === 'broadcast' && !skipExclusionCheck) {
     const exists = await CampaignLog.exists({
       campaignId: campaign._id,
       contactId: contact._id
@@ -188,7 +205,7 @@ async function dispatchCampaign(campaign, contact, appointment, config) {
   }
 
   // For Recurring: Check if sent TODAY
-  if (campaign.type === 'recurring') {
+  if (campaign.type === 'recurring' && !skipExclusionCheck) {
     const today = new Date();
     today.setHours(0,0,0,0);
     const exists = await CampaignLog.exists({
