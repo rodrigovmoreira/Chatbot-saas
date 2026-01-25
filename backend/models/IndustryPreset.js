@@ -6,10 +6,15 @@ const industryPresetSchema = new mongoose.Schema({
   name: { type: String, required: true }, // ex: 'Barbearia / Salão'
   icon: { type: String, default: '🏢' }, // Para mostrar no frontend
 
-  // Configurações do Robô (O Cérebro)
+  // Novos campos divididos (Átomo quebrado)
+  botName: { type: String, required: true },
+  toneOfVoice: { type: String, required: true },
+  customInstructions: { type: String, default: '' },
+
+  // Configurações do Robô (O Cérebro) - Legacy / Fallback
   prompts: {
-    chatSystem: { type: String, required: true },
-    visionSystem: { type: String, required: true }
+    chatSystem: { type: String, required: false }, // Agora opcional
+    visionSystem: { type: String, required: false } // Agora opcional
   },
 
   // Configurações de Funil (O Comportamento)

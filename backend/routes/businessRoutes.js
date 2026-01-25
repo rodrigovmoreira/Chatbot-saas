@@ -77,7 +77,7 @@ router.put('/config', authenticateToken, async (req, res) => {
 // GET /api/business/presets
 router.get('/presets', authenticateToken, async (req, res) => {
   try {
-    const presets = await IndustryPreset.find({}).select('key name icon').sort({ name: 1 });
+    const presets = await IndustryPreset.find({}).select('key name icon botName toneOfVoice customInstructions').sort({ name: 1 });
     res.json(presets);
   } catch (error) {
     res.status(500).json({ message: 'Erro ao buscar presets' });
@@ -96,8 +96,11 @@ router.post('/apply-preset', authenticateToken, async (req, res) => {
       { userId: req.user.userId },
       {
         $set: {
-          'prompts.chatSystem': preset.prompts.chatSystem,
-          'prompts.visionSystem': preset.prompts.visionSystem,
+          botName: preset.botName,
+          toneOfVoice: preset.toneOfVoice,
+          customInstructions: preset.customInstructions,
+          'prompts.chatSystem': preset.prompts?.chatSystem || "",
+          'prompts.visionSystem': preset.prompts?.visionSystem || "",
           followUpSteps: preset.followUpSteps
         }
       },
