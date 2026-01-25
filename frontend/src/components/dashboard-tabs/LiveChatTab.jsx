@@ -488,7 +488,14 @@ const LiveChatTab = () => {
                              borderTopLeftRadius={!isMe ? 0 : 'lg'}
                              borderTopRightRadius={isMe ? 0 : 'lg'}
                            >
-                             <Text fontSize="sm" whiteSpace="pre-wrap">{msg.content}</Text>
+                             <Text
+                               fontSize="sm"
+                               whiteSpace="pre-wrap"
+                               wordBreak="break-word"
+                               overflowWrap="anywhere"
+                             >
+                               {msg.content}
+                             </Text>
                              <Text fontSize="10px" color="gray.500" textAlign="right" mt={1}>
                                {formatTime(msg.timestamp)}
                              </Text>
