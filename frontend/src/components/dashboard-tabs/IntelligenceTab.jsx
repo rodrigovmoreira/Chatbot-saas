@@ -3,7 +3,7 @@ import {
   Box, Grid, Card, CardHeader, CardBody, Heading, Text, Button, VStack, HStack, Stack,
   useToast, Icon, useColorModeValue, FormControl, FormLabel, Input, Textarea,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
-  useDisclosure, Alert, AlertIcon, Select, Divider, IconButton, Tooltip, Checkbox
+  useDisclosure, Alert, AlertIcon, Select, Divider, IconButton, Tooltip, Checkbox, Tag
 } from '@chakra-ui/react';
 import {
   AddIcon, EditIcon, DeleteIcon, StarIcon, TimeIcon, DownloadIcon
@@ -40,6 +40,11 @@ const IntelligenceTab = () => {
     visionSystem: ''
   });
 
+  const [identity, setIdentity] = useState({
+    botName: '',
+    tone: 'friendly'
+  });
+
   const [followUpSteps, setFollowUpSteps] = useState([]);
   const [newFollowUp, setNewFollowUp] = useState({ delayMinutes: 60, message: '', useAI: false });
   const [editingFollowUpIndex, setEditingFollowUpIndex] = useState(null);
@@ -53,6 +58,10 @@ const IntelligenceTab = () => {
           visionSystem: state.businessConfig.prompts.visionSystem || ''
         });
       }
+      setIdentity({
+        botName: state.businessConfig.botName || '',
+        tone: state.businessConfig.tone || 'friendly'
+      });
       setFollowUpSteps(state.businessConfig.followUpSteps || []);
     }
   }, [state.businessConfig]);
@@ -103,6 +112,10 @@ const IntelligenceTab = () => {
       setActivePrompts({
         chatSystem: response.data.config.prompts.chatSystem,
         visionSystem: response.data.config.prompts.visionSystem
+      });
+      setIdentity({
+        botName: response.data.config.botName || '',
+        tone: response.data.config.tone || 'friendly'
       });
       setFollowUpSteps(response.data.config.followUpSteps || []);
       toast({ title: 'Personalidade aplicada!', status: 'success' });
@@ -255,35 +268,90 @@ const IntelligenceTab = () => {
 
         <Divider />
 
-        {/* 3. EDITORES DE TEXTO (CHAT E VISÃO) */}
-        <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={6}>
-          <Card bg={cardBg} boxShadow="sm">
-            <CardHeader pb={0}><Heading size="sm">🧠 Personalidade (Chat)</Heading></CardHeader>
-            <CardBody>
-              <Textarea
-                value={activePrompts.chatSystem}
-                onChange={(e) => setActivePrompts({ ...activePrompts, chatSystem: e.target.value })}
-                rows={10}
-                bg={gray50Bg}
-                fontSize="sm"
-                placeholder="Instruções para o chat..."
-              />
-            </CardBody>
-          </Card>
-          <Card bg={cardBg} boxShadow="sm">
-            <CardHeader pb={0}><Heading size="sm">👁️ Visão (Imagem)</Heading></CardHeader>
-            <CardBody>
-              <Textarea
-                value={activePrompts.visionSystem}
-                onChange={(e) => setActivePrompts({ ...activePrompts, visionSystem: e.target.value })}
-                rows={10}
-                bg={gray50Bg}
-                fontSize="sm"
-                placeholder="Instruções para análise de imagem..."
-              />
-            </CardBody>
-          </Card>
-        </Grid>
+        {/* 3. CONFIGURAÇÃO AVANÇADA DE IA */}
+        <Box>
+            <Heading size="md" mb={4}>Configuração da IA</Heading>
+
+            <VStack spacing={6} align="stretch">
+
+                {/* Group A: Identity */}
+                <Card bg={cardBg} boxShadow="sm">
+                    <CardHeader pb={0}><Heading size="sm" color="blue.500">A. Identidade</Heading></CardHeader>
+                    <CardBody>
+                        <Stack direction={{ base: 'column', md: 'row' }} spacing={4}>
+                            <FormControl>
+                                <FormLabel fontSize="sm">Nome do Robô</FormLabel>
+                                <Input
+                                    placeholder="Ex: Viktor"
+                                    value={identity.botName}
+                                    onChange={(e) => setIdentity({...identity, botName: e.target.value})}
+                                />
+                            </FormControl>
+                            <FormControl>
+                                <FormLabel fontSize="sm">Tom de Voz</FormLabel>
+                                <Select
+                                    value={identity.tone}
+                                    onChange={(e) => setIdentity({...identity, tone: e.target.value})}
+                                >
+                                    <option value="formal">Formal</option>
+                                    <option value="friendly">Amigável (Padrão)</option>
+                                    <option value="slang">Informal / Gírias</option>
+                                    <option value="excited">Entusiasta</option>
+                                </Select>
+                            </FormControl>
+                        </Stack>
+                    </CardBody>
+                </Card>
+
+                {/* Group B: Business Context */}
+                <Card bg={gray50Bg} boxShadow="sm" borderLeft="4px solid" borderColor="green.500">
+                    <CardBody>
+                        <HStack justify="space-between">
+                            <Box>
+                                <Heading size="sm" color="green.700">B. Contexto do Negócio (Automático)</Heading>
+                                <Text fontSize="sm" color="gray.600">
+                                    A IA usará automaticamente os dados de: <b>{state.businessConfig?.businessName || 'Sua Empresa'}</b>
+                                </Text>
+                            </Box>
+                            <Tag colorScheme="green" size="lg">
+                                {state.businessConfig?.products?.length || 0} Serviços Ativos
+                            </Tag>
+                        </HStack>
+                    </CardBody>
+                </Card>
+
+                {/* Group C: Custom Instructions */}
+                <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={6}>
+                  <Card bg={cardBg} boxShadow="sm">
+                    <CardHeader pb={0}><Heading size="sm" color="purple.500">C. Cérebro (Instruções)</Heading></CardHeader>
+                    <CardBody>
+                      <Textarea
+                        value={activePrompts.chatSystem}
+                        onChange={(e) => setActivePrompts({ ...activePrompts, chatSystem: e.target.value })}
+                        rows={10}
+                        bg={gray50Bg}
+                        fontSize="sm"
+                        placeholder="Regras específicas. Ex: 'Não aceite cartões de crédito', 'Sempre peça o nome do cliente'."
+                      />
+                    </CardBody>
+                  </Card>
+                  <Card bg={cardBg} boxShadow="sm">
+                    <CardHeader pb={0}><Heading size="sm">👁️ Visão (Imagem)</Heading></CardHeader>
+                    <CardBody>
+                      <Textarea
+                        value={activePrompts.visionSystem}
+                        onChange={(e) => setActivePrompts({ ...activePrompts, visionSystem: e.target.value })}
+                        rows={10}
+                        bg={gray50Bg}
+                        fontSize="sm"
+                        placeholder="Instruções para análise de imagem..."
+                      />
+                    </CardBody>
+                  </Card>
+                </Grid>
+
+            </VStack>
+        </Box>
 
         <Stack direction={{ base: 'column', md: 'row' }} spacing={4} width="100%">
           <Button

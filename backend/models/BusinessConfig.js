@@ -9,6 +9,11 @@ const businessConfigSchema = new mongoose.Schema({
   },
 
   businessName: { type: String, default: 'Estúdio Tattoo' },
+
+  // === IDENTITY ===
+  botName: { type: String, default: 'Assistente' }, // <--- NOVO
+  tone: { type: String, enum: ['formal', 'friendly', 'slang', 'excited'], default: 'friendly' }, // <--- NOVO
+
   avatarUrl: { type: String }, // <--- ADICIONADO: URL do avatar/logo do negócio
   businessType: { type: String }, // <--- ADICIONADO: Identifica o nicho (ex: Barber, Tattoo)
   whatsappProvider: { type: String, enum: ['twilio', 'wwebjs'], default: 'wwebjs' },
