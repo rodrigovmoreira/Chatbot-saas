@@ -107,6 +107,23 @@ const IntelligenceTab = () => {
     }
   };
 
+  const handlePresetChange = (e) => {
+    const presetKey = e.target.value;
+    setSelectedPreset(presetKey);
+
+    const preset = presets.find(p => p.key === presetKey);
+    if (preset) {
+        setIdentity({
+            botName: preset.botName || '',
+            tone: preset.toneOfVoice || 'friendly'
+        });
+        setActivePrompts(prev => ({
+            ...prev,
+            customInstructions: preset.customInstructions || ''
+        }));
+    }
+  };
+
   const handleApplyPreset = async () => {
     if (!selectedPreset) return;
     if (!window.confirm("ATENÇÃO: Isso substituirá seus PROMPTS e seu FUNIL DE VENDAS pelo modelo padrão. Continuar?")) return;
@@ -236,7 +253,7 @@ const IntelligenceTab = () => {
                 <Text fontSize="sm" color="gray.600">Use um modelo pronto da plataforma.</Text>
               </Box>
               <Stack direction={{ base: 'column', md: 'row' }} spacing={4} w={{ base: 'full', md: 'auto' }}>
-                <Select placeholder="Selecione..." bg={gray50Bg} onChange={(e) => setSelectedPreset(e.target.value)} value={selectedPreset} size={{ base: 'lg', md: 'md' }} w={{ base: 'full', md: '300px' }}>
+                <Select placeholder="Selecione..." bg={gray50Bg} onChange={handlePresetChange} value={selectedPreset} size={{ base: 'lg', md: 'md' }} w={{ base: 'full', md: '300px' }}>
                   {presets.map(p => (<option key={p.key} value={p.key}>{p.icon} {p.name}</option>))}
                 </Select>
                 <Button colorScheme="blue" onClick={handleApplyPreset} isDisabled={!selectedPreset} leftIcon={<StarIcon />} width={{ base: 'full', md: 'auto' }} size={{ base: 'lg', md: 'md' }}>Aplicar</Button>
@@ -303,15 +320,11 @@ const IntelligenceTab = () => {
                             </FormControl>
                             <FormControl>
                                 <FormLabel fontSize="sm">Tom de Voz</FormLabel>
-                                <Select 
+                                <Input
+                                    placeholder="Ex: Formal, Amigável, Descontraído..."
                                     value={identity.tone} 
                                     onChange={(e) => setIdentity({...identity, tone: e.target.value})}
-                                >
-                                    <option value="formal">Formal</option>
-                                    <option value="friendly">Amigável (Padrão)</option>
-                                    <option value="slang">Informal / Gírias</option>
-                                    <option value="excited">Entusiasta</option>
-                                </Select>
+                                />
                             </FormControl>
                         </Stack>
                     </CardBody>
