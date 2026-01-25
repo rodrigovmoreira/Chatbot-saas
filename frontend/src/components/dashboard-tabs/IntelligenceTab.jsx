@@ -37,9 +37,10 @@ const IntelligenceTab = () => {
 
   const [activePrompts, setActivePrompts] = useState({
     chatSystem: '',
-    visionSystem: ''
+    visionSystem: '',
+    customInstructions: ''
   });
-
+  
   const [identity, setIdentity] = useState({
     botName: '',
     tone: 'friendly'
@@ -52,15 +53,14 @@ const IntelligenceTab = () => {
   // Sync Global State
   useEffect(() => {
     if (state.businessConfig) {
-      if (state.businessConfig.prompts) {
-        setActivePrompts({
-          chatSystem: state.businessConfig.prompts.chatSystem || '',
-          visionSystem: state.businessConfig.prompts.visionSystem || ''
-        });
-      }
+      setActivePrompts({
+        chatSystem: state.businessConfig.prompts?.chatSystem || '',
+        visionSystem: state.businessConfig.prompts?.visionSystem || '',
+        customInstructions: state.businessConfig.customInstructions || ''
+      });
       setIdentity({
-        botName: state.businessConfig.botName || '',
-        tone: state.businessConfig.tone || 'friendly'
+        botName: state.businessConfig.botName || 'Assistente',
+        tone: state.businessConfig.toneOfVoice || state.businessConfig.tone || 'friendly'
       });
       setFollowUpSteps(state.businessConfig.followUpSteps || []);
     }
@@ -92,8 +92,13 @@ const IntelligenceTab = () => {
     const selected = customPrompts.find(p => p._id === promptId);
     if (selected) {
       setActivePrompts({
-        chatSystem: selected.prompts.chatSystem,
-        visionSystem: selected.prompts.visionSystem
+        chatSystem: selected.prompts.chatSystem || '',
+        visionSystem: selected.prompts.visionSystem || '',
+        customInstructions: selected.customInstructions || selected.prompts.chatSystem || ''
+      });
+      setIdentity({
+        botName: selected.botName || '',
+        toneOfVoice: selected.toneOfVoice || selected.tone || 'friendly'
       });
       setFollowUpSteps(selected.followUpSteps || []);
       setSelectedCustomPrompt(promptId);
@@ -132,7 +137,13 @@ const IntelligenceTab = () => {
       }));
       const payload = {
         ...state.businessConfig,
-        prompts: activePrompts,
+        prompts: {
+            chatSystem: activePrompts.chatSystem,
+            visionSystem: activePrompts.visionSystem
+        },
+        botName: identity.botName,
+        toneOfVoice: identity.tone,
+        customInstructions: activePrompts.customInstructions,
         followUpSteps: orderedSteps
       };
       const response = await businessAPI.updateConfig(payload);
@@ -150,6 +161,9 @@ const IntelligenceTab = () => {
       await businessAPI.saveCustomPrompt({
         name: newPromptName,
         prompts: activePrompts,
+        botName: identity.botName,
+        toneOfVoice: identity.tone,
+        customInstructions: activePrompts.customInstructions,
         followUpSteps: followUpSteps
       });
       toast({ title: 'Modelo salvo na sua biblioteca!', status: 'success' });
@@ -271,9 +285,9 @@ const IntelligenceTab = () => {
         {/* 3. CONFIGURAÇÃO AVANÇADA DE IA */}
         <Box>
             <Heading size="md" mb={4}>Configuração da IA</Heading>
-
+            
             <VStack spacing={6} align="stretch">
-
+                
                 {/* Group A: Identity */}
                 <Card bg={cardBg} boxShadow="sm">
                     <CardHeader pb={0}><Heading size="sm" color="blue.500">A. Identidade</Heading></CardHeader>
@@ -281,16 +295,16 @@ const IntelligenceTab = () => {
                         <Stack direction={{ base: 'column', md: 'row' }} spacing={4}>
                             <FormControl>
                                 <FormLabel fontSize="sm">Nome do Robô</FormLabel>
-                                <Input
-                                    placeholder="Ex: Viktor"
-                                    value={identity.botName}
+                                <Input 
+                                    placeholder="Ex: Viktor" 
+                                    value={identity.botName} 
                                     onChange={(e) => setIdentity({...identity, botName: e.target.value})}
                                 />
                             </FormControl>
                             <FormControl>
                                 <FormLabel fontSize="sm">Tom de Voz</FormLabel>
-                                <Select
-                                    value={identity.tone}
+                                <Select 
+                                    value={identity.tone} 
                                     onChange={(e) => setIdentity({...identity, tone: e.target.value})}
                                 >
                                     <option value="formal">Formal</option>
@@ -326,8 +340,8 @@ const IntelligenceTab = () => {
                     <CardHeader pb={0}><Heading size="sm" color="purple.500">C. Cérebro (Instruções)</Heading></CardHeader>
                     <CardBody>
                       <Textarea
-                        value={activePrompts.chatSystem}
-                        onChange={(e) => setActivePrompts({ ...activePrompts, chatSystem: e.target.value })}
+                        value={activePrompts.customInstructions}
+                        onChange={(e) => setActivePrompts({ ...activePrompts, customInstructions: e.target.value })}
                         rows={10}
                         bg={gray50Bg}
                         fontSize="sm"
