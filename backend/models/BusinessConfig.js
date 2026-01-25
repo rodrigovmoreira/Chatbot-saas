@@ -12,7 +12,9 @@ const businessConfigSchema = new mongoose.Schema({
 
   // === IDENTITY ===
   botName: { type: String, default: 'Assistente' }, // <--- NOVO
-  tone: { type: String, enum: ['formal', 'friendly', 'slang', 'excited'], default: 'friendly' }, // <--- NOVO
+  tone: { type: String, enum: ['formal', 'friendly', 'slang', 'excited'], default: 'friendly' }, // Legacy support
+  toneOfVoice: { type: String, default: 'friendly' }, // <--- NOVO (Requested)
+  customInstructions: { type: String, default: '' }, // <--- NOVO (Requested)
 
   avatarUrl: { type: String }, // <--- ADICIONADO: URL do avatar/logo do negócio
   businessType: { type: String }, // <--- ADICIONADO: Identifica o nicho (ex: Barber, Tattoo)

@@ -21,7 +21,7 @@ async function buildSystemPrompt(businessId) {
 
         const botName = config.botName || "Assistente";
         const businessName = config.businessName || "Empresa";
-        const tone = config.tone || "friendly";
+        const tone = config.toneOfVoice || config.tone || "friendly";
 
         let toneInstruction = "";
         if (tone === 'formal') toneInstruction = "Use a formal and professional tone. Avoid slang.";
@@ -43,7 +43,7 @@ async function buildSystemPrompt(businessId) {
         }
 
         prompt += `--- CUSTOM INSTRUCTIONS ---\n`;
-        prompt += config.prompts?.chatSystem || "";
+        prompt += config.customInstructions || config.prompts?.chatSystem || "";
 
         return prompt;
     } catch (error) {
