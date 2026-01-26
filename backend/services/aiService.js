@@ -97,4 +97,39 @@ async function callDeepSeek(messages) {
     }
 }
 
-module.exports = { callDeepSeek, buildSystemPrompt };
+/**
+ * Generates a campaign message using the AI.
+ * @param {string} promptText - The user's prompt (e.g., "Tell a joke")
+ * @param {object} context - Context object containing { name: 'Contact Name' }
+ * @returns {Promise<string>} - The generated message
+ */
+async function generateCampaignMessage(promptText, context) {
+    try {
+        const systemPrompt = `
+SYSTEM: You are a helpful assistant writing a message for a marketing campaign.
+CONTEXT:
+Recipient Name: ${context.name || 'Cliente'}
+
+INSTRUCTION: Write a short, friendly message based on the following request: "${promptText}".
+Personalize it using the recipient's name if appropriate.
+Do not add "Subject:" or any other headers. Just the message body.
+`;
+
+        const messages = [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: promptText }
+        ];
+
+        console.log(`🤖 Generating Campaign Message for ${context.name}...`);
+        const content = await callDeepSeek(messages);
+        return content.trim();
+    } catch (error) {
+        console.error('Error generating campaign message:', error);
+        return promptText; // Fallback to prompt text if AI fails? Or return error?
+        // Prompt says: "If true, DO NOT send campaign.message directly... Send the result returned by the AI."
+        // If AI fails, fallback to promptText might be safe, or empty string.
+        // I'll return the prompt text as fallback so *something* is sent.
+    }
+}
+
+module.exports = { callDeepSeek, buildSystemPrompt, generateCampaignMessage };

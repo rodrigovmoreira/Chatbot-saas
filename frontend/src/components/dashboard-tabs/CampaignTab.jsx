@@ -375,6 +375,7 @@ const CampaignTab = () => {
                                         <option value="daily">Diário</option>
                                         <option value="weekly">Semanal</option>
                                         <option value="monthly">Mensal</option>
+                                        <option value="minutes_1">A cada 1 minuto (Teste)</option>
                                         <option value="minutes_30">A cada 30 min</option>
                                         <option value="hours_1">A cada 1 Hora</option>
                                         <option value="hours_6">A cada 6 Horas</option>
@@ -385,7 +386,7 @@ const CampaignTab = () => {
                                 {/* Use a function to check visibility for clarity */}
                                 {(() => {
                                     const freq = currentCampaign?.schedule?.frequency;
-                                    const isInterval = ['minutes_30', 'hours_1', 'hours_6', 'hours_12'].includes(freq);
+                                    const isInterval = ['minutes_1', 'minutes_30', 'hours_1', 'hours_6', 'hours_12'].includes(freq);
                                     if (isInterval) return null;
 
                                     return (
