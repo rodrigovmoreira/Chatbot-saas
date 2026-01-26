@@ -164,7 +164,7 @@ const CampaignTab = () => {
     <Box>
       <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" mb={6} spacing={4}>
         <Heading size="md">Automação & Funis</Heading>
-        <Button leftIcon={<AddIcon />} colorScheme="brand" onClick={() => openModal()}>
+        <Button leftIcon={<AddIcon />} colorScheme="brand" onClick={() => openModal()} size={{ base: 'lg', md: 'md' }}>
           Nova Campanha
         </Button>
       </Stack>
@@ -209,8 +209,8 @@ const CampaignTab = () => {
                       </Badge>
                   </Td>
                   <Td>
-                    <IconButton icon={<EditIcon />} size="sm" mr={2} onClick={() => openModal(c)} />
-                    <IconButton icon={<DeleteIcon />} size="sm" colorScheme="red" onClick={() => handleDelete(c._id)} />
+                    <IconButton icon={<EditIcon />} size={{ base: 'md', md: 'sm' }} mr={2} onClick={() => openModal(c)} />
+                    <IconButton icon={<DeleteIcon />} size={{ base: 'md', md: 'sm' }} colorScheme="red" onClick={() => handleDelete(c._id)} />
                   </Td>
                 </Tr>
               ))}

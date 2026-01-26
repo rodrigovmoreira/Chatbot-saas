@@ -412,6 +412,7 @@ const LiveChatTab = () => {
                           onClick={handleBackToList}
                           variant="ghost"
                           aria-label="Voltar"
+                          size="lg"
                           mr={2}
                         />
                         <Avatar size="sm" name={selectedContact.name} src={selectedContact.avatarUrl} />
@@ -445,14 +446,14 @@ const LiveChatTab = () => {
                                     variant={showDesktopCrm && isLargeScreen ? "solid" : "ghost"}
                                     colorScheme={showDesktopCrm && isLargeScreen ? "brand" : "gray"}
                                     aria-label="CRM"
-                                    size="sm"
+                                    size={{ base: 'md', md: 'sm' }}
                                 />
                               </Tooltip>
 
                               <Tooltip label="Limpar Histórico">
                                 <Button
                                   leftIcon={<DeleteIcon />}
-                                  size="sm"
+                                  size={{ base: 'md', md: 'sm' }}
                                   colorScheme="red"
                                   variant="ghost"
                                   onClick={handleClearHistory}
