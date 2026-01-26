@@ -5,3 +5,7 @@
 ## 2024-05-23 - [Missing Index on Message History]
 **Learning:** The `messageHandler` queries `Message` model (using `getLastMessages`) for every incoming message to build context. The query sorts by `{ timestamp: -1 }` filtering by `contactId`. Without an index, this becomes an O(N) scan as chat history grows.
 **Action:** Added compound index `{ contactId: 1, timestamp: -1 }` to `Message` model. This optimizes both the context lookup (reverse chronological) and the Chat UI history fetch (chronological).
+
+## 2024-05-24 - [Sequential Writes in Import Loop]
+**Learning:** The contact import feature processed rows sequentially, performing `findOne` and `save` (or `create`) for every row. This N+1 pattern scales poorly.
+**Action:** Refactored to use `Contact.bulkWrite` with `insertOne` and `updateOne`. Implemented in-memory deduplication first to handle duplicate keys within the import batch. This reduces database round-trips from 2*N to 2 (one batch read, one batch write).

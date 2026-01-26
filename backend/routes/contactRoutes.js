@@ -119,11 +119,13 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
              rows = xlsx.utils.sheet_to_json(sheet);
         }
 
-        // Process Rows
-        for (const row of rows) {
-             // Normalize keys helper
-             const getField = (r, key) => r[key] || r[key.toLowerCase()] || r[key.toUpperCase()];
+        // Phase 1: Deduplication & Validation in Memory
+        const processingMap = new Map(); // phone -> { name, email, tags: Set }
 
+        // Normalize keys helper
+        const getField = (r, key) => r[key] || r[key.toLowerCase()] || r[key.toUpperCase()];
+
+        for (const row of rows) {
              let phone = getField(row, 'phone') || getField(row, 'Phone') || getField(row, 'telefone') || getField(row, 'Celular');
              const name = getField(row, 'name') || getField(row, 'Name') || getField(row, 'nome');
              const email = getField(row, 'email') || getField(row, 'Email');
@@ -142,36 +144,96 @@ router.post('/import', authenticateToken, upload.single('file'), async (req, res
                  continue;
              }
 
-             // Find or Create
-             let contact = await Contact.findOne({ businessId, phone });
+             // Parse new tags
+             const newTags = tagsRaw ? String(tagsRaw).split(',').map(t => t.trim()).filter(t => t) : [];
 
-             if (contact) {
-                 // Update
-                 if (name) contact.name = name;
-                 if (email) contact.email = email;
-                 if (tagsRaw) {
-                     const newTags = String(tagsRaw).split(',').map(t => t.trim()).filter(t => t);
-                     // Merge unique
-                     contact.tags = [...new Set([...contact.tags, ...newTags])];
-                 }
-                 await contact.save();
-                 stats.updated++;
+             if (processingMap.has(phone)) {
+                 // Merge logic for duplicates in file
+                 const entry = processingMap.get(phone);
+                 if (name) entry.name = name; // Overwrite name if present
+                 if (email) entry.email = email; // Overwrite email if present
+                 newTags.forEach(t => entry.tags.add(t));
              } else {
-                 // Create
-                 const tags = tagsRaw ? String(tagsRaw).split(',').map(t => t.trim()).filter(t => t) : [];
-                 await Contact.create({
-                     businessId,
-                     phone,
-                     name: name || 'Desconhecido',
+                 processingMap.set(phone, {
+                     name,
                      email,
-                     tags,
-                     channel: 'whatsapp',
-                     followUpStage: 0,
-                     dealValue: 0,
-                     funnelStage: 'new'
+                     tags: new Set(newTags)
                  });
-                 stats.imported++;
              }
+        }
+
+        if (processingMap.size === 0) {
+            return res.json(stats);
+        }
+
+        // Phase 2: Bulk Fetch Existing Contacts
+        const phonesToProcess = Array.from(processingMap.keys());
+        const existingContacts = await Contact.find({
+            businessId,
+            phone: { $in: phonesToProcess }
+        }).select('phone _id');
+
+        const existingMap = new Map(); // phone -> _id
+        existingContacts.forEach(c => existingMap.set(c.phone, c._id));
+
+        // Phase 3: Prepare Bulk Operations
+        const bulkOps = [];
+
+        for (const [phone, entry] of processingMap) {
+            const tagsArray = Array.from(entry.tags);
+
+            if (existingMap.has(phone)) {
+                // Update
+                const updateFields = {};
+                if (entry.name) updateFields.name = entry.name;
+                if (entry.email) updateFields.email = entry.email;
+
+                const op = {
+                    updateOne: {
+                        filter: { _id: existingMap.get(phone) },
+                        update: {
+                            $addToSet: { tags: { $each: tagsArray } }
+                        }
+                    }
+                };
+
+                // Only add $set if there are fields to update
+                if (Object.keys(updateFields).length > 0) {
+                    op.updateOne.update.$set = updateFields;
+                }
+
+                bulkOps.push(op);
+                stats.updated++;
+            } else {
+                // Insert
+                bulkOps.push({
+                    insertOne: {
+                        document: {
+                            businessId,
+                            phone,
+                            name: entry.name || 'Desconhecido',
+                            email: entry.email,
+                            tags: tagsArray,
+                            channel: 'whatsapp',
+                            followUpStage: 0,
+                            dealValue: 0,
+                            funnelStage: 'new',
+                            notes: '',
+                            followUpActive: false,
+                            isHandover: false,
+                            totalMessages: 0,
+                            createdAt: new Date(),
+                            lastInteraction: new Date()
+                        }
+                    }
+                });
+                stats.imported++;
+            }
+        }
+
+        // Phase 4: Execute Bulk Write
+        if (bulkOps.length > 0) {
+            await Contact.bulkWrite(bulkOps);
         }
 
         res.json(stats);
