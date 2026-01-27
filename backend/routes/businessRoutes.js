@@ -18,10 +18,23 @@ const { v4: uuidv4 } = require('uuid');
 router.get('/config', authenticateToken, async (req, res) => {
   try {
     let config = await BusinessConfig.findOne({ userId: req.user.userId });
+
     // Se não existir, cria um padrão
-    if (!config) config = await BusinessConfig.create({ userId: req.user.userId, businessName: 'Meu Negócio' });
+    if (!config) {
+      config = await BusinessConfig.create({ userId: req.user.userId, businessName: 'Meu Negócio' });
+    } else {
+      // Lazy Migration: Ensure new fields exist
+      let dirty = false;
+      if (!config.aiResponseMode) { config.aiResponseMode = 'all'; dirty = true; }
+      if (!config.aiWhitelistTags) { config.aiWhitelistTags = []; dirty = true; }
+      if (!config.aiBlacklistTags) { config.aiBlacklistTags = []; dirty = true; }
+
+      if (dirty) await config.save();
+    }
+
     res.json(config);
   } catch (error) {
+    console.error('Erro GET config:', error);
     res.status(500).json({ message: 'Erro config' });
   }
 });
