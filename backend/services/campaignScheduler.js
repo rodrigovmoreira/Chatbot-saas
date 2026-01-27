@@ -17,7 +17,11 @@ async function processCampaigns() {
   //console.log('🔄 [CampaignScheduler] Checking active campaigns...');
 
   try {
-    const campaigns = await Campaign.find({ isActive: true });
+    // Exclude campaigns already processing to prevent race conditions (re-entrancy)
+    const campaigns = await Campaign.find({
+      isActive: true,
+      processing: { $ne: true }
+    });
 
     for (const campaign of campaigns) {
       try {

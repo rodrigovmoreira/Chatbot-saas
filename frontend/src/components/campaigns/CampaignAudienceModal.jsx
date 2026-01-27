@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter,
   Button, Tabs, TabList, TabPanels, Tab, TabPanel,
@@ -11,13 +11,7 @@ const CampaignAudienceModal = ({ campaign, isOpen, onClose }) => {
   const [loading, setLoading] = useState(true);
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 
-  useEffect(() => {
-    if (isOpen && campaign) {
-      fetchAudience();
-    }
-  }, [isOpen, campaign]);
-
-  const fetchAudience = async () => {
+  const fetchAudience = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -30,7 +24,13 @@ const CampaignAudienceModal = ({ campaign, isOpen, onClose }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [campaign, API_URL]);
+
+  useEffect(() => {
+    if (isOpen && campaign) {
+      fetchAudience();
+    }
+  }, [isOpen, campaign, fetchAudience]);
 
   const renderTable = (contacts, type) => {
     if (contacts.length === 0) {
