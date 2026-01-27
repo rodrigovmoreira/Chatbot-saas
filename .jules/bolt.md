@@ -5,3 +5,7 @@
 ## 2024-05-23 - [Missing Index on Message History]
 **Learning:** The `messageHandler` queries `Message` model (using `getLastMessages`) for every incoming message to build context. The query sorts by `{ timestamp: -1 }` filtering by `contactId`. Without an index, this becomes an O(N) scan as chat history grows.
 **Action:** Added compound index `{ contactId: 1, timestamp: -1 }` to `Message` model. This optimizes both the context lookup (reverse chronological) and the Chat UI history fetch (chronological).
+
+## 2026-01-27 - [React 19 Compatibility with React Scripts 5]
+**Learning:** The project uses `react-scripts` v5.0.1 with `react` v19.2.0. This combination causes `npm test` to fail with `AggregateError` during basic component rendering in JSDOM, likely due to hydration/environment mismatches in the test runner. Standard `render(<App />)` tests fail even for empty components.
+**Action:** When working in this environment, rely on `npm run build` for syntax/compilation verification and manual testing for functionality. Do not block on `npm test` failures if they are environmental `AggregateError`s related to React 19.
