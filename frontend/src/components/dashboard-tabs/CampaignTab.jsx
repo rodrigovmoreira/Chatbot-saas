@@ -12,13 +12,19 @@ import { useApp } from '../../context/AppContext';
 // but auth headers are handled carefully.
 import axios from 'axios';
 import { Menu, MenuButton, MenuList, MenuItem, Checkbox as ChakraCheckbox } from '@chakra-ui/react';
-import { ChevronDownIcon, SmallCloseIcon } from '@chakra-ui/icons';
+import { ChevronDownIcon, SmallCloseIcon, ViewIcon } from '@chakra-ui/icons';
+import CampaignAudienceModal from '../campaigns/CampaignAudienceModal';
 
 const CampaignTab = () => {
   const { state } = useApp(); // Access global state for availableTags
   const [campaigns, setCampaigns] = useState([]);
   const [currentCampaign, setCurrentCampaign] = useState(null);
-  const { isOpen, onOpen, onClose } = useDisclosure();
+
+  // Modal states
+  const { isOpen, onOpen, onClose } = useDisclosure(); // Edit/Create Modal
+  const { isOpen: isAudienceOpen, onOpen: onAudienceOpen, onClose: onAudienceClose } = useDisclosure(); // Audience Modal
+  const [audienceCampaign, setAudienceCampaign] = useState(null);
+
   const toast = useToast();
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
@@ -160,6 +166,29 @@ const CampaignTab = () => {
       setCurrentCampaign({ ...currentCampaign, targetTags: newTags });
   };
 
+  const renderStatusBadge = (campaign) => {
+      if (campaign.status === 'completed') {
+          return <Badge colorScheme="gray">CONCLUÍDO</Badge>;
+      }
+      if (campaign.processing) {
+          return <Badge colorScheme="green">ENVIANDO</Badge>;
+      }
+      if (campaign.isActive) {
+           // Check if future scheduled
+           if (campaign.nextRun && new Date(campaign.nextRun) > new Date()) {
+               return <Badge colorScheme="blue">AGENDADO</Badge>;
+           }
+           // Default active
+           return <Badge colorScheme="green">ATIVO</Badge>;
+      }
+      return <Badge colorScheme="orange">PAUSADO</Badge>;
+  };
+
+  const openAudienceModal = (campaign) => {
+      setAudienceCampaign(campaign);
+      onAudienceOpen();
+  };
+
   return (
     <Box>
       <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" mb={6} spacing={4}>
@@ -204,11 +233,18 @@ const CampaignTab = () => {
                     ) : <Text fontSize="xs" color="gray.400">Todos</Text>}
                   </Td>
                   <Td>
-                      <Badge colorScheme={c.isActive ? 'green' : 'gray'}>
-                          {c.isActive ? 'Ativo' : 'Pausado'}
-                      </Badge>
+                      {renderStatusBadge(c)}
                   </Td>
                   <Td>
+                    <IconButton
+                        icon={<ViewIcon />}
+                        size="sm"
+                        mr={2}
+                        colorScheme="teal"
+                        variant="ghost"
+                        onClick={() => openAudienceModal(c)}
+                        title="Ver Audiência"
+                    />
                     <IconButton icon={<EditIcon />} size="sm" mr={2} onClick={() => openModal(c)} />
                     <IconButton icon={<DeleteIcon />} size="sm" colorScheme="red" onClick={() => handleDelete(c._id)} />
                   </Td>
@@ -219,6 +255,15 @@ const CampaignTab = () => {
             </Box>
           </CardBody>
         </Card>
+      )}
+
+      {/* Audience Report Modal */}
+      {audienceCampaign && (
+          <CampaignAudienceModal
+            campaign={audienceCampaign}
+            isOpen={isAudienceOpen}
+            onClose={onAudienceClose}
+          />
       )}
 
       {/* Modal Create/Edit */}
@@ -375,6 +420,7 @@ const CampaignTab = () => {
                                         <option value="daily">Diário</option>
                                         <option value="weekly">Semanal</option>
                                         <option value="monthly">Mensal</option>
+                                        <option value="minutes_1">A cada 1 minuto (Teste)</option>
                                         <option value="minutes_30">A cada 30 min</option>
                                         <option value="hours_1">A cada 1 Hora</option>
                                         <option value="hours_6">A cada 6 Horas</option>
@@ -385,7 +431,7 @@ const CampaignTab = () => {
                                 {/* Use a function to check visibility for clarity */}
                                 {(() => {
                                     const freq = currentCampaign?.schedule?.frequency;
-                                    const isInterval = ['minutes_30', 'hours_1', 'hours_6', 'hours_12'].includes(freq);
+                                    const isInterval = ['minutes_1', 'minutes_30', 'hours_1', 'hours_6', 'hours_12'].includes(freq);
                                     if (isInterval) return null;
 
                                     return (
