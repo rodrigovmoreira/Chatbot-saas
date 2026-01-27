@@ -12,13 +12,19 @@ import { useApp } from '../../context/AppContext';
 // but auth headers are handled carefully.
 import axios from 'axios';
 import { Menu, MenuButton, MenuList, MenuItem, Checkbox as ChakraCheckbox } from '@chakra-ui/react';
-import { ChevronDownIcon, SmallCloseIcon } from '@chakra-ui/icons';
+import { ChevronDownIcon, SmallCloseIcon, ViewIcon } from '@chakra-ui/icons';
+import CampaignAudienceModal from '../campaigns/CampaignAudienceModal';
 
 const CampaignTab = () => {
   const { state } = useApp(); // Access global state for availableTags
   const [campaigns, setCampaigns] = useState([]);
   const [currentCampaign, setCurrentCampaign] = useState(null);
-  const { isOpen, onOpen, onClose } = useDisclosure();
+
+  // Modal states
+  const { isOpen, onOpen, onClose } = useDisclosure(); // Edit/Create Modal
+  const { isOpen: isAudienceOpen, onOpen: onAudienceOpen, onClose: onAudienceClose } = useDisclosure(); // Audience Modal
+  const [audienceCampaign, setAudienceCampaign] = useState(null);
+
   const toast = useToast();
 
   const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
@@ -178,6 +184,11 @@ const CampaignTab = () => {
       return <Badge colorScheme="orange">PAUSADO</Badge>;
   };
 
+  const openAudienceModal = (campaign) => {
+      setAudienceCampaign(campaign);
+      onAudienceOpen();
+  };
+
   return (
     <Box>
       <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" mb={6} spacing={4}>
@@ -225,6 +236,15 @@ const CampaignTab = () => {
                       {renderStatusBadge(c)}
                   </Td>
                   <Td>
+                    <IconButton
+                        icon={<ViewIcon />}
+                        size="sm"
+                        mr={2}
+                        colorScheme="teal"
+                        variant="ghost"
+                        onClick={() => openAudienceModal(c)}
+                        title="Ver Audiência"
+                    />
                     <IconButton icon={<EditIcon />} size="sm" mr={2} onClick={() => openModal(c)} />
                     <IconButton icon={<DeleteIcon />} size="sm" colorScheme="red" onClick={() => handleDelete(c._id)} />
                   </Td>
@@ -235,6 +255,15 @@ const CampaignTab = () => {
             </Box>
           </CardBody>
         </Card>
+      )}
+
+      {/* Audience Report Modal */}
+      {audienceCampaign && (
+          <CampaignAudienceModal
+            campaign={audienceCampaign}
+            isOpen={isAudienceOpen}
+            onClose={onAudienceClose}
+          />
       )}
 
       {/* Modal Create/Edit */}

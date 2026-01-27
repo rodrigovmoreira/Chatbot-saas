@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Campaign = require('../models/Campaign');
+const CampaignLog = require('../models/CampaignLog');
+const Contact = require('../models/Contact');
+const BusinessConfig = require('../models/BusinessConfig');
 const authenticateToken = require('../middleware/auth');
 
 // List all campaigns for the logged-in user
@@ -11,6 +14,72 @@ router.get('/', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error fetching campaigns:', error);
     res.status(500).json({ message: 'Error fetching campaigns' });
+  }
+});
+
+// Get Campaign Audience
+router.get('/:id/audience', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const campaign = await Campaign.findOne({ _id: id, userId: req.user.userId });
+
+    if (!campaign) {
+      return res.status(404).json({ message: 'Campaign not found' });
+    }
+
+    // 1. Get Logged (Sent) Contacts
+    // We need to fetch details, so populate or fetch by IDs
+    const logs = await CampaignLog.find({ campaignId: id }).select('contactId status sentAt');
+    const sentContactIds = logs.map(l => l.contactId);
+
+    // Fetch details for sent contacts
+    const sentContacts = await Contact.find({ _id: { $in: sentContactIds } })
+      .select('name phone lastInteraction');
+
+    // Map logs to contacts to show status?
+    // The requirement says "List of contacts who already got it".
+    // We can just return the contacts found.
+
+    // 2. Get Pending (Target) Contacts
+    // Only if campaign is still relevant? Or just theoretical audience based on tags.
+    // Logic: Matching tags AND NOT in sentContactIds.
+
+    // We need businessId to query contacts.
+    // Assuming user -> business relation.
+    // We can get businessId from one of the contacts or from BusinessConfig
+    const config = await BusinessConfig.findOne({ userId: req.user.userId });
+
+    if (!config) {
+        return res.status(400).json({ message: 'Business config not found' });
+    }
+
+    // If campaign has no tags, it targets ALL? Or NONE?
+    // Usually empty tags = All contacts, or validation prevents it.
+    // Campaign model default is [].
+    // Let's assume empty = no target or all?
+    // In scheduler: tags: { $in: campaign.targetTags }. If targetTags is empty, $in [] matches nothing.
+    // So if empty tags, pending is empty.
+
+    let pendingContacts = [];
+    if (campaign.targetTags && campaign.targetTags.length > 0) {
+        pendingContacts = await Contact.find({
+            businessId: config._id,
+            tags: { $in: campaign.targetTags },
+            phone: { $exists: true, $ne: null }, // Valid targets only
+            _id: { $nin: sentContactIds }
+        }).select('name phone lastInteraction');
+    }
+
+    res.json({
+        sent: sentContacts,
+        pending: pendingContacts,
+        totalPending: pendingContacts.length,
+        totalSent: sentContacts.length
+    });
+
+  } catch (error) {
+    console.error('Error fetching campaign audience:', error);
+    res.status(500).json({ message: 'Error fetching audience' });
   }
 });
 
