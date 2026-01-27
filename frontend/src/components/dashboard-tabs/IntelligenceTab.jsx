@@ -3,7 +3,8 @@ import {
   Box, Grid, Card, CardHeader, CardBody, Heading, Text, Button, VStack, HStack, Stack,
   useToast, Icon, useColorModeValue, FormControl, FormLabel, Input, Textarea,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
-  useDisclosure, Alert, AlertIcon, Select, Divider, IconButton, Tooltip, Checkbox, Tag
+  useDisclosure, Alert, AlertIcon, Select, Divider, IconButton, Tooltip, Checkbox, Tag,
+  Radio, RadioGroup, Wrap, WrapItem, TagLabel, TagCloseButton
 } from '@chakra-ui/react';
 import {
   AddIcon, EditIcon, DeleteIcon, StarIcon, TimeIcon, DownloadIcon
@@ -46,6 +47,14 @@ const IntelligenceTab = () => {
     tone: 'friendly'
   });
 
+  // Stage 2: Audience Filtering
+  const [audienceRules, setAudienceRules] = useState({
+    mode: 'all', // 'all', 'new_contacts', 'whitelist', 'blacklist'
+    whitelist: [],
+    blacklist: []
+  });
+  const [currentTagInput, setCurrentTagInput] = useState('');
+
   const [followUpSteps, setFollowUpSteps] = useState([]);
   const [newFollowUp, setNewFollowUp] = useState({ delayMinutes: 60, message: '', useAI: false });
   const [editingFollowUpIndex, setEditingFollowUpIndex] = useState(null);
@@ -61,6 +70,11 @@ const IntelligenceTab = () => {
       setIdentity({
         botName: state.businessConfig.botName || 'Assistente',
         tone: state.businessConfig.toneOfVoice || state.businessConfig.tone || 'friendly'
+      });
+      setAudienceRules({
+        mode: state.businessConfig.aiResponseMode || 'all',
+        whitelist: state.businessConfig.aiWhitelistTags || [],
+        blacklist: state.businessConfig.aiBlacklistTags || []
       });
       setFollowUpSteps(state.businessConfig.followUpSteps || []);
     }
@@ -181,6 +195,10 @@ const IntelligenceTab = () => {
         botName: identity.botName,
         toneOfVoice: identity.tone,
         customInstructions: activePrompts.customInstructions,
+        // Audience
+        aiResponseMode: audienceRules.mode,
+        aiWhitelistTags: audienceRules.whitelist,
+        aiBlacklistTags: audienceRules.blacklist,
         followUpSteps: followUpSteps
       });
       toast({ title: 'Modelo salvo na sua biblioteca!', status: 'success' });
@@ -200,6 +218,26 @@ const IntelligenceTab = () => {
       if (selectedCustomPrompt === id) setSelectedCustomPrompt('');
       toast({ title: 'Modelo removido', status: 'success' });
     } catch (e) { }
+  };
+
+  // Audience Handlers
+  const handleAddTag = (listType) => {
+    if (!currentTagInput.trim()) return;
+    const cleanTag = currentTagInput.trim();
+
+    setAudienceRules(prev => {
+        const list = prev[listType];
+        if (list.includes(cleanTag)) return prev;
+        return { ...prev, [listType]: [...list, cleanTag] };
+    });
+    setCurrentTagInput('');
+  };
+
+  const handleRemoveTag = (listType, tagToRemove) => {
+    setAudienceRules(prev => ({
+        ...prev,
+        [listType]: prev[listType].filter(t => t !== tagToRemove)
+    }));
   };
 
   // Follow-up Handlers
@@ -376,6 +414,57 @@ const IntelligenceTab = () => {
                     </CardBody>
                   </Card>
                 </Grid>
+
+                {/* Group D: Audience Filtering (Regras de Engajamento) */}
+                <Card bg={cardBg} boxShadow="sm" borderLeft="4px solid" borderColor="teal.500">
+                    <CardHeader pb={0}>
+                        <Heading size="sm" color="teal.600">D. Regras de Engajamento (Quem a IA responde?)</Heading>
+                    </CardHeader>
+                    <CardBody>
+                        <RadioGroup onChange={(val) => setAudienceRules({...audienceRules, mode: val})} value={audienceRules.mode}>
+                            <Stack direction={{ base: 'column', md: 'row' }} spacing={5}>
+                                <Radio value='all'>Responder Todos (Padrão)</Radio>
+                                <Radio value='new_contacts'>Apenas Novos (Sem histórico)</Radio>
+                                <Radio value='whitelist'>Apenas Whitelist (Tags)</Radio>
+                                <Radio value='blacklist'>Bloquear Blacklist (Tags)</Radio>
+                            </Stack>
+                        </RadioGroup>
+
+                        {/* Conditional Tag Inputs */}
+                        {(audienceRules.mode === 'whitelist' || audienceRules.mode === 'blacklist') && (
+                            <Box mt={4} p={4} bg={gray50Bg} borderRadius="md">
+                                <Text fontSize="sm" fontWeight="bold" mb={2}>
+                                    {audienceRules.mode === 'whitelist' ? 'Tags Permitidas (Whitelist)' : 'Tags Bloqueadas (Blacklist)'}
+                                </Text>
+                                <HStack mb={2}>
+                                    <Input
+                                        placeholder="Digite a tag e aperte Enter"
+                                        value={currentTagInput}
+                                        onChange={(e) => setCurrentTagInput(e.target.value)}
+                                        onKeyPress={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                handleAddTag(audienceRules.mode === 'whitelist' ? 'whitelist' : 'blacklist');
+                                            }
+                                        }}
+                                        bg={cardBg}
+                                    />
+                                    <Button onClick={() => handleAddTag(audienceRules.mode === 'whitelist' ? 'whitelist' : 'blacklist')}>Adicionar</Button>
+                                </HStack>
+                                <Wrap>
+                                    {(audienceRules.mode === 'whitelist' ? audienceRules.whitelist : audienceRules.blacklist).map(tag => (
+                                        <WrapItem key={tag}>
+                                            <Tag size="md" borderRadius="full" variant="solid" colorScheme={audienceRules.mode === 'whitelist' ? 'green' : 'red'}>
+                                                <TagLabel>{tag}</TagLabel>
+                                                <TagCloseButton onClick={() => handleRemoveTag(audienceRules.mode === 'whitelist' ? 'whitelist' : 'blacklist', tag)} />
+                                            </Tag>
+                                        </WrapItem>
+                                    ))}
+                                </Wrap>
+                            </Box>
+                        )}
+                    </CardBody>
+                </Card>
 
             </VStack>
         </Box>
