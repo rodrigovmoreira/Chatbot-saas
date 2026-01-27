@@ -3,10 +3,10 @@ import { QRCodeSVG } from 'qrcode.react';
 import {
   Box, Grid, GridItem, Card, CardHeader, CardBody, Heading, Text, Button, VStack, HStack, Stack,
   useToast, Icon, useColorModeValue, FormControl, FormLabel, Input, Textarea,
-  Spinner, Divider
+  Spinner, Divider, Switch, Badge
 } from '@chakra-ui/react';
 import {
-  CheckCircleIcon, WarningTwoIcon, EditIcon
+  CheckCircleIcon, WarningTwoIcon, EditIcon, ViewIcon
 } from '@chakra-ui/icons';
 import { useApp } from '../../context/AppContext';
 import { businessAPI } from '../../services/api';
@@ -69,8 +69,59 @@ const ConnectionTab = () => {
     }
   };
 
+  const handleToggleObserverMode = async (e) => {
+    const newValue = e.target.checked;
+    try {
+      // Optimistic update
+      dispatch({ type: 'SET_BUSINESS_CONFIG', payload: { ...state.businessConfig, aiGlobalDisabled: newValue } });
+
+      const response = await businessAPI.updateConfig({ aiGlobalDisabled: newValue });
+      // Confirm with server response
+      dispatch({ type: 'SET_BUSINESS_CONFIG', payload: response.data });
+
+      toast({
+        title: newValue ? 'Modo Observador ATIVADO' : 'Modo Observador DESATIVADO',
+        description: newValue ? 'A IA não responderá automaticamente.' : 'A IA voltará a responder.',
+        status: newValue ? 'warning' : 'success',
+        duration: 3000
+      });
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'Erro ao atualizar modo', status: 'error' });
+    }
+  };
+
   return (
     <Box>
+      {/* GLOBAL CONTROLS */}
+      <Card bg={cardBg} mb={6} borderLeft="4px solid" borderLeftColor={state.businessConfig?.aiGlobalDisabled ? "orange.400" : "green.400"}>
+        <CardBody display="flex" alignItems="center" justifyContent="space-between" flexDirection={{ base: 'column', md: 'row' }} gap={4}>
+            <HStack spacing={4}>
+                <Box p={3} bg={state.businessConfig?.aiGlobalDisabled ? "orange.100" : "green.100"} borderRadius="full">
+                    <Icon as={ViewIcon} boxSize={6} color={state.businessConfig?.aiGlobalDisabled ? "orange.600" : "green.600"} />
+                </Box>
+                <Box>
+                    <Heading size="sm">
+                        Modo Observador
+                        {state.businessConfig?.aiGlobalDisabled && <Badge ml={2} colorScheme="orange">ATIVO</Badge>}
+                    </Heading>
+                    <Text fontSize="sm" color="gray.500">
+                        Quando ativo, o sistema recebe mensagens e permite envios manuais, mas a IA <b>não responde ninguém automaticamente</b>.
+                    </Text>
+                </Box>
+            </HStack>
+            <FormControl display='flex' alignItems='center' w="auto">
+                <Switch
+                    id='observer-mode'
+                    size="lg"
+                    colorScheme="orange"
+                    isChecked={state.businessConfig?.aiGlobalDisabled || false}
+                    onChange={handleToggleObserverMode}
+                />
+            </FormControl>
+        </CardBody>
+      </Card>
+
       <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={6}>
         {/* Card WhatsApp */}
         <GridItem>

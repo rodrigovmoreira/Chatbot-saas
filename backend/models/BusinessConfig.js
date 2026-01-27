@@ -16,6 +16,8 @@ const businessConfigSchema = new mongoose.Schema({
   toneOfVoice: { type: String, default: 'friendly' }, // <--- NOVO (Requested)
   customInstructions: { type: String, default: '' }, // <--- NOVO (Requested)
 
+  aiGlobalDisabled: { type: Boolean, default: false }, // <--- NOVO: MODO OBSERVADOR (Se true, apenas ouve e não responde)
+
   avatarUrl: { type: String }, // <--- ADICIONADO: URL do avatar/logo do negócio
   businessType: { type: String }, // <--- ADICIONADO: Identifica o nicho (ex: Barber, Tattoo)
   whatsappProvider: { type: String, enum: ['twilio', 'wwebjs'], default: 'wwebjs' },

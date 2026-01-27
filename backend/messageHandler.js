@@ -119,6 +119,13 @@ async function processBufferedMessages(uniqueKey) {
         return; // Encerra execução (não chama IA)
     }
 
+    // 1. MODO OBSERVADOR (GLOBAL MASTER SWITCH)
+    if (businessConfig.aiGlobalDisabled) {
+        console.log(`🛑 AI Global Disabled (Observer Mode) for business ${activeBusinessId}.`);
+        if (channel === 'web' && resolve) resolve({ text: "" });
+        return;
+    }
+
     // 4. HORÁRIO
     if (!isWithinOperatingHours(businessConfig)) {
       const awayMsg = businessConfig.awayMessage;
