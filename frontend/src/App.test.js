@@ -22,6 +22,6 @@ test('renders landing page by default', () => {
     </ChakraProvider>
   );
 
-  const linkElement = screen.getByText(/Automate your WhatsApp Service with AI/i);
+  const linkElement = screen.getByText(/Evolua seus atendimentos com Inteligência Artificial/i);
   expect(linkElement).toBeInTheDocument();
 });

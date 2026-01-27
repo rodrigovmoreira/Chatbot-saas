@@ -1,21 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Box, Card, Heading, Text, Button, VStack, HStack, Stack,
   useColorModeValue, Alert, Icon,
   Avatar, Modal, ModalOverlay, ModalContent, ModalHeader,
   ModalCloseButton, ModalBody, ModalFooter, useDisclosure, Code, IconButton, Tooltip, useToast,
-  Badge, Switch, FormControl, FormLabel,
+  Switch, FormControl, FormLabel,
   Drawer, DrawerOverlay, DrawerContent, DrawerCloseButton, DrawerBody,
   useBreakpointValue, Input,
   Tabs, TabList, TabPanels, Tab, TabPanel
 } from '@chakra-ui/react';
 import { ChatIcon, LinkIcon, DeleteIcon, ArrowBackIcon, InfoIcon } from '@chakra-ui/icons';
-import { FaWhatsapp, FaGlobe, FaRobot, FaUser, FaCloudUploadAlt } from 'react-icons/fa';
+import { FaRobot, FaUser, FaCloudUploadAlt } from 'react-icons/fa';
 import { IoMdSend } from 'react-icons/io';
 import { businessAPI } from '../../services/api';
 import { useApp } from '../../context/AppContext';
 import CrmSidebar from '../crm/CrmSidebar';
 import ImportModal from '../crm/ImportModal';
+import ContactItem from '../ContactItem';
 import axios from 'axios';
 
 const LiveChatTab = () => {
@@ -222,10 +223,10 @@ const LiveChatTab = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const handleContactSelect = (contact) => {
+  const handleContactSelect = useCallback((contact) => {
     setSelectedContact(contact);
     setShowMobileChat(true);
-  };
+  }, []);
 
   const handleBackToList = () => {
     setShowMobileChat(false);
@@ -277,56 +278,20 @@ const LiveChatTab = () => {
     return `<iframe src="${origin}/chat/${businessId}" width="350" height="600" style="border:none; position:fixed; bottom:20px; right:20px; z-index:9999; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-radius: 12px;"></iframe>`;
   };
 
-  const getTagColor = (tag) => {
-      const colors = ['purple', 'green', 'blue', 'orange', 'red', 'teal'];
-      const hash = tag.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      return colors[hash % colors.length];
-  };
-
-  // Render Contact Item Helper
-  const renderContactItem = (contact) => (
-        <Box
-          key={contact._id}
-          p={4}
-          bg={selectedContact?._id === contact._id ? 'brand.50' : cardBg}
-          borderBottom="1px solid"
-          borderColor={gray50Bg}
-          cursor="pointer"
-          borderLeft={selectedContact?._id === contact._id ? "4px solid" : "4px solid transparent"}
-          borderLeftColor="brand.500"
-          _hover={{ bg: 'gray.100' }}
-          onClick={() => handleContactSelect(contact)}
-        >
-          <HStack justify="space-between" mb={1}>
-            <HStack>
-               {contact.channel === 'whatsapp'
-                 ? <Icon as={FaWhatsapp} color="green.500" />
-                 : <Icon as={FaGlobe} color="blue.500" />
-               }
-               <Text fontWeight="bold" fontSize="sm" noOfLines={1}>{contact.name || contact.phone}</Text>
-            </HStack>
-            {contact.lastInteraction && (
-                <Text fontSize="xs" color="gray.500">{formatTime(contact.lastInteraction)}</Text>
-            )}
-          </HStack>
-          {contact.tags && contact.tags.length > 0 && (
-              <HStack mt={1} spacing={1}>
-                  {contact.tags.slice(0, 2).map(tag => (
-                      <Badge key={tag} fontSize="xx-small" colorScheme={getTagColor(tag)}>{tag}</Badge>
-                  ))}
-                  {contact.tags.length > 2 && <Text fontSize="xx-small">+{contact.tags.length - 2}</Text>}
-              </HStack>
-          )}
-        </Box>
-  );
-
   const renderContactList = (list, emptyMessage) => (
        <Box flex="1" overflowY="auto" w="full">
           <VStack spacing={0} align="stretch">
             {list.length === 0 && (
                <Text p={4} fontSize="sm" color="gray.500">{emptyMessage}</Text>
             )}
-            {list.map(renderContactItem)}
+            {list.map(contact => (
+              <ContactItem
+                key={contact._id}
+                contact={contact}
+                isSelected={selectedContact?._id === contact._id}
+                onClick={handleContactSelect}
+              />
+            ))}
           </VStack>
        </Box>
   );
