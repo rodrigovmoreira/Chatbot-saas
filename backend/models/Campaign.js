@@ -41,6 +41,10 @@ const campaignSchema = new mongoose.Schema({
   nextRun: {
     type: Date
   },
+  processing: {
+    type: Boolean,
+    default: false
+  },
   // Trigger Configuration
   triggerType: {
     type: String,

@@ -77,13 +77,17 @@ describe('Campaign Scheduler Logic', () => {
 
         await processCampaigns();
 
-        // Should update lastRun and nextRun
+        // Should update processing=true first (not easily checkable order without strict mocks, but we check calls)
+        expect(Campaign.updateOne).toHaveBeenCalledWith({ _id: 'camp123' }, { processing: true });
+
+        // Should update lastRun and nextRun and status='active' at end
         expect(Campaign.updateOne).toHaveBeenCalledWith(
             { _id: 'camp123' },
             expect.objectContaining({
                 'stats.lastRun': expect.any(Date),
-                status: 'scheduled',
-                nextRun: expect.any(Date)
+                status: 'active',
+                nextRun: expect.any(Date),
+                processing: false
             })
         );
 

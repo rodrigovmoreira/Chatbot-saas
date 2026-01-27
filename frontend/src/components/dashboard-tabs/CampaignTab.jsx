@@ -160,6 +160,24 @@ const CampaignTab = () => {
       setCurrentCampaign({ ...currentCampaign, targetTags: newTags });
   };
 
+  const renderStatusBadge = (campaign) => {
+      if (campaign.status === 'completed') {
+          return <Badge colorScheme="gray">CONCLUÍDO</Badge>;
+      }
+      if (campaign.processing) {
+          return <Badge colorScheme="green">ENVIANDO</Badge>;
+      }
+      if (campaign.isActive) {
+           // Check if future scheduled
+           if (campaign.nextRun && new Date(campaign.nextRun) > new Date()) {
+               return <Badge colorScheme="blue">AGENDADO</Badge>;
+           }
+           // Default active
+           return <Badge colorScheme="green">ATIVO</Badge>;
+      }
+      return <Badge colorScheme="orange">PAUSADO</Badge>;
+  };
+
   return (
     <Box>
       <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" mb={6} spacing={4}>
@@ -204,9 +222,7 @@ const CampaignTab = () => {
                     ) : <Text fontSize="xs" color="gray.400">Todos</Text>}
                   </Td>
                   <Td>
-                      <Badge colorScheme={c.isActive ? 'green' : 'gray'}>
-                          {c.isActive ? 'Ativo' : 'Pausado'}
-                      </Badge>
+                      {renderStatusBadge(c)}
                   </Td>
                   <Td>
                     <IconButton icon={<EditIcon />} size="sm" mr={2} onClick={() => openModal(c)} />

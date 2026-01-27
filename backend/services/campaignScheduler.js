@@ -58,14 +58,21 @@ async function processTimeCampaign(campaign) {
 
     if (!lastRun || (now.getTime() - lastRun.getTime()) >= intervalMs) {
       shouldTrigger = true;
+
+      // Mark as processing before dispatch
+      await Campaign.updateOne({ _id: campaign._id }, { processing: true });
+
+      // Calculate next run
       const nextRun = new Date(now.getTime() + intervalMs);
 
-      // Update lastRun AND nextRun
-      await Campaign.updateOne({ _id: campaign._id }, {
-        'stats.lastRun': now,
-        nextRun: nextRun,
-        status: 'scheduled'
-      });
+      // Note: Dispatch loop happens below after switch block.
+      // We need to pass nextRun info or handle update after dispatch.
+      // Since processTimeCampaign logic continues below to "2. Find Targets",
+      // we should defer the final status update until AFTER dispatch loop.
+
+      // Store nextRun in campaign object for later use in this scope?
+      // Or we can just attach it to campaign instance.
+      campaign.tempNextRun = nextRun;
     }
   } else {
     // CLOCK TIME LOGIC (Daily, Weekly, Monthly, Once)
@@ -101,22 +108,7 @@ async function processTimeCampaign(campaign) {
     // Check Time
     if (campaign.schedule.time === currentHM) {
       shouldTrigger = true;
-
-      const updateData = { 'stats.lastRun': now };
-
-      if (campaign.schedule.frequency === 'once') {
-          updateData.status = 'completed';
-          updateData.isActive = false; // Optional: auto-pause
-      } else {
-          updateData.status = 'scheduled';
-          // Calculating exact nextRun for daily/weekly is complex here without a library like 'rrule' or manual date math.
-          // Since the prompt focused on the "Stop Bug" for interval campaigns, and the requirement "Calculate nextRun: currentDate + interval"
-          // matches the interval logic, we will skip complex nextRun calc for daily/weekly for now,
-          // but ensure status is NOT completed.
-      }
-
-      // For clock-based, we also update lastRun to track history, though logic uses clock time
-      await Campaign.updateOne({ _id: campaign._id }, updateData);
+      await Campaign.updateOne({ _id: campaign._id }, { processing: true });
     }
   }
 
@@ -163,6 +155,26 @@ async function processTimeCampaign(campaign) {
   for (const contact of contacts) {
     await dispatchCampaign(campaign, contact, null, config);
   }
+
+  // Finalize Status
+  const updateData = {
+      'stats.lastRun': now,
+      processing: false
+  };
+
+  if (campaign.schedule?.frequency === 'once') {
+      updateData.status = 'completed';
+      updateData.isActive = false;
+  } else {
+      updateData.status = 'active'; // As requested
+      if (campaign.tempNextRun) {
+          updateData.nextRun = campaign.tempNextRun;
+      }
+      // For daily/weekly clock campaigns, we assume they remain active without explicit nextRun calc for now,
+      // or we could add +1 day etc. but keeping it simple as per prompt scope.
+  }
+
+  await Campaign.updateOne({ _id: campaign._id }, updateData);
 }
 
 async function processEventCampaign(campaign) {
