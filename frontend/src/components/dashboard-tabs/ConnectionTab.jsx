@@ -102,7 +102,7 @@ const ConnectionTab = () => {
                 </Box>
                 <Box>
                     <Heading size="sm">
-                        Modo Observador (IA Pausada)
+                        Modo Observador
                         {state.businessConfig?.aiGlobalDisabled && <Badge ml={2} colorScheme="orange">ATIVO</Badge>}
                     </Heading>
                     <Text fontSize="sm" color="gray.500">
