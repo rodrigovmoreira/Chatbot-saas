@@ -106,14 +106,22 @@ const IntelligenceTab = () => {
     const selected = customPrompts.find(p => p._id === promptId);
     if (selected) {
       setActivePrompts({
-        chatSystem: selected.prompts.chatSystem || '',
-        visionSystem: selected.prompts.visionSystem || '',
-        customInstructions: selected.customInstructions || selected.prompts.chatSystem || ''
+        chatSystem: selected.prompts?.chatSystem || '',
+        visionSystem: selected.prompts?.visionSystem || '',
+        customInstructions: selected.customInstructions || ''
       });
       setIdentity({
         botName: selected.botName || '',
         toneOfVoice: selected.toneOfVoice || selected.tone || 'friendly'
       });
+
+      // Load Audience Rules
+      setAudienceRules({
+        mode: selected.aiResponseMode || 'all',
+        whitelist: selected.aiWhitelistTags || [],
+        blacklist: selected.aiBlacklistTags || []
+      });
+
       setFollowUpSteps(selected.followUpSteps || []);
       setSelectedCustomPrompt(promptId);
       setSelectedPreset('');

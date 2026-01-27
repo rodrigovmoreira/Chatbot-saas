@@ -7,6 +7,17 @@ const customPromptSchema = new mongoose.Schema({
     required: true 
   },
   name: { type: String, required: true }, // Ex: "Meu Tatuador Agressivo"
+
+  // Identidade
+  botName: { type: String },
+  toneOfVoice: { type: String },
+  customInstructions: { type: String },
+
+  // Audience
+  aiResponseMode: { type: String, default: 'all' },
+  aiWhitelistTags: { type: [String], default: [] },
+  aiBlacklistTags: { type: [String], default: [] },
+
   prompts: {
     chatSystem: { type: String, default: '' },
     visionSystem: { type: String, default: '' }
@@ -14,7 +25,8 @@ const customPromptSchema = new mongoose.Schema({
   followUpSteps: [{
     delayMinutes: { type: Number },
     message: { type: String },
-    stage: { type: Number }
+    stage: { type: Number },
+    useAI: { type: Boolean, default: false }
   }],
   createdAt: { type: Date, default: Date.now }
 });
