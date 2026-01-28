@@ -41,7 +41,7 @@ const IntelligenceTab = () => {
     visionSystem: '',
     customInstructions: ''
   });
-  
+
   const [identity, setIdentity] = useState({
     botName: '',
     tone: 'friendly'
@@ -99,7 +99,7 @@ const IntelligenceTab = () => {
   }, []);
 
   const fetchCustomPrompts = async () => {
-      try { const res = await businessAPI.getCustomPrompts(); setCustomPrompts(res.data); } catch (e) { }
+    try { const res = await businessAPI.getCustomPrompts(); setCustomPrompts(res.data); } catch (e) { }
   };
 
   // Handlers
@@ -136,14 +136,14 @@ const IntelligenceTab = () => {
 
     const preset = presets.find(p => p.key === presetKey);
     if (preset) {
-        setIdentity({
-            botName: preset.botName || '',
-            tone: preset.toneOfVoice || 'friendly'
-        });
-        setActivePrompts(prev => ({
-            ...prev,
-            customInstructions: preset.customInstructions || ''
-        }));
+      setIdentity({
+        botName: preset.botName || '',
+        tone: preset.toneOfVoice || 'friendly'
+      });
+      setActivePrompts(prev => ({
+        ...prev,
+        customInstructions: preset.customInstructions || ''
+      }));
     }
   };
 
@@ -178,13 +178,16 @@ const IntelligenceTab = () => {
       const payload = {
         ...state.businessConfig,
         prompts: {
-            chatSystem: activePrompts.chatSystem,
-            visionSystem: activePrompts.visionSystem
+          chatSystem: activePrompts.chatSystem,
+          visionSystem: activePrompts.visionSystem
         },
         botName: identity.botName,
         toneOfVoice: identity.tone,
         customInstructions: activePrompts.customInstructions,
-        followUpSteps: orderedSteps
+        followUpSteps: orderedSteps,
+        aiResponseMode: audienceRules.mode,
+        aiWhitelistTags: audienceRules.whitelist,
+        aiBlacklistTags: audienceRules.blacklist
       };
       console.log('📤 [Frontend] Saving Config Payload:', payload);
       const response = await businessAPI.updateConfig(payload);
@@ -236,17 +239,17 @@ const IntelligenceTab = () => {
     const cleanTag = currentTagInput.trim();
 
     setAudienceRules(prev => {
-        const list = prev[listType];
-        if (list.includes(cleanTag)) return prev;
-        return { ...prev, [listType]: [...list, cleanTag] };
+      const list = prev[listType];
+      if (list.includes(cleanTag)) return prev;
+      return { ...prev, [listType]: [...list, cleanTag] };
     });
     setCurrentTagInput('');
   };
 
   const handleRemoveTag = (listType, tagToRemove) => {
     setAudienceRules(prev => ({
-        ...prev,
-        [listType]: prev[listType].filter(t => t !== tagToRemove)
+      ...prev,
+      [listType]: prev[listType].filter(t => t !== tagToRemove)
     }));
   };
 
@@ -349,134 +352,134 @@ const IntelligenceTab = () => {
 
         {/* 3. CONFIGURAÇÃO AVANÇADA DE IA */}
         <Box>
-            <Heading size="md" mb={4}>Configuração da IA</Heading>
-            
-            <VStack spacing={6} align="stretch">
-                
-                {/* Group A: Identity */}
-                <Card bg={cardBg} boxShadow="sm">
-                    <CardHeader pb={0}><Heading size="sm" color="blue.500">A. Identidade</Heading></CardHeader>
-                    <CardBody>
-                        <Stack direction={{ base: 'column', md: 'row' }} spacing={4}>
-                            <FormControl>
-                                <FormLabel fontSize="sm">Nome do Robô</FormLabel>
-                                <Input 
-                                    placeholder="Ex: Viktor" 
-                                    value={identity.botName} 
-                                    onChange={(e) => setIdentity({...identity, botName: e.target.value})}
-                                />
-                            </FormControl>
-                            <FormControl>
-                                <FormLabel fontSize="sm">Tom de Voz</FormLabel>
-                                <Input
-                                    placeholder="Ex: Formal, Amigável, Descontraído..."
-                                    value={identity.tone} 
-                                    onChange={(e) => setIdentity({...identity, tone: e.target.value})}
-                                />
-                            </FormControl>
-                        </Stack>
-                    </CardBody>
-                </Card>
+          <Heading size="md" mb={4}>Configuração da IA</Heading>
 
-                {/* Group B: Business Context */}
-                <Card bg={gray50Bg} boxShadow="sm" borderLeft="4px solid" borderColor="green.500">
-                    <CardBody>
-                        <HStack justify="space-between">
-                            <Box>
-                                <Heading size="sm" color="green.700">B. Contexto do Negócio (Automático)</Heading>
-                                <Text fontSize="sm" color="gray.600">
-                                    A IA usará automaticamente os dados de: <b>{state.businessConfig?.businessName || 'Sua Empresa'}</b>
-                                </Text>
-                            </Box>
-                            <Tag colorScheme="green" size="lg">
-                                {state.businessConfig?.products?.length || 0} Serviços Ativos
-                            </Tag>
-                        </HStack>
-                    </CardBody>
-                </Card>
+          <VStack spacing={6} align="stretch">
 
-                {/* Group C: Custom Instructions */}
-                <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={6}>
-                  <Card bg={cardBg} boxShadow="sm">
-                    <CardHeader pb={0}><Heading size="sm" color="purple.500">C. Cérebro (Instruções)</Heading></CardHeader>
-                    <CardBody>
-                      <Textarea
-                        value={activePrompts.customInstructions}
-                        onChange={(e) => setActivePrompts({ ...activePrompts, customInstructions: e.target.value })}
-                        rows={10}
-                        bg={gray50Bg}
-                        fontSize="sm"
-                        placeholder="Regras específicas. Ex: 'Não aceite cartões de crédito', 'Sempre peça o nome do cliente'."
+            {/* Group A: Identity */}
+            <Card bg={cardBg} boxShadow="sm">
+              <CardHeader pb={0}><Heading size="sm" color="blue.500">A. Identidade</Heading></CardHeader>
+              <CardBody>
+                <Stack direction={{ base: 'column', md: 'row' }} spacing={4}>
+                  <FormControl>
+                    <FormLabel fontSize="sm">Nome do Robô</FormLabel>
+                    <Input
+                      placeholder="Ex: Viktor"
+                      value={identity.botName}
+                      onChange={(e) => setIdentity({ ...identity, botName: e.target.value })}
+                    />
+                  </FormControl>
+                  <FormControl>
+                    <FormLabel fontSize="sm">Tom de Voz</FormLabel>
+                    <Input
+                      placeholder="Ex: Formal, Amigável, Descontraído..."
+                      value={identity.tone}
+                      onChange={(e) => setIdentity({ ...identity, tone: e.target.value })}
+                    />
+                  </FormControl>
+                </Stack>
+              </CardBody>
+            </Card>
+
+            {/* Group B: Business Context */}
+            <Card bg={gray50Bg} boxShadow="sm" borderLeft="4px solid" borderColor="green.500">
+              <CardBody>
+                <HStack justify="space-between">
+                  <Box>
+                    <Heading size="sm" color="green.700">B. Contexto do Negócio (Automático)</Heading>
+                    <Text fontSize="sm" color="gray.600">
+                      A IA usará automaticamente os dados de: <b>{state.businessConfig?.businessName || 'Sua Empresa'}</b>
+                    </Text>
+                  </Box>
+                  <Tag colorScheme="green" size="lg">
+                    {state.businessConfig?.products?.length || 0} Serviços Ativos
+                  </Tag>
+                </HStack>
+              </CardBody>
+            </Card>
+
+            {/* Group C: Custom Instructions */}
+            <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={6}>
+              <Card bg={cardBg} boxShadow="sm">
+                <CardHeader pb={0}><Heading size="sm" color="purple.500">C. Cérebro (Instruções)</Heading></CardHeader>
+                <CardBody>
+                  <Textarea
+                    value={activePrompts.customInstructions}
+                    onChange={(e) => setActivePrompts({ ...activePrompts, customInstructions: e.target.value })}
+                    rows={10}
+                    bg={gray50Bg}
+                    fontSize="sm"
+                    placeholder="Regras específicas. Ex: 'Não aceite cartões de crédito', 'Sempre peça o nome do cliente'."
+                  />
+                </CardBody>
+              </Card>
+              <Card bg={cardBg} boxShadow="sm">
+                <CardHeader pb={0}><Heading size="sm">👁️ Visão (Imagem)</Heading></CardHeader>
+                <CardBody>
+                  <Textarea
+                    value={activePrompts.visionSystem}
+                    onChange={(e) => setActivePrompts({ ...activePrompts, visionSystem: e.target.value })}
+                    rows={10}
+                    bg={gray50Bg}
+                    fontSize="sm"
+                    placeholder="Instruções para análise de imagem..."
+                  />
+                </CardBody>
+              </Card>
+            </Grid>
+
+            {/* Group D: Audience Filtering (Regras de Engajamento) */}
+            <Card bg={cardBg} boxShadow="sm" borderLeft="4px solid" borderColor="teal.500">
+              <CardHeader pb={0}>
+                <Heading size="sm" color="teal.600">D. Regras de Engajamento (Quem a IA responde?)</Heading>
+              </CardHeader>
+              <CardBody>
+                <RadioGroup onChange={(val) => setAudienceRules({ ...audienceRules, mode: val })} value={audienceRules.mode}>
+                  <Stack direction={{ base: 'column', md: 'row' }} spacing={5}>
+                    <Radio value='all'>Responder Todos (Padrão)</Radio>
+                    <Radio value='new_contacts'>Apenas Novos (Sem histórico)</Radio>
+                    <Radio value='whitelist'>Apenas Whitelist (Tags)</Radio>
+                    <Radio value='blacklist'>Bloquear Blacklist (Tags)</Radio>
+                  </Stack>
+                </RadioGroup>
+
+                {/* Conditional Tag Inputs */}
+                {(audienceRules.mode === 'whitelist' || audienceRules.mode === 'blacklist') && (
+                  <Box mt={4} p={4} bg={gray50Bg} borderRadius="md">
+                    <Text fontSize="sm" fontWeight="bold" mb={2}>
+                      {audienceRules.mode === 'whitelist' ? 'Tags Permitidas (Whitelist)' : 'Tags Bloqueadas (Blacklist)'}
+                    </Text>
+                    <HStack mb={2}>
+                      <Input
+                        placeholder="Digite a tag e aperte Enter"
+                        value={currentTagInput}
+                        onChange={(e) => setCurrentTagInput(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddTag(audienceRules.mode === 'whitelist' ? 'whitelist' : 'blacklist');
+                          }
+                        }}
+                        bg={cardBg}
                       />
-                    </CardBody>
-                  </Card>
-                  <Card bg={cardBg} boxShadow="sm">
-                    <CardHeader pb={0}><Heading size="sm">👁️ Visão (Imagem)</Heading></CardHeader>
-                    <CardBody>
-                      <Textarea
-                        value={activePrompts.visionSystem}
-                        onChange={(e) => setActivePrompts({ ...activePrompts, visionSystem: e.target.value })}
-                        rows={10}
-                        bg={gray50Bg}
-                        fontSize="sm"
-                        placeholder="Instruções para análise de imagem..."
-                      />
-                    </CardBody>
-                  </Card>
-                </Grid>
+                      <Button onClick={() => handleAddTag(audienceRules.mode === 'whitelist' ? 'whitelist' : 'blacklist')}>Adicionar</Button>
+                    </HStack>
+                    <Wrap>
+                      {(audienceRules.mode === 'whitelist' ? audienceRules.whitelist : audienceRules.blacklist).map(tag => (
+                        <WrapItem key={tag}>
+                          <Tag size="md" borderRadius="full" variant="solid" colorScheme={audienceRules.mode === 'whitelist' ? 'green' : 'red'}>
+                            <TagLabel>{tag}</TagLabel>
+                            <TagCloseButton onClick={() => handleRemoveTag(audienceRules.mode === 'whitelist' ? 'whitelist' : 'blacklist', tag)} />
+                          </Tag>
+                        </WrapItem>
+                      ))}
+                    </Wrap>
+                  </Box>
+                )}
+              </CardBody>
+            </Card>
 
-                {/* Group D: Audience Filtering (Regras de Engajamento) */}
-                <Card bg={cardBg} boxShadow="sm" borderLeft="4px solid" borderColor="teal.500">
-                    <CardHeader pb={0}>
-                        <Heading size="sm" color="teal.600">D. Regras de Engajamento (Quem a IA responde?)</Heading>
-                    </CardHeader>
-                    <CardBody>
-                        <RadioGroup onChange={(val) => setAudienceRules({...audienceRules, mode: val})} value={audienceRules.mode}>
-                            <Stack direction={{ base: 'column', md: 'row' }} spacing={5}>
-                                <Radio value='all'>Responder Todos (Padrão)</Radio>
-                                <Radio value='new_contacts'>Apenas Novos (Sem histórico)</Radio>
-                                <Radio value='whitelist'>Apenas Whitelist (Tags)</Radio>
-                                <Radio value='blacklist'>Bloquear Blacklist (Tags)</Radio>
-                            </Stack>
-                        </RadioGroup>
-
-                        {/* Conditional Tag Inputs */}
-                        {(audienceRules.mode === 'whitelist' || audienceRules.mode === 'blacklist') && (
-                            <Box mt={4} p={4} bg={gray50Bg} borderRadius="md">
-                                <Text fontSize="sm" fontWeight="bold" mb={2}>
-                                    {audienceRules.mode === 'whitelist' ? 'Tags Permitidas (Whitelist)' : 'Tags Bloqueadas (Blacklist)'}
-                                </Text>
-                                <HStack mb={2}>
-                                    <Input
-                                        placeholder="Digite a tag e aperte Enter"
-                                        value={currentTagInput}
-                                        onChange={(e) => setCurrentTagInput(e.target.value)}
-                                        onKeyPress={(e) => {
-                                            if (e.key === 'Enter') {
-                                                e.preventDefault();
-                                                handleAddTag(audienceRules.mode === 'whitelist' ? 'whitelist' : 'blacklist');
-                                            }
-                                        }}
-                                        bg={cardBg}
-                                    />
-                                    <Button onClick={() => handleAddTag(audienceRules.mode === 'whitelist' ? 'whitelist' : 'blacklist')}>Adicionar</Button>
-                                </HStack>
-                                <Wrap>
-                                    {(audienceRules.mode === 'whitelist' ? audienceRules.whitelist : audienceRules.blacklist).map(tag => (
-                                        <WrapItem key={tag}>
-                                            <Tag size="md" borderRadius="full" variant="solid" colorScheme={audienceRules.mode === 'whitelist' ? 'green' : 'red'}>
-                                                <TagLabel>{tag}</TagLabel>
-                                                <TagCloseButton onClick={() => handleRemoveTag(audienceRules.mode === 'whitelist' ? 'whitelist' : 'blacklist', tag)} />
-                                            </Tag>
-                                        </WrapItem>
-                                    ))}
-                                </Wrap>
-                            </Box>
-                        )}
-                    </CardBody>
-                </Card>
-
-            </VStack>
+          </VStack>
         </Box>
 
         <Stack direction={{ base: 'column', md: 'row' }} spacing={4} width="100%">
@@ -545,7 +548,7 @@ const IntelligenceTab = () => {
                           {step.useAI && <Icon as={StarIcon} color="orange.400" />}
                         </HStack>
                         <Text fontSize="md" color={gray800} fontStyle={step.useAI ? 'italic' : 'normal'}>
-                           {step.useAI ? `[Diretriz IA]: ${step.message}` : `"${step.message}"`}
+                          {step.useAI ? `[Diretriz IA]: ${step.message}` : `"${step.message}"`}
                         </Text>
                       </Box>
                     </Stack>
@@ -593,27 +596,27 @@ const IntelligenceTab = () => {
               </FormControl>
 
               <FormControl display='flex' alignItems='center'>
-                  <Checkbox
-                     isChecked={newFollowUp.useAI}
-                     onChange={(e) => setNewFollowUp({...newFollowUp, useAI: e.target.checked})}
-                     colorScheme="orange"
-                     mr={2}
-                  />
-                  <FormLabel mb='0' fontSize="sm">
-                    Usar IA para gerar mensagem?
-                  </FormLabel>
+                <Checkbox
+                  isChecked={newFollowUp.useAI}
+                  onChange={(e) => setNewFollowUp({ ...newFollowUp, useAI: e.target.checked })}
+                  colorScheme="orange"
+                  mr={2}
+                />
+                <FormLabel mb='0' fontSize="sm">
+                  Usar IA para gerar mensagem?
+                </FormLabel>
               </FormControl>
 
               <FormControl isRequired>
                 <FormLabel>
-                    {newFollowUp.useAI ? "Diretrizes para a IA" : "Mensagem Exata"}
+                  {newFollowUp.useAI ? "Diretrizes para a IA" : "Mensagem Exata"}
                 </FormLabel>
                 <Textarea
-                    placeholder={newFollowUp.useAI ? "Ex: Cobre a resposta de forma educada e sugira uma ligação." : "Ex: E aí, ainda tem interesse?"}
-                    value={newFollowUp.message}
-                    onChange={e => setNewFollowUp({ ...newFollowUp, message: e.target.value })}
-                    rows={4}
-                    size={{ base: 'lg', md: 'md' }}
+                  placeholder={newFollowUp.useAI ? "Ex: Cobre a resposta de forma educada e sugira uma ligação." : "Ex: E aí, ainda tem interesse?"}
+                  value={newFollowUp.message}
+                  onChange={e => setNewFollowUp({ ...newFollowUp, message: e.target.value })}
+                  rows={4}
+                  size={{ base: 'lg', md: 'md' }}
                 />
                 {newFollowUp.useAI && <Text fontSize="xs" color="orange.500">A IA gerará a mensagem real com base na conversa anterior e nesta diretriz.</Text>}
               </FormControl>
