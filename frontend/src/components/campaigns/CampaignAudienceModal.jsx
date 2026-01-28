@@ -37,7 +37,7 @@ const CampaignAudienceModal = ({ campaign, isOpen, onClose }) => {
         return <Text color="gray.500" p={4} textAlign="center">Nenhum contato encontrado.</Text>;
     }
     return (
-      <Box maxH="400px" overflowY="auto">
+      <Box maxH="400px" overflowY="auto" overflowX="auto">
         <Table variant="simple" size="sm">
           <Thead>
             <Tr>

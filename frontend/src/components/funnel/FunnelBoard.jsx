@@ -83,7 +83,9 @@ const FunnelBoard = ({ columns, contacts }) => {
     <DragDropContext onDragEnd={onDragEnd}>
       <Flex
         h="full"
-        overflowX="auto"
+        direction={{ base: 'column', md: 'row' }}
+        overflowX={{ base: 'hidden', md: 'auto' }}
+        overflowY={{ base: 'auto', md: 'hidden' }}
         pb={4}
         css={{
           '&::-webkit-scrollbar': {
