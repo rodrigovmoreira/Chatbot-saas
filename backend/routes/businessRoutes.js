@@ -73,11 +73,23 @@ router.put('/config', authenticateToken, async (req, res) => {
       }
     }
 
+    console.log('📦 [PUT Config] Incoming Body:', req.body);
+
+    const updatePayload = {
+      ...req.body,
+      aiResponseMode: req.body.aiResponseMode,
+      aiWhitelistTags: req.body.aiWhitelistTags,
+      aiBlacklistTags: req.body.aiBlacklistTags,
+      updatedAt: new Date()
+    };
+
     const config = await BusinessConfig.findOneAndUpdate(
       { userId: req.user.userId },
-      { ...req.body, updatedAt: new Date() },
+      { $set: updatePayload },
       { new: true, upsert: true }
     );
+
+    console.log('💾 [PUT Config] Mongoose Update Result:', config);
     res.json(config);
   } catch (error) {
     console.error('Erro update config:', error);

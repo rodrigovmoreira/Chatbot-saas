@@ -62,6 +62,7 @@ const IntelligenceTab = () => {
   // Sync Global State
   useEffect(() => {
     if (state.businessConfig) {
+      console.log('📥 [Frontend] Loaded Config from API:', state.businessConfig);
       setActivePrompts({
         chatSystem: state.businessConfig.prompts?.chatSystem || '',
         visionSystem: state.businessConfig.prompts?.visionSystem || '',
@@ -185,6 +186,7 @@ const IntelligenceTab = () => {
         customInstructions: activePrompts.customInstructions,
         followUpSteps: orderedSteps
       };
+      console.log('📤 [Frontend] Saving Config Payload:', payload);
       const response = await businessAPI.updateConfig(payload);
       dispatch({ type: 'SET_BUSINESS_CONFIG', payload: response.data });
       setFollowUpSteps(orderedSteps);
