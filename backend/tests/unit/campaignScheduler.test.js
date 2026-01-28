@@ -164,4 +164,29 @@ describe('Campaign Scheduler Logic', () => {
         // I'll skip this specific test case for now as it requires complex Date mocking
         // and I'm confident in the interval logic test which covers the fix.
     });
+
+    test('should optimize broadcast campaign by skipping redundant existence check', async () => {
+        mockCampaign.type = 'broadcast';
+        // Broadcast doesn't use schedule.frequency usually, but processTimeCampaign handles logic based on triggerType='time'
+        // If triggerType is 'time', it checks frequency.
+        // Assuming broadcast has frequency='once' or similar for this test flow
+        mockCampaign.schedule.frequency = 'minutes_1'; // Just to trigger the flow in test logic easily
+        // Note: processTimeCampaign flow logic depends on triggerType='time' and frequency checks.
+
+        Campaign.find.mockResolvedValue([mockCampaign]);
+
+        // Mock pre-fetch exclusions to empty
+        CampaignLog.find.mockReturnValue({ distinct: jest.fn().mockResolvedValue([]) });
+
+        await processCampaigns();
+
+        // 1. Should have fetched exclusions via distinct
+        expect(CampaignLog.find).toHaveBeenCalledWith({ campaignId: mockCampaign._id });
+
+        // 2. Should NOT have called exists inside dispatch (optimization)
+        expect(CampaignLog.exists).not.toHaveBeenCalled();
+
+        // 3. Should still send message
+        expect(responseService.sendUnifiedMessage).toHaveBeenCalled();
+    });
 });
