@@ -101,9 +101,13 @@ export const SidebarContent = ({ onClose, activeTab, setActiveTab, isCollapsed =
             Painel
           </Text>
         )}
-        <Box display={{ base: 'flex', lg: 'none' }} onClick={onClose}>
-          <Icon as={ChevronLeftIcon} />
-        </Box>
+      <IconButton
+        display={{ base: 'flex', lg: 'none' }}
+        onClick={onClose}
+        icon={<ChevronLeftIcon />}
+        variant="ghost"
+        aria-label="Fechar menu"
+      />
       </Flex>
       <Box flex="1" overflowY="auto">
         {LinkItems.map((link) => (
@@ -176,8 +180,8 @@ export const MobileNav = ({ onOpen, title, children, ...rest }) => {
           display={{ base: 'flex', lg: 'none' }}
           onClick={onOpen}
           variant="ghost"
-          size="lg" // Increased size for better touch target
-          aria-label="open menu"
+          size="lg"
+          aria-label="Abrir menu"
           icon={<HamburgerIcon />}
         />
 
