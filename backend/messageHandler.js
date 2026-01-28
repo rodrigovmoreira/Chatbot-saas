@@ -31,6 +31,7 @@ const BUFFER_DELAY = 11000;
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 function checkRateLimit(key) {
+  if (process.env.NODE_ENV === 'test') return true;
   const now = Date.now();
   let record = rateLimitMap.get(key);
   if (!record) { rateLimitMap.set(key, { count: 1, startTime: now, isBlocked: false }); return true; }
@@ -124,6 +125,50 @@ async function processBufferedMessages(uniqueKey) {
         console.log(`🛑 AI Global Disabled (Observer Mode) for business ${activeBusinessId}.`);
         if (channel === 'web' && resolve) resolve({ text: "" });
         return;
+    }
+
+    // 2. REGRAS DE ENGAJAMENTO (AUDIENCE FILTER)
+    const aiMode = businessConfig.aiResponseMode || 'all';
+
+    if (aiMode === 'new_contacts') {
+        // Se o contato já existia antes dessa mensagem ser processada
+        if (contact) {
+            // totalMessages includes current message (so >= 1). We want > 1 to indicate PRIOR history.
+            const hasPriorHistory = contact.totalMessages > 1;
+            const isOld = (Date.now() - new Date(contact.createdAt).getTime()) > 24 * 60 * 60 * 1000;
+
+            if (hasPriorHistory || isOld) {
+                console.log(`🛑 AI Audience Filter: Ignored (Mode: new_contacts). Contact is not new.`);
+                if (channel === 'web' && resolve) resolve({ text: "" });
+                return;
+            }
+        }
+        // Se !contact, ele foi criado agora pelo saveMessage, então é novo -> Allow
+    }
+    else if (aiMode === 'whitelist') {
+        const whitelist = businessConfig.aiWhitelistTags || [];
+        // Whitelist Logic: Must have at least one tag. If whitelist is empty, nobody matches (Block All).
+        const contactTags = contact ? contact.tags : [];
+        const hasTag = contactTags.some(t => whitelist.includes(t));
+
+        if (!hasTag) {
+            console.log(`🛑 AI Audience Filter: Ignored (Mode: whitelist). Tags [${contactTags}] do not match whitelist [${whitelist}].`);
+            if (channel === 'web' && resolve) resolve({ text: "" });
+            return;
+        }
+    }
+    else if (aiMode === 'blacklist') {
+        const blacklist = businessConfig.aiBlacklistTags || [];
+        if (blacklist.length > 0) {
+            const contactTags = contact ? contact.tags : [];
+            const hasBadTag = contactTags.some(t => blacklist.includes(t));
+
+            if (hasBadTag) {
+                console.log(`🛑 AI Audience Filter: Ignored (Mode: blacklist). Contact has blacklisted tag.`);
+                if (channel === 'web' && resolve) resolve({ text: "" });
+                return;
+            }
+        }
     }
 
     // 4. HORÁRIO
@@ -533,4 +578,4 @@ async function handleIncomingMessage(normalizedMsg, activeBusinessId) {
   }
 }
 
-module.exports = { handleIncomingMessage };
+module.exports = { handleIncomingMessage, processBufferedMessages };

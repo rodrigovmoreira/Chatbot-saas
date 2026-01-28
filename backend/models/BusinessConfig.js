@@ -18,6 +18,15 @@ const businessConfigSchema = new mongoose.Schema({
 
   aiGlobalDisabled: { type: Boolean, default: false }, // <--- NOVO: MODO OBSERVADOR (Se true, apenas ouve e não responde)
 
+  // === REGRAS DE ENGAJAMENTO (Fase 2) ===
+  aiResponseMode: {
+    type: String,
+    enum: ['all', 'new_contacts', 'whitelist', 'blacklist'],
+    default: 'all'
+  },
+  aiWhitelistTags: { type: [String], default: [] },
+  aiBlacklistTags: { type: [String], default: [] },
+
   avatarUrl: { type: String }, // <--- ADICIONADO: URL do avatar/logo do negócio
   businessType: { type: String }, // <--- ADICIONADO: Identifica o nicho (ex: Barber, Tattoo)
   whatsappProvider: { type: String, enum: ['twilio', 'wwebjs'], default: 'wwebjs' },

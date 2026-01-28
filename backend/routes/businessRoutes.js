@@ -18,10 +18,23 @@ const { v4: uuidv4 } = require('uuid');
 router.get('/config', authenticateToken, async (req, res) => {
   try {
     let config = await BusinessConfig.findOne({ userId: req.user.userId });
+
     // Se não existir, cria um padrão
-    if (!config) config = await BusinessConfig.create({ userId: req.user.userId, businessName: 'Meu Negócio' });
+    if (!config) {
+      config = await BusinessConfig.create({ userId: req.user.userId, businessName: 'Meu Negócio' });
+    } else {
+      // Lazy Migration: Ensure new fields exist
+      let dirty = false;
+      if (!config.aiResponseMode) { config.aiResponseMode = 'all'; dirty = true; }
+      if (!config.aiWhitelistTags) { config.aiWhitelistTags = []; dirty = true; }
+      if (!config.aiBlacklistTags) { config.aiBlacklistTags = []; dirty = true; }
+
+      if (dirty) await config.save();
+    }
+
     res.json(config);
   } catch (error) {
+    console.error('Erro GET config:', error);
     res.status(500).json({ message: 'Erro config' });
   }
 });
@@ -60,11 +73,23 @@ router.put('/config', authenticateToken, async (req, res) => {
       }
     }
 
+    console.log('📦 [PUT Config] Incoming Body:', req.body);
+
+    const updatePayload = {
+      ...req.body,
+      aiResponseMode: req.body.aiResponseMode,
+      aiWhitelistTags: req.body.aiWhitelistTags,
+      aiBlacklistTags: req.body.aiBlacklistTags,
+      updatedAt: new Date()
+    };
+
     const config = await BusinessConfig.findOneAndUpdate(
       { userId: req.user.userId },
-      { ...req.body, updatedAt: new Date() },
+      { $set: updatePayload },
       { new: true, upsert: true }
     );
+
+    console.log('💾 [PUT Config] Mongoose Update Result:', config);
     res.json(config);
   } catch (error) {
     console.error('Erro update config:', error);
@@ -127,8 +152,18 @@ router.get('/custom-prompts', authenticateToken, async (req, res) => {
 // POST /api/business/custom-prompts
 router.post('/custom-prompts', authenticateToken, async (req, res) => {
   try {
-    const { name, prompts, followUpSteps } = req.body;
-    const newPrompt = await CustomPrompt.create({ userId: req.user.userId, name, prompts, followUpSteps });
+    const {
+      name, prompts, followUpSteps,
+      botName, toneOfVoice, customInstructions,
+      aiResponseMode, aiWhitelistTags, aiBlacklistTags
+    } = req.body;
+
+    const newPrompt = await CustomPrompt.create({
+      userId: req.user.userId,
+      name, prompts, followUpSteps,
+      botName, toneOfVoice, customInstructions,
+      aiResponseMode, aiWhitelistTags, aiBlacklistTags
+    });
     res.json(newPrompt);
   } catch (error) {
     if (error.code === 11000) return res.status(400).json({ message: 'Nome duplicado.' });
