@@ -23,7 +23,7 @@ const StatsCard = ({ title, stat, icon, color }) => {
 
   return (
     <Stat
-      px={{ base: 2, md: 4 }}
+      px={{ base: 4, md: 6 }}
       py={'5'}
       shadow={'xl'}
       border={'1px solid'}
@@ -104,7 +104,7 @@ const OverviewTab = () => {
         Visão Geral
       </Heading>
 
-      <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={{ base: 5, lg: 8 }}>
+      <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={{ base: 6, lg: 8 }}>
         <StatsCard
           title={'Pipeline Total'}
           stat={formatCurrency(data.pipelineValue)}

@@ -372,8 +372,9 @@ const ChatMessage = ({ isUser, children }) => (
       borderTopLeftRadius={isUser ? "lg" : "0"}
       maxW="85%"
       boxShadow="sm"
+      fontSize="sm"
     >
-      <Text fontSize="sm">{children}</Text>
+      {children}
     </Box>
   </Flex>
 );
@@ -458,7 +459,7 @@ const ScreenshotPlaceholder = ({ title, desc, src }) => (
     borderColor="gray.100"
     transition="all 0.3s"
     _hover={{ transform: 'translateY(-5px)', boxShadow: 'xl' }}
-    group
+    role="group"
   >
     {/* Área da Imagem */}
     <Box h="250px" w="100%" position="relative" bg="gray.100">

@@ -207,7 +207,8 @@ const CampaignTab = () => {
       ) : (
         <Card>
           <CardBody>
-            <Box overflowX="auto">
+            {/* Desktop Table View */}
+            <Box overflowX="auto" display={{ base: 'none', md: 'block' }}>
               <Table variant="simple">
                 <Thead>
                   <Tr>
@@ -253,6 +254,43 @@ const CampaignTab = () => {
                 </Tbody>
               </Table>
             </Box>
+
+            {/* Mobile Card View */}
+            <VStack display={{ base: 'flex', md: 'none' }} align="stretch" spacing={4}>
+                {campaigns.map((c) => (
+                    <Box key={c._id} p={4} borderWidth="1px" borderRadius="lg" bg="gray.50">
+                        <HStack justify="space-between" mb={2}>
+                            <Text fontWeight="bold" fontSize="lg">{c.name}</Text>
+                            {renderStatusBadge(c)}
+                        </HStack>
+                        <HStack mb={2}>
+                            <Badge colorScheme={c.type === 'recurring' ? 'purple' : 'blue'}>
+                                {c.type === 'recurring' ? 'Recorrente' : 'Broadcast'}
+                            </Badge>
+                        </HStack>
+                        <Box mb={4}>
+                            <Text fontSize="xs" color="gray.500" mb={1}>Alvo:</Text>
+                            <Box>
+                                {c.targetTags && c.targetTags.length > 0 ? (
+                                    c.targetTags.map(t => <Badge key={t} mr={1} variant="outline" fontSize="xs">{t}</Badge>)
+                                ) : <Text fontSize="xs" color="gray.400">Todos os Contatos</Text>}
+                            </Box>
+                        </Box>
+                        <HStack justify="flex-end" spacing={2}>
+                            <IconButton
+                                icon={<ViewIcon />}
+                                size="md"
+                                colorScheme="teal"
+                                variant="ghost"
+                                onClick={() => openAudienceModal(c)}
+                                aria-label="Ver Audiência"
+                            />
+                            <IconButton icon={<EditIcon />} size="md" onClick={() => openModal(c)} aria-label="Editar" />
+                            <IconButton icon={<DeleteIcon />} size="md" colorScheme="red" onClick={() => handleDelete(c._id)} aria-label="Excluir" />
+                        </HStack>
+                    </Box>
+                ))}
+            </VStack>
           </CardBody>
         </Card>
       )}
