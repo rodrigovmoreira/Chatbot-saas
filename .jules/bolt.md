@@ -9,3 +9,7 @@
 ## 2026-01-27 - [React 19 Compatibility with React Scripts 5]
 **Learning:** The project uses `react-scripts` v5.0.1 with `react` v19.2.0. This combination causes `npm test` to fail with `AggregateError` during basic component rendering in JSDOM, likely due to hydration/environment mismatches in the test runner. Standard `render(<App />)` tests fail even for empty components.
 **Action:** When working in this environment, rely on `npm run build` for syntax/compilation verification and manual testing for functionality. Do not block on `npm test` failures if they are environmental `AggregateError`s related to React 19.
+
+## 2026-01-28 - [Redundant N+1 Checks in Bulk Operations]
+**Learning:** The campaign scheduler employed a "belt and suspenders" approach where it pre-filtered the target audience in a batch query (O(1)) but then re-verified each item's exclusion status in the loop (O(N)). This redundancy creates massive unnecessary DB load during high-volume broadcasts.
+**Action:** When refactoring bulk operations, explicitly trust the initial batch filter. Pass a flag (e.g., `skipExclusionCheck`) to the per-item processor to bypass the redundant individual checks while maintaining the safety check for single-item processing contexts.

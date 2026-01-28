@@ -157,7 +157,7 @@ async function processTimeCampaign(campaign) {
   console.log(`👥 Found ${contacts.length} potential targets for campaign ${campaign.name}`);
 
   for (const contact of contacts) {
-    await dispatchCampaign(campaign, contact, null, config);
+    await dispatchCampaign(campaign, contact, null, config, { skipExclusionCheck: true });
   }
 
   // Finalize Status
@@ -235,11 +235,11 @@ async function processEventCampaign(campaign) {
   }
 }
 
-async function dispatchCampaign(campaign, contact, appointment, config) {
+async function dispatchCampaign(campaign, contact, appointment, config, options = {}) {
   // 1. Exclusion Logic (Already Sent?)
 
   // For Broadcast: Check if ANY log exists for this campaign + contact
-  if (campaign.type === 'broadcast') {
+  if (campaign.type === 'broadcast' && !options.skipExclusionCheck) {
     const exists = await CampaignLog.exists({
       campaignId: campaign._id,
       contactId: contact._id
@@ -248,7 +248,7 @@ async function dispatchCampaign(campaign, contact, appointment, config) {
   }
 
   // For Recurring: Check if sent TODAY (only if NOT intraday)
-  if (campaign.type === 'recurring') {
+  if (campaign.type === 'recurring' && !options.skipExclusionCheck) {
     const intradayFreqs = ['minutes_1', 'minutes_30', 'hours_1', 'hours_6', 'hours_12'];
     if (!intradayFreqs.includes(campaign.schedule?.frequency)) {
         const today = new Date();
