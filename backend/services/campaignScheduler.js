@@ -156,8 +156,40 @@ async function processTimeCampaign(campaign) {
 
   console.log(`👥 Found ${contacts.length} potential targets for campaign ${campaign.name}`);
 
-  for (const contact of contacts) {
-    await dispatchCampaign(campaign, contact, null, config);
+  // Batch Processing for verification (Safety Check)
+  const BATCH_SIZE = 50;
+  for (let i = 0; i < contacts.length; i += BATCH_SIZE) {
+    const batch = contacts.slice(i, i + BATCH_SIZE);
+    const batchIds = batch.map(c => c._id);
+    let batchExcludedIds = [];
+
+    // Re-verify exclusions for this batch (Double-check for race conditions/consistency)
+    if (campaign.type === 'broadcast') {
+      batchExcludedIds = await CampaignLog.find({
+        campaignId: campaign._id,
+        contactId: { $in: batchIds }
+      }).distinct('contactId');
+    } else if (campaign.type === 'recurring') {
+      const intradayFreqs = ['minutes_1', 'minutes_30', 'hours_1', 'hours_6', 'hours_12'];
+      if (!intradayFreqs.includes(campaign.schedule?.frequency)) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        batchExcludedIds = await CampaignLog.find({
+          campaignId: campaign._id,
+          contactId: { $in: batchIds },
+          sentAt: { $gte: today }
+        }).distinct('contactId');
+      }
+    }
+
+    const batchExcludedSet = new Set(batchExcludedIds.map(id => id.toString()));
+
+    for (const contact of batch) {
+      if (batchExcludedSet.has(contact._id.toString())) {
+        continue; // Skip if found in batch check
+      }
+      await dispatchCampaign(campaign, contact, null, config, { skipExclusionCheck: true });
+    }
   }
 
   // Finalize Status
@@ -235,40 +267,41 @@ async function processEventCampaign(campaign) {
   }
 }
 
-async function dispatchCampaign(campaign, contact, appointment, config) {
+async function dispatchCampaign(campaign, contact, appointment, config, options = {}) {
   // 1. Exclusion Logic (Already Sent?)
-
-  // For Broadcast: Check if ANY log exists for this campaign + contact
-  if (campaign.type === 'broadcast') {
-    const exists = await CampaignLog.exists({
-      campaignId: campaign._id,
-      contactId: contact._id
-    });
-    if (exists) return; // Already sent
-  }
-
-  // For Recurring: Check if sent TODAY (only if NOT intraday)
-  if (campaign.type === 'recurring') {
-    const intradayFreqs = ['minutes_1', 'minutes_30', 'hours_1', 'hours_6', 'hours_12'];
-    if (!intradayFreqs.includes(campaign.schedule?.frequency)) {
-        const today = new Date();
-        today.setHours(0,0,0,0);
-        const exists = await CampaignLog.exists({
-          campaignId: campaign._id,
-          contactId: contact._id,
-          sentAt: { $gte: today }
-        });
-        if (exists) return; // Already sent today
-    }
-  }
-
-  // For Event: Check if sent for this APPOINTMENT
-  if (campaign.triggerType === 'event' && appointment) {
-    const exists = await CampaignLog.exists({
+  if (!options.skipExclusionCheck) {
+    // For Broadcast: Check if ANY log exists for this campaign + contact
+    if (campaign.type === 'broadcast') {
+      const exists = await CampaignLog.exists({
         campaignId: campaign._id,
-        relatedId: appointment._id.toString()
-    });
-    if (exists) return; // Already sent for this appointment
+        contactId: contact._id
+      });
+      if (exists) return; // Already sent
+    }
+
+    // For Recurring: Check if sent TODAY (only if NOT intraday)
+    if (campaign.type === 'recurring') {
+      const intradayFreqs = ['minutes_1', 'minutes_30', 'hours_1', 'hours_6', 'hours_12'];
+      if (!intradayFreqs.includes(campaign.schedule?.frequency)) {
+          const today = new Date();
+          today.setHours(0,0,0,0);
+          const exists = await CampaignLog.exists({
+            campaignId: campaign._id,
+            contactId: contact._id,
+            sentAt: { $gte: today }
+          });
+          if (exists) return; // Already sent today
+      }
+    }
+
+    // For Event: Check if sent for this APPOINTMENT
+    if (campaign.triggerType === 'event' && appointment) {
+      const exists = await CampaignLog.exists({
+          campaignId: campaign._id,
+          relatedId: appointment._id.toString()
+      });
+      if (exists) return; // Already sent for this appointment
+    }
   }
 
   // 2. Content Logic

@@ -9,3 +9,7 @@
 ## 2026-01-27 - [React 19 Compatibility with React Scripts 5]
 **Learning:** The project uses `react-scripts` v5.0.1 with `react` v19.2.0. This combination causes `npm test` to fail with `AggregateError` during basic component rendering in JSDOM, likely due to hydration/environment mismatches in the test runner. Standard `render(<App />)` tests fail even for empty components.
 **Action:** When working in this environment, rely on `npm run build` for syntax/compilation verification and manual testing for functionality. Do not block on `npm test` failures if they are environmental `AggregateError`s related to React 19.
+
+## 2026-01-29 - [Batch Verification for Idempotency]
+**Learning:** Simply removing redundant N+1 existence checks (e.g. `CampaignLog.exists`) inside a loop for performance is unsafe, as it breaks idempotency during restarts or race conditions.
+**Action:** Replace N+1 checks with **Batch Verification**. Query exclusions for the entire chunk (e.g. 50 items) in one DB call, filter in-memory, and then proceed. This preserves safety while solving the performance bottleneck.
