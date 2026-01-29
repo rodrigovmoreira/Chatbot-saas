@@ -85,4 +85,27 @@ describe('CRM & Tags Flow', () => {
     expect(updatedContact.tags).toEqual(expect.arrayContaining(tagsToAdd));
     expect(updatedContact.tags.length).toBe(2);
   });
+
+  it('should fetch all unique tags', async () => {
+    // Create contacts with different tags
+    await Contact.create({
+      businessId,
+      phone: '5511000000001',
+      tags: ['VIP', 'New']
+    });
+
+    await Contact.create({
+      businessId,
+      phone: '5511000000002',
+      tags: ['New', 'Lead']
+    });
+
+    const res = await request(app)
+      .get('/api/contacts/tags')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(expect.arrayContaining(['VIP', 'New', 'Lead']));
+    expect(res.body.length).toBe(3);
+  });
 });

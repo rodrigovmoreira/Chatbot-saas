@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box, Grid, Card, CardHeader, CardBody, Heading, Text, Button, VStack, HStack, Stack,
   useToast, Icon, useColorModeValue, FormControl, FormLabel, Input, Textarea,
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton,
   useDisclosure, Alert, AlertIcon, Select, Divider, IconButton, Tooltip, Checkbox, Tag,
-  Radio, RadioGroup, Wrap, WrapItem, TagLabel, TagCloseButton
+  Radio, RadioGroup, Wrap, WrapItem, TagLabel, TagCloseButton, List, ListItem
 } from '@chakra-ui/react';
 import {
   AddIcon, EditIcon, DeleteIcon, StarIcon, TimeIcon, DownloadIcon
@@ -53,7 +53,12 @@ const IntelligenceTab = () => {
     whitelist: [],
     blacklist: []
   });
+
+  // Tag Autocomplete State
+  const [availableTags, setAvailableTags] = useState([]);
   const [currentTagInput, setCurrentTagInput] = useState('');
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+  const tagInputRef = useRef(null);
 
   const [followUpSteps, setFollowUpSteps] = useState([]);
   const [newFollowUp, setNewFollowUp] = useState({ delayMinutes: 60, message: '', useAI: false });
@@ -81,7 +86,7 @@ const IntelligenceTab = () => {
     }
   }, [state.businessConfig]);
 
-  // Fetch Data
+  // Fetch Data (Presets + Custom Prompts + Tags)
   useEffect(() => {
     const fetchPresets = async () => {
       try {
@@ -94,8 +99,16 @@ const IntelligenceTab = () => {
     const fetchCustomPrompts = async () => {
       try { const res = await businessAPI.getCustomPrompts(); setCustomPrompts(res.data); } catch (e) { }
     };
+    const fetchTags = async () => {
+      try {
+        const res = await businessAPI.getTags();
+        setAvailableTags(res.data || []);
+      } catch (e) { console.error("Error fetching tags:", e); }
+    };
+
     fetchPresets();
     fetchCustomPrompts();
+    fetchTags();
   }, []);
 
   const fetchCustomPrompts = async () => {
@@ -234,9 +247,9 @@ const IntelligenceTab = () => {
   };
 
   // Audience Handlers
-  const handleAddTag = (listType) => {
-    if (!currentTagInput.trim()) return;
-    const cleanTag = currentTagInput.trim();
+  const handleAddTag = (listType, tagValue = currentTagInput) => {
+    if (!tagValue.trim()) return;
+    const cleanTag = tagValue.trim();
 
     setAudienceRules(prev => {
       const list = prev[listType];
@@ -244,6 +257,7 @@ const IntelligenceTab = () => {
       return { ...prev, [listType]: [...list, cleanTag] };
     });
     setCurrentTagInput('');
+    setShowTagSuggestions(false);
   };
 
   const handleRemoveTag = (listType, tagToRemove) => {
@@ -252,6 +266,11 @@ const IntelligenceTab = () => {
       [listType]: prev[listType].filter(t => t !== tagToRemove)
     }));
   };
+
+  // Filter tags for autocomplete
+  const filteredTags = availableTags.filter(tag =>
+    tag.toLowerCase().includes(currentTagInput.toLowerCase())
+  );
 
   // Follow-up Handlers
   const handleEditFollowUp = (idx) => {
@@ -443,27 +462,95 @@ const IntelligenceTab = () => {
                   </Stack>
                 </RadioGroup>
 
-                {/* Conditional Tag Inputs */}
+                {/* Conditional Tag Inputs with Autocomplete */}
                 {(audienceRules.mode === 'whitelist' || audienceRules.mode === 'blacklist') && (
                   <Box mt={4} p={4} bg={gray50Bg} borderRadius="md">
                     <Text fontSize="sm" fontWeight="bold" mb={2}>
                       {audienceRules.mode === 'whitelist' ? 'Tags Permitidas (Whitelist)' : 'Tags Bloqueadas (Blacklist)'}
                     </Text>
-                    <HStack mb={2}>
-                      <Input
-                        placeholder="Digite a tag e aperte Enter"
-                        value={currentTagInput}
-                        onChange={(e) => setCurrentTagInput(e.target.value)}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleAddTag(audienceRules.mode === 'whitelist' ? 'whitelist' : 'blacklist');
-                          }
-                        }}
-                        bg={cardBg}
-                      />
-                      <Button onClick={() => handleAddTag(audienceRules.mode === 'whitelist' ? 'whitelist' : 'blacklist')}>Adicionar</Button>
-                    </HStack>
+
+                    {/* Autocomplete Container */}
+                    <Box position="relative" mb={2}>
+                      <HStack>
+                        <Input
+                          ref={tagInputRef}
+                          placeholder="Digite para buscar ou criar tag..."
+                          value={currentTagInput}
+                          onChange={(e) => {
+                            setCurrentTagInput(e.target.value);
+                            setShowTagSuggestions(true);
+                          }}
+                          onFocus={() => setShowTagSuggestions(true)}
+                          onBlur={() => setTimeout(() => setShowTagSuggestions(false), 200)} // Delay to allow click
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddTag(audienceRules.mode === 'whitelist' ? 'whitelist' : 'blacklist');
+                            }
+                          }}
+                          bg={cardBg}
+                        />
+                        <Button onClick={() => handleAddTag(audienceRules.mode === 'whitelist' ? 'whitelist' : 'blacklist')}>Adicionar</Button>
+                      </HStack>
+
+                      {/* Dropdown Suggestions */}
+                      {showTagSuggestions && currentTagInput && (
+                        <Box
+                          position="absolute"
+                          top="100%"
+                          left={0}
+                          right={0}
+                          zIndex={10}
+                          bg={cardBg}
+                          boxShadow="md"
+                          borderRadius="md"
+                          border="1px solid"
+                          borderColor="gray.200"
+                          mt={1}
+                          maxH="200px"
+                          overflowY="auto"
+                        >
+                          <List spacing={0}>
+                            {filteredTags.map((tag) => (
+                              <ListItem
+                                key={tag}
+                                px={4}
+                                py={2}
+                                cursor="pointer"
+                                _hover={{ bg: "blue.50" }}
+                                onMouseDown={(e) => e.preventDefault()} // Prevent blur
+                                onClick={() => handleAddTag(audienceRules.mode === 'whitelist' ? 'whitelist' : 'blacklist', tag)}
+                              >
+                                <HStack>
+                                  <Icon as={StarIcon} color="blue.400" w={3} h={3} />
+                                  <Text fontSize="sm">{tag}</Text>
+                                </HStack>
+                              </ListItem>
+                            ))}
+
+                            {/* Option to create new if not exact match */}
+                            {!availableTags.includes(currentTagInput) && (
+                              <ListItem
+                                px={4}
+                                py={2}
+                                cursor="pointer"
+                                color="green.600"
+                                fontWeight="bold"
+                                _hover={{ bg: "green.50" }}
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={() => handleAddTag(audienceRules.mode === 'whitelist' ? 'whitelist' : 'blacklist')}
+                              >
+                                <HStack>
+                                  <Icon as={AddIcon} w={3} h={3} />
+                                  <Text fontSize="sm">Criar nova tag: "{currentTagInput}"</Text>
+                                </HStack>
+                              </ListItem>
+                            )}
+                          </List>
+                        </Box>
+                      )}
+                    </Box>
+
                     <Wrap>
                       {(audienceRules.mode === 'whitelist' ? audienceRules.whitelist : audienceRules.blacklist).map(tag => (
                         <WrapItem key={tag}>

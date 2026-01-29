@@ -32,6 +32,22 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 });
 
+// Get all unique tags for the business
+router.get('/tags', authenticateToken, async (req, res) => {
+    try {
+        const businessId = await getBusinessId(req.user.userId);
+        if (!businessId) {
+            return res.status(404).json({ message: 'Business configuration not found' });
+        }
+
+        const tags = await Contact.distinct('tags', { businessId });
+        res.json(tags);
+    } catch (error) {
+        console.error('Error fetching tags:', error);
+        res.status(500).json({ message: 'Error fetching tags' });
+    }
+});
+
 // Update contact (tags, handover, name, funnelStage)
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
