@@ -6,6 +6,7 @@ const {
   stopSession, 
   getSessionStatus 
 } = require('../services/wwebjsService');
+const whatsappController = require('../controllers/whatsappController');
 
 // ROTA: GET /api/whatsapp/status
 router.get('/status', authenticateToken, (req, res) => {
@@ -36,5 +37,8 @@ router.post('/logout', authenticateToken, async (req, res) => {
     res.status(500).json({ message: 'Erro ao desconectar' });
   }
 });
+
+// ROTA: POST /api/whatsapp/import-labels
+router.post('/import-labels', authenticateToken, whatsappController.importLabels);
 
 module.exports = router;

@@ -8,7 +8,7 @@ import {
 } from '@chakra-ui/react';
 import { SmallCloseIcon, AddIcon, CloseIcon } from '@chakra-ui/icons';
 
-const CrmSidebar = ({ contact, onUpdate, availableTags, onAddTag, onRemoveTag, onClose }) => {
+const CrmSidebar = ({ contact, onUpdate, availableTags, onAddTag, onRemoveTag, tagColors, onClose }) => {
   const [dealValue, setDealValue] = useState('0.00');
   const [funnelStage, setFunnelStage] = useState('new');
   const [notes, setNotes] = useState('');
@@ -56,10 +56,13 @@ const CrmSidebar = ({ contact, onUpdate, availableTags, onAddTag, onRemoveTag, o
     { value: 'closed_lost', label: 'Perdido' }
   ];
 
-  const getTagColor = (tag) => {
+  const getTagStyle = (tag) => {
+      if (tagColors && tagColors[tag]) {
+          return { bg: tagColors[tag], color: 'white' };
+      }
       const colors = ['purple', 'green', 'blue', 'orange', 'red', 'teal'];
       const hash = tag.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-      return colors[hash % colors.length];
+      return { colorScheme: colors[hash % colors.length] };
   };
 
   const handleLocalAddTag = (tag) => {
@@ -135,7 +138,7 @@ const CrmSidebar = ({ contact, onUpdate, availableTags, onAddTag, onRemoveTag, o
             <FormLabel fontSize="sm" color="gray.500">Tags</FormLabel>
             <Flex wrap="wrap" gap={2} mb={2}>
                 {contact.tags && contact.tags.map(tag => (
-                    <Badge key={tag} colorScheme={getTagColor(tag)} borderRadius="full" px={2} py={1} display="flex" alignItems="center">
+                    <Badge key={tag} {...getTagStyle(tag)} borderRadius="full" px={2} py={1} display="flex" alignItems="center">
                         {tag}
                         <Icon as={SmallCloseIcon} ml={1} cursor="pointer" onClick={() => onRemoveTag(tag)} />
                     </Badge>

@@ -2,10 +2,13 @@ import React, { memo } from 'react';
 import { Box, HStack, Icon, Text, Badge, useColorModeValue } from '@chakra-ui/react';
 import { FaWhatsapp, FaGlobe } from 'react-icons/fa';
 
-const getTagColor = (tag) => {
+const getTagStyle = (tag, tagColors) => {
+  if (tagColors && tagColors[tag]) {
+      return { bg: tagColors[tag], color: 'white' };
+  }
   const colors = ['purple', 'green', 'blue', 'orange', 'red', 'teal'];
   const hash = tag.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return colors[hash % colors.length];
+  return { colorScheme: colors[hash % colors.length] };
 };
 
 const formatTime = (isoString) => {
@@ -14,7 +17,7 @@ const formatTime = (isoString) => {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
-const ContactItem = ({ contact, isSelected, onClick }) => {
+const ContactItem = ({ contact, isSelected, onClick, tagColors }) => {
   const cardBg = useColorModeValue('white', 'gray.800');
   const gray50Bg = useColorModeValue('gray.50', 'gray.700');
 
@@ -45,7 +48,7 @@ const ContactItem = ({ contact, isSelected, onClick }) => {
       {contact.tags && contact.tags.length > 0 && (
           <HStack mt={1} spacing={1}>
               {contact.tags.slice(0, 2).map(tag => (
-                  <Badge key={tag} fontSize="xx-small" colorScheme={getTagColor(tag)}>{tag}</Badge>
+                  <Badge key={tag} fontSize="xx-small" {...getTagStyle(tag, tagColors)}>{tag}</Badge>
               ))}
               {contact.tags.length > 2 && <Text fontSize="xx-small">+{contact.tags.length - 2}</Text>}
           </HStack>

@@ -53,6 +53,8 @@ export const businessAPI = {
 
   // 3. Inteligência e Presets (Atualizado para /api/business)
   getPresets: () => api.get('/api/business/presets'),
+  getBusinessTags: () => api.get('/api/business/tags'), // <--- NOVO: Get defined tags with colors
+  importWhatsAppLabels: () => api.post('/api/whatsapp/import-labels'), // <--- NOVO: Import labels
   applyPreset: (presetKey) => api.post('/api/business/apply-preset', { presetKey }),
 
   // Upload de Imagem (NOVO)
