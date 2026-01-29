@@ -69,8 +69,8 @@ def run():
         vip_option = page.get_by_text("VIP", exact=True)
         expect(vip_option).to_be_visible()
 
-        page.screenshot(path="verification/tags_suggestion.png")
-        print("Screenshot saved: tags_suggestion.png")
+        page.screenshot(path="verification/tags_suggestion_restricted.png")
+        print("Screenshot saved: tags_suggestion_restricted.png")
 
         # Select VIP
         vip_option.click()
@@ -78,23 +78,46 @@ def run():
         # Verify added
         expect(page.get_by_text("VIP").first).to_be_visible()
 
-        # Test 2: Create new tag
-        print("Testing Create New Tag 'SuperNew'")
+        # Test 2: Try to Create new tag (SHOULD FAIL)
+        print("Testing RESTRICTION: Create New Tag 'SuperNew'")
         input_locator.fill("SuperNew")
 
+        # The option "Criar nova tag..." should NOT exist
         create_option = page.get_by_text('Criar nova tag: "SuperNew"')
-        expect(create_option).to_be_visible()
+        expect(create_option).not_to_be_visible()
 
-        page.screenshot(path="verification/tags_create.png")
-        print("Screenshot saved: tags_create.png")
+        page.screenshot(path="verification/tags_create_hidden.png")
+        print("Screenshot saved: tags_create_hidden.png")
 
-        create_option.click()
+        # Try clicking "Add" button
+        print("Clicking Add Button for 'SuperNew'...")
+        page.get_by_role("button", name="Adicionar").click()
 
-        expect(page.get_by_text("SuperNew").first).to_be_visible()
+        # Verify 'SuperNew' was NOT added to the list of tags
+        # We check if the tag appears as a rendered tag component
+        # Note: We need to be careful not to match the input text itself.
+        # Chakra tags usually have a close button, so we can look for the tag container or just text outside input.
+        # Ideally, we verify the tag count or specific tag element.
+
+        # Let's wait a moment for any potential (wrong) action
+        time.sleep(1)
+
+        # Expect "SuperNew" NOT to be present as a tag (Chakra Tag)
+        # Assuming the tag renders the text "SuperNew".
+        # But wait, "SuperNew" is in the input field.
+        # When added, the input clears.
+        # So if the input is NOT empty, it wasn't added!
+
+        expect(input_locator).to_have_value("SuperNew")
+        print("Input still has 'SuperNew', meaning it was not cleared/added.")
+
+        # Also check for Toast (Optional, might be flaky)
+        # toast_msg = page.get_by_text("Tag não encontrada")
+        # expect(toast_msg).to_be_visible()
 
         # Final Screenshot
-        page.screenshot(path="verification/final_result.png")
-        print("Screenshot saved: final_result.png")
+        page.screenshot(path="verification/final_restricted_result.png")
+        print("Screenshot saved: final_restricted_result.png")
 
         browser.close()
 

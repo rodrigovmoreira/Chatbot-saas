@@ -251,6 +251,18 @@ const IntelligenceTab = () => {
     if (!tagValue.trim()) return;
     const cleanTag = tagValue.trim();
 
+    // STRICT MODE: Only allow existing tags
+    if (!availableTags.includes(cleanTag)) {
+      toast({
+        title: 'Tag não encontrada',
+        description: 'Para criar novas tags, utilize a aba Chat Ao Vivo ou importe contatos.',
+        status: 'warning',
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
     setAudienceRules(prev => {
       const list = prev[listType];
       if (list.includes(cleanTag)) return prev;
@@ -528,24 +540,6 @@ const IntelligenceTab = () => {
                               </ListItem>
                             ))}
 
-                            {/* Option to create new if not exact match */}
-                            {!availableTags.includes(currentTagInput) && (
-                              <ListItem
-                                px={4}
-                                py={2}
-                                cursor="pointer"
-                                color="green.600"
-                                fontWeight="bold"
-                                _hover={{ bg: "green.50" }}
-                                onMouseDown={(e) => e.preventDefault()}
-                                onClick={() => handleAddTag(audienceRules.mode === 'whitelist' ? 'whitelist' : 'blacklist')}
-                              >
-                                <HStack>
-                                  <Icon as={AddIcon} w={3} h={3} />
-                                  <Text fontSize="sm">Criar nova tag: "{currentTagInput}"</Text>
-                                </HStack>
-                              </ListItem>
-                            )}
                           </List>
                         </Box>
                       )}
