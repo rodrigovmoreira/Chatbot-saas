@@ -205,56 +205,112 @@ const CampaignTab = () => {
             </CardBody>
         </Card>
       ) : (
-        <Card>
-          <CardBody>
-            <Box overflowX="auto">
-              <Table variant="simple">
-                <Thead>
-                  <Tr>
-                <Th>Nome</Th>
-                <Th>Tipo</Th>
-                <Th>Alvo (Tags)</Th>
-                <Th>Status</Th>
-                <Th>Ações</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {campaigns.map((c) => (
-                <Tr key={c._id}>
-                  <Td fontWeight="bold">{c.name}</Td>
-                  <Td>
-                    <Badge colorScheme={c.type === 'recurring' ? 'purple' : 'blue'}>
-                      {c.type === 'recurring' ? 'Recorrente' : 'Broadcast'}
-                    </Badge>
-                  </Td>
-                  <Td>
-                    {c.targetTags && c.targetTags.length > 0 ? (
-                        c.targetTags.map(t => <Badge key={t} mr={1} variant="outline">{t}</Badge>)
-                    ) : <Text fontSize="xs" color="gray.400">Todos</Text>}
-                  </Td>
-                  <Td>
-                      {renderStatusBadge(c)}
-                  </Td>
-                  <Td>
-                    <IconButton
-                        icon={<ViewIcon />}
-                        size="sm"
-                        mr={2}
-                        colorScheme="teal"
-                        variant="ghost"
-                        onClick={() => openAudienceModal(c)}
-                        title="Ver Audiência"
-                    />
-                    <IconButton icon={<EditIcon />} size="sm" mr={2} onClick={() => openModal(c)} />
-                    <IconButton icon={<DeleteIcon />} size="sm" colorScheme="red" onClick={() => handleDelete(c._id)} />
-                  </Td>
+        <>
+          {/* Desktop Table View */}
+          <Card display={{ base: 'none', md: 'block' }}>
+            <CardBody>
+              <Box overflowX="auto">
+                <Table variant="simple">
+                  <Thead>
+                    <Tr>
+                  <Th>Nome</Th>
+                  <Th>Tipo</Th>
+                  <Th>Alvo (Tags)</Th>
+                  <Th>Status</Th>
+                  <Th>Ações</Th>
                 </Tr>
-              ))}
-                </Tbody>
-              </Table>
-            </Box>
-          </CardBody>
-        </Card>
+              </Thead>
+              <Tbody>
+                {campaigns.map((c) => (
+                  <Tr key={c._id}>
+                    <Td fontWeight="bold">{c.name}</Td>
+                    <Td>
+                      <Badge colorScheme={c.type === 'recurring' ? 'purple' : 'blue'}>
+                        {c.type === 'recurring' ? 'Recorrente' : 'Broadcast'}
+                      </Badge>
+                    </Td>
+                    <Td>
+                      {c.targetTags && c.targetTags.length > 0 ? (
+                          c.targetTags.map(t => <Badge key={t} mr={1} variant="outline">{t}</Badge>)
+                      ) : <Text fontSize="xs" color="gray.400">Todos</Text>}
+                    </Td>
+                    <Td>
+                        {renderStatusBadge(c)}
+                    </Td>
+                    <Td>
+                      <IconButton
+                          icon={<ViewIcon />}
+                          size="sm"
+                          mr={2}
+                          colorScheme="teal"
+                          variant="ghost"
+                          onClick={() => openAudienceModal(c)}
+                          title="Ver Audiência"
+                      />
+                      <IconButton icon={<EditIcon />} size="sm" mr={2} onClick={() => openModal(c)} />
+                      <IconButton icon={<DeleteIcon />} size="sm" colorScheme="red" onClick={() => handleDelete(c._id)} />
+                    </Td>
+                  </Tr>
+                ))}
+                  </Tbody>
+                </Table>
+              </Box>
+            </CardBody>
+          </Card>
+
+          {/* Mobile Card View */}
+          <VStack spacing={4} display={{ base: 'flex', md: 'none' }}>
+            {campaigns.map((c) => (
+              <Card key={c._id} w="100%" variant="outline">
+                <CardBody p={4}>
+                  <VStack align="stretch" spacing={3}>
+                    <HStack justify="space-between">
+                      <Text fontWeight="bold" fontSize="lg">{c.name}</Text>
+                      {renderStatusBadge(c)}
+                    </HStack>
+
+                    <HStack>
+                      <Badge colorScheme={c.type === 'recurring' ? 'purple' : 'blue'}>
+                        {c.type === 'recurring' ? 'Recorrente' : 'Broadcast'}
+                      </Badge>
+                      <HStack flexWrap="wrap" spacing={1}>
+                        {c.targetTags && c.targetTags.length > 0 ? (
+                            c.targetTags.map(t => <Badge key={t} variant="outline" fontSize="xs">{t}</Badge>)
+                        ) : <Text fontSize="xs" color="gray.400">Todos</Text>}
+                      </HStack>
+                    </HStack>
+
+                    <HStack justify="flex-end" pt={2}>
+                      <IconButton
+                          icon={<ViewIcon />}
+                          size="lg"
+                          colorScheme="teal"
+                          variant="ghost"
+                          onClick={() => openAudienceModal(c)}
+                          aria-label="Ver Audiência"
+                      />
+                      <IconButton
+                          icon={<EditIcon />}
+                          size="lg"
+                          variant="ghost"
+                          onClick={() => openModal(c)}
+                          aria-label="Editar"
+                      />
+                      <IconButton
+                          icon={<DeleteIcon />}
+                          size="lg"
+                          colorScheme="red"
+                          variant="ghost"
+                          onClick={() => handleDelete(c._id)}
+                          aria-label="Excluir"
+                      />
+                    </HStack>
+                  </VStack>
+                </CardBody>
+              </Card>
+            ))}
+          </VStack>
+        </>
       )}
 
       {/* Audience Report Modal */}
