@@ -108,4 +108,21 @@ describe('CRM & Tags Flow', () => {
     expect(res.body).toEqual(expect.arrayContaining(['VIP', 'New', 'Lead']));
     expect(res.body.length).toBe(3);
   });
+
+  it('should filter out corrupted tags', async () => {
+    // Create contact with corrupted tag
+    await Contact.create({
+      businessId,
+      phone: '5511000000003',
+      tags: ['ValidTag', 'Corrupted\uFFFDTag']
+    });
+
+    const res = await request(app)
+      .get('/api/contacts/tags')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toContain('ValidTag');
+    expect(res.body).not.toContain('Corrupted\uFFFDTag');
+  });
 });

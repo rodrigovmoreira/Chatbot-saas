@@ -40,7 +40,12 @@ router.get('/tags', authenticateToken, async (req, res) => {
             return res.status(404).json({ message: 'Business configuration not found' });
         }
 
-        const tags = await Contact.distinct('tags', { businessId });
+        const tagsRaw = await Contact.distinct('tags', { businessId });
+
+        // Filter garbage tags (containing replacement character )
+        const tags = tagsRaw.filter(t => t && !t.includes('\uFFFD'));
+
+        console.log('🏷️ [GetTags] Found tags for Business:', businessId, tags);
         res.json(tags);
     } catch (error) {
         console.error('Error fetching tags:', error);
