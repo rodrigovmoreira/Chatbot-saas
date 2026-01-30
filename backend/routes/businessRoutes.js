@@ -102,7 +102,7 @@ router.put('/config', authenticateToken, async (req, res) => {
 // GET /api/business/presets
 router.get('/presets', authenticateToken, async (req, res) => {
   try {
-    const presets = await IndustryPreset.find({}).select('key name icon botName toneOfVoice customInstructions').sort({ name: 1 });
+    const presets = await IndustryPreset.find({}).select('key name icon botName toneOfVoice customInstructions').sort({ name: 1 }).lean();
     res.json(presets);
   } catch (error) {
     res.status(500).json({ message: 'Erro ao buscar presets' });
@@ -142,7 +142,7 @@ router.post('/apply-preset', authenticateToken, async (req, res) => {
 // GET /api/business/custom-prompts
 router.get('/custom-prompts', authenticateToken, async (req, res) => {
   try {
-    const prompts = await CustomPrompt.find({ userId: req.user.userId }).sort({ createdAt: -1 });
+    const prompts = await CustomPrompt.find({ userId: req.user.userId }).sort({ createdAt: -1 }).lean();
     res.json(prompts);
   } catch (error) {
     res.status(500).json({ message: 'Erro ao buscar modelos' });
