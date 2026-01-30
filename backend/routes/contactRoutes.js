@@ -24,7 +24,8 @@ router.get('/', authenticateToken, async (req, res) => {
             return res.status(404).json({ message: 'Business configuration not found' });
         }
 
-        const contacts = await Contact.find({ businessId }).sort({ lastInteraction: -1 });
+        // Optimization: Use .lean() to return plain JS objects instead of full Mongoose documents
+        const contacts = await Contact.find({ businessId }).sort({ lastInteraction: -1 }).lean();
         res.json(contacts);
     } catch (error) {
         console.error('Error fetching contacts:', error);
@@ -90,7 +91,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
             return res.status(404).json({ message: 'Business configuration not found' });
         }
 
-        const contact = await Contact.findOne({ _id: id, businessId });
+        const contact = await Contact.findOne({ _id: id, businessId }).lean();
         if (!contact) {
             return res.status(404).json({ message: 'Contact not found' });
         }
