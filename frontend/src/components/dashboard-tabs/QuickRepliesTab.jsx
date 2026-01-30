@@ -73,7 +73,7 @@ const QuickRepliesTab = () => {
             <Button leftIcon={<AddIcon />} colorScheme="green" onClick={() => { setEditingMenuIndex(null); setNewMenuOption({ keyword: '', description: '', response: '', requiresHuman: false, useAI: false }); onOpen(); }}>Nova Regra</Button>
           </Stack>
         </CardHeader>
-        <CardBody>
+        <CardBody p={{ base: 4, md: 6 }}>
           <Grid templateColumns={{ base: '1fr', sm: 'repeat(auto-fill, minmax(250px, 1fr))' }} gap={4}>
             {menuOptions.map((opt, idx) => (
               <Card key={idx} variant="outline" size="sm">

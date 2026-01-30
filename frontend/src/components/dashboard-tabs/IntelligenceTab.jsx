@@ -328,7 +328,7 @@ const IntelligenceTab = () => {
 
         {/* 1. SELEÇÃO DE PRESET DO SISTEMA */}
         <Card bg={cardBg} boxShadow="sm" borderLeft="4px solid" borderColor="blue.500">
-          <CardBody>
+          <CardBody p={{ base: 4, md: 6 }}>
             <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" align="center" spacing={4}>
               <Box>
                 <Heading size="sm" mb={1}>Modelos Padrão (Sistema)</Heading>
@@ -346,7 +346,7 @@ const IntelligenceTab = () => {
 
         {/* 2. MEUS MODELOS SALVOS */}
         <Card bg={orangeBg} boxShadow="sm" borderLeft="4px solid" borderColor="orange.400">
-          <CardBody>
+          <CardBody p={{ base: 4, md: 6 }}>
             <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" align="center" spacing={4}>
               <Box>
                 <Heading size="sm" mb={1} color={orange800}>Meus Modelos Pessoais</Heading>
@@ -390,7 +390,7 @@ const IntelligenceTab = () => {
             {/* Group A: Identity */}
             <Card bg={cardBg} boxShadow="sm">
               <CardHeader pb={0}><Heading size="sm" color="blue.500">A. Identidade</Heading></CardHeader>
-              <CardBody>
+              <CardBody p={{ base: 4, md: 6 }}>
                 <Stack direction={{ base: 'column', md: 'row' }} spacing={4}>
                   <FormControl>
                     <FormLabel fontSize="sm">Nome do Robô</FormLabel>
@@ -398,6 +398,7 @@ const IntelligenceTab = () => {
                       placeholder="Ex: Viktor"
                       value={identity.botName}
                       onChange={(e) => setIdentity({ ...identity, botName: e.target.value })}
+                      size={{ base: 'lg', md: 'md' }}
                     />
                   </FormControl>
                   <FormControl>
@@ -406,6 +407,7 @@ const IntelligenceTab = () => {
                       placeholder="Ex: Formal, Amigável, Descontraído..."
                       value={identity.tone}
                       onChange={(e) => setIdentity({ ...identity, tone: e.target.value })}
+                      size={{ base: 'lg', md: 'md' }}
                     />
                   </FormControl>
                 </Stack>
@@ -414,7 +416,7 @@ const IntelligenceTab = () => {
 
             {/* Group B: Business Context */}
             <Card bg={gray50Bg} boxShadow="sm" borderLeft="4px solid" borderColor="green.500">
-              <CardBody>
+              <CardBody p={{ base: 4, md: 6 }}>
                 <HStack justify="space-between">
                   <Box>
                     <Heading size="sm" color="green.700">B. Contexto do Negócio (Automático)</Heading>
@@ -433,7 +435,7 @@ const IntelligenceTab = () => {
             <Grid templateColumns={{ base: '1fr', md: '1fr 1fr' }} gap={6}>
               <Card bg={cardBg} boxShadow="sm">
                 <CardHeader pb={0}><Heading size="sm" color="purple.500">C. Cérebro (Instruções)</Heading></CardHeader>
-                <CardBody>
+                <CardBody p={{ base: 4, md: 6 }}>
                   <Textarea
                     value={activePrompts.customInstructions}
                     onChange={(e) => setActivePrompts({ ...activePrompts, customInstructions: e.target.value })}
@@ -441,12 +443,13 @@ const IntelligenceTab = () => {
                     bg={gray50Bg}
                     fontSize="sm"
                     placeholder="Regras específicas. Ex: 'Não aceite cartões de crédito', 'Sempre peça o nome do cliente'."
+                    size={{ base: 'lg', md: 'md' }}
                   />
                 </CardBody>
               </Card>
               <Card bg={cardBg} boxShadow="sm">
                 <CardHeader pb={0}><Heading size="sm">👁️ Visão (Imagem)</Heading></CardHeader>
-                <CardBody>
+                <CardBody p={{ base: 4, md: 6 }}>
                   <Textarea
                     value={activePrompts.visionSystem}
                     onChange={(e) => setActivePrompts({ ...activePrompts, visionSystem: e.target.value })}
@@ -454,6 +457,7 @@ const IntelligenceTab = () => {
                     bg={gray50Bg}
                     fontSize="sm"
                     placeholder="Instruções para análise de imagem..."
+                    size={{ base: 'lg', md: 'md' }}
                   />
                 </CardBody>
               </Card>
@@ -464,7 +468,7 @@ const IntelligenceTab = () => {
               <CardHeader pb={0}>
                 <Heading size="sm" color="teal.600">D. Regras de Engajamento (Quem a IA responde?)</Heading>
               </CardHeader>
-              <CardBody>
+              <CardBody p={{ base: 4, md: 6 }}>
                 <RadioGroup onChange={(val) => setAudienceRules({ ...audienceRules, mode: val })} value={audienceRules.mode}>
                   <Stack direction={{ base: 'column', md: 'row' }} spacing={5}>
                     <Radio value='all'>Responder Todos (Padrão)</Radio>
@@ -501,8 +505,9 @@ const IntelligenceTab = () => {
                             }
                           }}
                           bg={cardBg}
+                          size={{ base: 'lg', md: 'md' }}
                         />
-                        <Button onClick={() => handleAddTag(audienceRules.mode === 'whitelist' ? 'whitelist' : 'blacklist')}>Adicionar</Button>
+                        <Button onClick={() => handleAddTag(audienceRules.mode === 'whitelist' ? 'whitelist' : 'blacklist')} size={{ base: 'lg', md: 'md' }}>Adicionar</Button>
                       </HStack>
 
                       {/* Dropdown Suggestions */}
@@ -611,7 +616,7 @@ const IntelligenceTab = () => {
           <VStack spacing={4} align="stretch">
             {followUpSteps.map((step, idx) => (
               <Card key={idx} variant="outline" borderColor="purple.200" bg={purpleBg}>
-                <CardBody>
+                <CardBody p={{ base: 4, md: 6 }}>
                   <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" align="start">
                     <Stack direction={{ base: 'column', md: 'row' }} align="start" spacing={4}>
                       <VStack
