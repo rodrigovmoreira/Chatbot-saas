@@ -113,7 +113,7 @@ const CatalogTab = () => {
             <Button leftIcon={<AddIcon />} variant="outline" colorScheme="blue" onClick={() => { setEditingProductIndex(null); setNewProduct({ name: '', price: '', description: '', imageUrls: [], tags: [] }); onProductModalOpen(); }}>Novo Item</Button>
           </Stack>
         </CardHeader>
-        <CardBody>
+        <CardBody p={{ base: 4, md: 6 }}>
           <VStack align="stretch" spacing={3}>
             {products.map((prod, idx) => (
               <Stack direction={{ base: 'column', md: 'row' }} key={idx} p={4} borderWidth="1px" borderRadius="md" justify="space-between" bg={gray50Bg} align="start">

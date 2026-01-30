@@ -35,7 +35,7 @@ const FunnelColumn = ({ step, contacts, droppableId }) => {
       flexShrink={0}
     >
       {/* Header */}
-      <Box p={4} borderBottom="1px solid" borderColor={borderColor}>
+      <Box p={{ base: 4, md: 6 }} borderBottom="1px solid" borderColor={borderColor}>
         <Flex justify="space-between" align="center" mb={1}>
           <Text fontWeight="bold" fontSize="md" color={step.color || 'gray.700'}>
             {step.label}
