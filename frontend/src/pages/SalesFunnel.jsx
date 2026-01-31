@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Button, Center, Heading, Text, useDisclosure, useToast, Spinner, Flex } from '@chakra-ui/react';
+import { Box, Button, Center, Heading, Text, useDisclosure, useToast, Spinner, Flex, Stack } from '@chakra-ui/react';
 import { SettingsIcon } from '@chakra-ui/icons';
 import { useApp } from '../context/AppContext';
 import { businessAPI } from '../services/api';
@@ -89,12 +89,12 @@ const SalesFunnel = () => {
 
   return (
     <Box h="calc(100vh - 100px)" display="flex" flexDirection="column">
-      <Flex mb={4} justify="space-between" align="center">
+      <Stack direction={{ base: 'column', md: 'row' }} mb={4} justify="space-between" align={{ base: 'stretch', md: 'center' }} spacing={4}>
         <Heading size="md">Funil de Vendas</Heading>
-        <Button size="sm" leftIcon={<SettingsIcon />} onClick={onOpen}>
+        <Button size={{ base: 'lg', md: 'sm' }} leftIcon={<SettingsIcon />} onClick={onOpen}>
           Configurar Etapas
         </Button>
-      </Flex>
+      </Stack>
 
       <Box flex="1" overflow="hidden">
         {loading ? (

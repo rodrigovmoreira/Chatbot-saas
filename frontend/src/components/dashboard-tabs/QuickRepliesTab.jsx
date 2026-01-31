@@ -70,7 +70,7 @@ const QuickRepliesTab = () => {
         <CardHeader>
           <Stack direction={{ base: 'column', md: 'row' }} justify="space-between">
             <Box><Heading size="md">Menu de Respostas</Heading><Text fontSize="sm" color="gray.500">Palavras-chave que o bot responde instantaneamente.</Text></Box>
-            <Button leftIcon={<AddIcon />} colorScheme="green" onClick={() => { setEditingMenuIndex(null); setNewMenuOption({ keyword: '', description: '', response: '', requiresHuman: false, useAI: false }); onOpen(); }}>Nova Regra</Button>
+            <Button leftIcon={<AddIcon />} colorScheme="green" size={{ base: 'lg', md: 'md' }} onClick={() => { setEditingMenuIndex(null); setNewMenuOption({ keyword: '', description: '', response: '', requiresHuman: false, useAI: false }); onOpen(); }}>Nova Regra</Button>
           </Stack>
         </CardHeader>
         <CardBody>
