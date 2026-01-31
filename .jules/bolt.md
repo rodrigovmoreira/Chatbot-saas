@@ -13,3 +13,7 @@
 ## 2026-01-29 - [Batch Verification for Idempotency]
 **Learning:** Simply removing redundant N+1 existence checks (e.g. `CampaignLog.exists`) inside a loop for performance is unsafe, as it breaks idempotency during restarts or race conditions.
 **Action:** Replace N+1 checks with **Batch Verification**. Query exclusions for the entire chunk (e.g. 50 items) in one DB call, filter in-memory, and then proceed. This preserves safety while solving the performance bottleneck.
+
+## 2026-01-31 - [Lean Queries for Read-Only Lists]
+**Learning:** The `GET /api/contacts` endpoint was fetching thousands of Mongoose documents, causing high memory usage and slow hydration. Adding `.lean()` converts the result to plain POJOs immediately. Crucially, JSON serialization of Mongoose ObjectIds works identically for string conversion, but virtual getters like `id` are lost (frontend relied on `_id` so this was safe).
+**Action:** Use `.lean()` for all high-volume read-only queries (like contact lists or message history) to bypass hydration overhead, but verify frontend dependencies on virtuals first.

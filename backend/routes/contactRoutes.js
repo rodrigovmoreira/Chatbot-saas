@@ -24,7 +24,8 @@ router.get('/', authenticateToken, async (req, res) => {
             return res.status(404).json({ message: 'Business configuration not found' });
         }
 
-        const contacts = await Contact.find({ businessId }).sort({ lastInteraction: -1 });
+        // Optimization: Use .lean() to skip Mongoose hydration for read-only list
+        const contacts = await Contact.find({ businessId }).sort({ lastInteraction: -1 }).lean();
         res.json(contacts);
     } catch (error) {
         console.error('Error fetching contacts:', error);
