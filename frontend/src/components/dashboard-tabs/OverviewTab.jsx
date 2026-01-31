@@ -23,7 +23,7 @@ const StatsCard = ({ title, stat, icon, color }) => {
 
   return (
     <Stat
-      px={{ base: 2, md: 4 }}
+      px={{ base: 4, md: 6 }}
       py={'5'}
       shadow={'xl'}
       border={'1px solid'}

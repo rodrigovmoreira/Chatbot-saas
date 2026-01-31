@@ -241,6 +241,7 @@ const PublicChat = () => {
               bg={useColorModeValue('gray.100', 'gray.700')}
               border="none"
               _focus={{ ring: 2, ringColor: 'teal.500' }}
+              size={{ base: 'lg', md: 'md' }}
             />
             <IconButton
               icon={<FaPaperPlane />}
@@ -248,6 +249,7 @@ const PublicChat = () => {
               aria-label="Send message"
               onClick={handleSendMessage}
               isDisabled={!inputValue.trim() || loading}
+              size={{ base: 'lg', md: 'md' }}
             />
           </HStack>
         </Container>
