@@ -162,7 +162,7 @@ const ConnectionTab = () => {
         <GridItem>
           <Card bg={cardBg} h="100%" boxShadow="md">
             <CardHeader>
-              <HStack justify="space-between"><Heading size="md">Dados da Empresa</Heading><Button size="xs" onClick={() => setEditingHours(!editingHours)} leftIcon={<EditIcon />}>{editingHours ? 'Cancelar' : 'Editar'}</Button></HStack>
+              <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" align="center"><Heading size="md">Dados da Empresa</Heading><Button size="xs" onClick={() => setEditingHours(!editingHours)} leftIcon={<EditIcon />}>{editingHours ? 'Cancelar' : 'Editar'}</Button></Stack>
             </CardHeader>
             <CardBody>
               <VStack spacing={4} align="stretch">

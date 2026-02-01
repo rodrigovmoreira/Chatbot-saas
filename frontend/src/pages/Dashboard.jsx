@@ -161,7 +161,6 @@ const Dashboard = ({ initialTab = 0 }) => {
       <Box
         ml={{ base: 0, lg: isCollapsed ? 20 : 60 }}
         p={{ base: 4, md: 6 }}
-        pt={{ base: 4, lg: 6 }}
         mt={{ base: 20, lg: 0 }} // Add margin top on mobile because MobileNav is fixed
         transition="margin-left 0.2s"
       >

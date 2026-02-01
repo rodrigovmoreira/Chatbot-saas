@@ -208,7 +208,7 @@ const CampaignTab = () => {
         <Card>
           <CardBody>
             <Box overflowX="auto">
-              <Table variant="simple">
+              <Table variant="simple" minW="600px">
                 <Thead>
                   <Tr>
                 <Th>Nome</Th>
