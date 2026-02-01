@@ -108,4 +108,28 @@ describe('CRM & Tags Flow', () => {
     expect(res.body).toEqual(expect.arrayContaining(['VIP', 'New', 'Lead']));
     expect(res.body.length).toBe(3);
   });
+
+  it('should fetch list of contacts', async () => {
+    await Contact.create({
+      businessId,
+      phone: '5511000000001',
+      name: 'Contact A'
+    });
+
+    await Contact.create({
+      businessId,
+      phone: '5511000000002',
+      name: 'Contact B'
+    });
+
+    const res = await request(app)
+      .get('/api/contacts')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBe(2);
+    expect(res.body[0]).toHaveProperty('_id');
+    expect(res.body[0]).toHaveProperty('name');
+  });
 });
