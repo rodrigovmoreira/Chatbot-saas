@@ -318,7 +318,7 @@ const ScheduleTab = () => {
              filteredEvents.map((evt, idx) => (
                <Box
                  key={idx}
-                 p={4}
+                 p={{ base: 4, md: 6 }}
                  bg={cardBg}
                  borderRadius="md"
                  boxShadow="sm"
@@ -523,6 +523,7 @@ const ScheduleTab = () => {
                 <Select
                   value={newEvent.type}
                   onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value })}
+                  size={{ base: 'lg', md: 'md' }}
                 >
                   <option value="servico">Prestação de Serviço</option>
                   <option value="orcamento">Orçamento / Avaliação</option>

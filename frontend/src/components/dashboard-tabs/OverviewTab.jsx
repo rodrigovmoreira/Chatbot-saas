@@ -23,7 +23,7 @@ const StatsCard = ({ title, stat, icon, color }) => {
 
   return (
     <Stat
-      px={{ base: 2, md: 4 }}
+      px={{ base: 4, md: 6 }}
       py={'5'}
       shadow={'xl'}
       border={'1px solid'}
@@ -32,7 +32,7 @@ const StatsCard = ({ title, stat, icon, color }) => {
       bg={bg}
     >
       <Flex justifyContent={'space-between'}>
-        <Box pl={{ base: 2, md: 4 }}>
+        <Box>
           <StatLabel fontWeight={'medium'} isTruncated>
             {title}
           </StatLabel>
@@ -93,13 +93,12 @@ const OverviewTab = () => {
   };
 
   return (
-    <Box maxW="7xl" mx={'auto'} pt={5} px={0}>
+    <Box maxW="7xl" mx={'auto'} p={{ base: 4, md: 6 }}>
       <Heading
         textAlign={'left'}
         fontSize={'3xl'}
-        py={10}
+        mb={8}
         fontWeight={'bold'}
-        mb={4}
       >
         Visão Geral
       </Heading>
