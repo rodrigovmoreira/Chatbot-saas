@@ -126,8 +126,8 @@ const ConnectionTab = () => {
         {/* Card WhatsApp */}
         <GridItem>
           <Card bg={cardBg} h="100%" boxShadow="md" borderTop="4px solid" borderTopColor={state.whatsappStatus.isConnected ? "green.400" : "red.400"}>
-            <CardHeader><Heading size="md">Status do WhatsApp</Heading></CardHeader>
-            <CardBody display="flex" flexDirection="column" alignItems="center" justifyContent="center">
+            <CardHeader p={{ base: 4, md: 6 }}><Heading size="md">Status do WhatsApp</Heading></CardHeader>
+            <CardBody p={{ base: 4, md: 6 }} display="flex" flexDirection="column" alignItems="center" justifyContent="center">
               {state.whatsappStatus.isConnected ? (
                 <VStack spacing={4}>
                   <Icon as={CheckCircleIcon} color="green.500" boxSize={16} />
@@ -161,14 +161,14 @@ const ConnectionTab = () => {
         {/* Card Configs */}
         <GridItem>
           <Card bg={cardBg} h="100%" boxShadow="md">
-            <CardHeader>
-              <HStack justify="space-between"><Heading size="md">Dados da Empresa</Heading><Button size="xs" onClick={() => setEditingHours(!editingHours)} leftIcon={<EditIcon />}>{editingHours ? 'Cancelar' : 'Editar'}</Button></HStack>
+            <CardHeader p={{ base: 4, md: 6 }}>
+              <HStack justify="space-between"><Heading size="md">Dados da Empresa</Heading><Button size={{ base: 'md', md: 'xs' }} onClick={() => setEditingHours(!editingHours)} leftIcon={<EditIcon />}>{editingHours ? 'Cancelar' : 'Editar'}</Button></HStack>
             </CardHeader>
-            <CardBody>
+            <CardBody p={{ base: 4, md: 6 }}>
               <VStack spacing={4} align="stretch">
                 <FormControl>
                   <FormLabel fontSize="xs" fontWeight="bold" color="gray.500">NOME FANTASIA</FormLabel>
-                  <Input isDisabled={!editingHours} value={configForm.businessName} onChange={e => setConfigForm({ ...configForm, businessName: e.target.value })} />
+                  <Input isDisabled={!editingHours} value={configForm.businessName} onChange={e => setConfigForm({ ...configForm, businessName: e.target.value })} size={{ base: 'lg', md: 'md' }} />
                 </FormControl>
                 <Stack direction={{ base: 'column', md: 'row' }} spacing={4}>
                   <FormControl><FormLabel fontSize="xs" fontWeight="bold" color="gray.500">ABERTURA</FormLabel><Input type="time" isDisabled={!editingHours} value={configForm.operatingHours.opening} onChange={e => setConfigForm({ ...configForm, operatingHours: { ...configForm.operatingHours, opening: e.target.value } })} size={{ base: 'lg', md: 'md' }} /></FormControl>
@@ -176,7 +176,7 @@ const ConnectionTab = () => {
                 </Stack>
                 <FormControl>
                   <FormLabel fontSize="xs" fontWeight="bold" color="gray.500">MENSAGEM DE AUSÊNCIA</FormLabel>
-                  <Textarea isDisabled={!editingHours} value={configForm.awayMessage} onChange={e => setConfigForm({ ...configForm, awayMessage: e.target.value })} rows={3} />
+                  <Textarea isDisabled={!editingHours} value={configForm.awayMessage} onChange={e => setConfigForm({ ...configForm, awayMessage: e.target.value })} rows={3} size={{ base: 'lg', md: 'md' }} />
                 </FormControl>
 
                 <Divider />
@@ -195,7 +195,7 @@ const ConnectionTab = () => {
                   <Input isDisabled={!editingHours} placeholder="Link externo (Drive, Behance...)" value={configForm.socialMedia.portfolio} onChange={e => setConfigForm({ ...configForm, socialMedia: { ...configForm.socialMedia, portfolio: e.target.value } })} size={{ base: 'lg', md: 'md' }} />
                 </FormControl>
 
-                {editingHours && <Button colorScheme="brand" onClick={handleSaveConfig} width="full">Salvar Alterações</Button>}
+                {editingHours && <Button colorScheme="brand" onClick={handleSaveConfig} width="full" size={{ base: 'lg', md: 'md' }}>Salvar Alterações</Button>}
               </VStack>
             </CardBody>
           </Card>

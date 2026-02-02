@@ -368,7 +368,7 @@ const LiveChatTab = () => {
             {selectedContact ? (
               <>
                 {/* Header do Chat */}
-                <Box p={3} bg={cardBg} borderBottom="1px solid" borderColor={gray50Bg}>
+                <Box p={{ base: 4, md: 6 }} bg={cardBg} borderBottom="1px solid" borderColor={gray50Bg}>
                     <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" mb={2} spacing={2}>
                       <HStack>
                         <IconButton
@@ -398,7 +398,7 @@ const LiveChatTab = () => {
                                 isChecked={selectedContact.isHandover}
                                 onChange={toggleHandover}
                                 colorScheme="orange"
-                                size="sm"
+                                size="md" // Mobile default
                               />
                             </FormControl>
 
@@ -410,14 +410,14 @@ const LiveChatTab = () => {
                                     variant={showDesktopCrm && isLargeScreen ? "solid" : "ghost"}
                                     colorScheme={showDesktopCrm && isLargeScreen ? "brand" : "gray"}
                                     aria-label="CRM"
-                                    size="sm"
+                                    size={{ base: 'md', md: 'sm' }}
                                 />
                               </Tooltip>
 
                               <Tooltip label="Limpar Histórico">
                                 <Button
                                   leftIcon={<DeleteIcon />}
-                                  size="sm"
+                                  size={{ base: 'md', md: 'sm' }}
                                   colorScheme="red"
                                   variant="ghost"
                                   onClick={handleClearHistory}
@@ -473,7 +473,7 @@ const LiveChatTab = () => {
                 </Box>
 
                 {/* Input Area */}
-                <Box p={4} bg={cardBg} borderTop="1px solid" borderColor={gray50Bg}>
+                <Box p={{ base: 4, md: 6 }} bg={cardBg} borderTop="1px solid" borderColor={gray50Bg}>
                     {selectedContact.isHandover ? (
                        <Alert status="success" variant="subtle" size="sm" borderRadius="md" mb={3} bg="green.100" color="green.800">
                           <Icon as={FaUser} mr={2} />

@@ -193,7 +193,7 @@ const CampaignTab = () => {
     <Box>
       <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" mb={6} spacing={4}>
         <Heading size="md">Automação & Funis</Heading>
-        <Button leftIcon={<AddIcon />} colorScheme="brand" onClick={() => openModal()}>
+        <Button leftIcon={<AddIcon />} colorScheme="brand" onClick={() => openModal()} size={{ base: 'lg', md: 'md' }}>
           Nova Campanha
         </Button>
       </Stack>
@@ -313,7 +313,7 @@ const CampaignTab = () => {
                     <FormControl>
                         <FormLabel>Tags Alvo</FormLabel>
                         <Menu closeOnSelect={false}>
-                            <MenuButton as={Button} rightIcon={<ChevronDownIcon />} w="100%" textAlign="left" variant="outline" fontWeight="normal">
+                            <MenuButton as={Button} rightIcon={<ChevronDownIcon />} w="100%" textAlign="left" variant="outline" fontWeight="normal" size={{ base: 'lg', md: 'md' }}>
                                 {currentCampaign?.targetTags?.length > 0
                                     ? `${currentCampaign.targetTags.length} tag(s) selecionada(s)`
                                     : "Selecione as Tags"}
@@ -551,8 +551,8 @@ const CampaignTab = () => {
                 </VStack>
               </ModalBody>
               <ModalFooter>
-                <Button variant="ghost" mr={3} onClick={onClose}>Cancelar</Button>
-                <Button colorScheme="brand" type="submit">Salvar Campanha</Button>
+                <Button variant="ghost" mr={3} onClick={onClose} size={{ base: 'lg', md: 'md' }}>Cancelar</Button>
+                <Button colorScheme="brand" type="submit" size={{ base: 'lg', md: 'md' }}>Salvar Campanha</Button>
               </ModalFooter>
             </form>
         </ModalContent>
