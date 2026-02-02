@@ -238,24 +238,39 @@ async function processEventCampaign(campaign) {
 
   if (appointments.length > 0) {
       console.log(`📅 Found ${appointments.length} appointments for EVENT campaign: ${campaign.name}`);
+  } else {
+      return;
   }
 
   const config = await BusinessConfig.findOne({ userId: campaign.userId });
 
-  for (const appt of appointments) {
-    // Find contact by phone
-    const contact = await Contact.findOne({
+  // Optimization: Batch Fetch Contacts
+  const clientPhones = [...new Set(appointments.map(a => a.clientPhone))];
+  const contacts = await Contact.find({
       businessId: config._id,
-      phone: appt.clientPhone // Assuming exact match. formatToE164 should be used on creation
-    });
+      phone: { $in: clientPhones }
+  });
+  const contactMap = new Map();
+  contacts.forEach(c => contactMap.set(c.phone, c));
+
+  // Optimization: Batch Check Exclusions
+  const appointmentIds = appointments.map(a => a._id.toString());
+  const existingLogs = await CampaignLog.find({
+      campaignId: campaign._id,
+      relatedId: { $in: appointmentIds }
+  }).select('relatedId');
+  const processedAppointmentIds = new Set(existingLogs.map(l => l.relatedId));
+
+  for (const appt of appointments) {
+    if (processedAppointmentIds.has(appt._id.toString())) {
+        continue; // Already processed
+    }
+
+    // Find contact by phone (from memory)
+    const contact = contactMap.get(appt.clientPhone);
 
     if (contact && contact.isHandover) continue; // Skip if human is talking
 
-    // If contact not found but we have phone, we can still send?
-    // The prompt says "Use the contact associated...".
-    // If no contact doc exists, we might create a temp one or just send if we have the number?
-    // Dispatch logic expects a contact object for filtering history etc.
-    // If no contact, we can construct a minimal one.
     const targetContact = contact || {
       _id: null,
       phone: appt.clientPhone,
@@ -263,7 +278,7 @@ async function processEventCampaign(campaign) {
       businessId: config._id
     };
 
-    await dispatchCampaign(campaign, targetContact, appt, config);
+    await dispatchCampaign(campaign, targetContact, appt, config, { skipExclusionCheck: true });
   }
 }
 
