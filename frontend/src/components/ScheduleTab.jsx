@@ -297,7 +297,7 @@ const ScheduleTab = () => {
   };
 
   return (
-    <Box h="85vh" bg={bg} p={4} borderRadius="md" boxShadow="sm" sx={calendarSx}>
+    <Box h="85vh" bg={bg} p={{ base: 4, md: 6 }} borderRadius="md" boxShadow="sm" sx={calendarSx}>
 
       {/* MOBILE CARD VIEW */}
       <Box display={{ base: 'block', md: 'none' }} h="90%" overflowY="auto" pb={20}>
