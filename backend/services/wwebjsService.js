@@ -89,6 +89,7 @@ const startSession = async (userId) => {
         '--disable-logging', // Desativa logs para evitar EBUSY no chrome_debug.log
         '--log-level=3'
       ],
+      restartOnAuthFail: true, // Auto restart if auth fails
       executablePath: process.env.CHROME_BIN || undefined
     }
   });
@@ -137,7 +138,17 @@ const startSession = async (userId) => {
   });
 
   client.on('disconnected', async (reason) => {
-    await stopSession(userId); // Usa a função centralizada de stop
+    console.log(`🔌 WhatsApp Disconnected (User ${userId}). Reason: ${reason}`);
+
+    // Stop cleans up everything
+    await stopSession(userId);
+
+    if (reason !== 'LOGOUT') {
+      console.log(`🔄 Auto-Reconnecting User ${userId} in 5s...`);
+      setTimeout(() => {
+        startSession(userId);
+      }, 5000);
+    }
   });
 
   try {
