@@ -82,10 +82,10 @@ const QuickRepliesTab = () => {
                     <Badge colorScheme="purple">{idx + 1}. {opt.keyword.split(',')[0]}</Badge>
                     <HStack spacing={1}>
                       <Tooltip label="Editar regra">
-                        <IconButton icon={<EditIcon />} aria-label="Editar regra" size="xs" colorScheme="blue" variant="ghost" onClick={() => handleEditMenuOption(idx)} />
+                        <IconButton icon={<EditIcon />} aria-label="Editar regra" size={{ base: 'lg', md: 'xs' }} colorScheme="blue" variant="ghost" onClick={() => handleEditMenuOption(idx)} />
                       </Tooltip>
                       <Tooltip label="Excluir regra">
-                        <IconButton icon={<DeleteIcon />} aria-label="Excluir regra" size="xs" colorScheme="red" variant="ghost" onClick={() => handleRemoveMenuOption(idx)} />
+                        <IconButton icon={<DeleteIcon />} aria-label="Excluir regra" size={{ base: 'lg', md: 'xs' }} colorScheme="red" variant="ghost" onClick={() => handleRemoveMenuOption(idx)} />
                       </Tooltip>
                     </HStack>
                   </HStack>

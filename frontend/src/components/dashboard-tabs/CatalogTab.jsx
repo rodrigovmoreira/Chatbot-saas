@@ -133,10 +133,10 @@ const CatalogTab = () => {
                 </VStack>
                 <HStack>
                   <Tooltip label="Editar produto">
-                    <IconButton icon={<EditIcon />} aria-label="Editar produto" size="sm" variant="ghost" onClick={() => { setNewProduct(prod); setEditingProductIndex(idx); onProductModalOpen(); }} />
+                    <IconButton icon={<EditIcon />} aria-label="Editar produto" size={{ base: 'lg', md: 'sm' }} variant="ghost" onClick={() => { setNewProduct(prod); setEditingProductIndex(idx); onProductModalOpen(); }} />
                   </Tooltip>
                   <Tooltip label="Excluir produto">
-                    <IconButton icon={<DeleteIcon />} aria-label="Excluir produto" size="sm" colorScheme="red" variant="ghost" onClick={() => handleRemoveProduct(idx)} />
+                    <IconButton icon={<DeleteIcon />} aria-label="Excluir produto" size={{ base: 'lg', md: 'sm' }} colorScheme="red" variant="ghost" onClick={() => handleRemoveProduct(idx)} />
                   </Tooltip>
                 </HStack>
               </Stack>
@@ -181,7 +181,7 @@ const CatalogTab = () => {
                         <img src={url} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         <IconButton
                           icon={<DeleteIcon boxSize={3} />}
-                          size="xs"
+                          size={{ base: 'sm', md: 'xs' }}
                           colorScheme="red"
                           position="absolute"
                           top={0}
