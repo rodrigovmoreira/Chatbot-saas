@@ -1,6 +1,6 @@
 const Tag = require('../models/Tag');
-const Contact = require('../models/Contact');
 const BusinessConfig = require('../models/BusinessConfig');
+const tagService = require('../services/tagService');
 
 // Helper to get Business ID
 const getBusinessId = async (userId) => {
@@ -13,7 +13,7 @@ const escapeRegExp = (string) => {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 };
 
-// 1. Sync Logic (Migration)
+// 1. Sync Logic (Delegated to Service)
 const syncTags = async (req, res) => {
     try {
         let businessId;
@@ -29,34 +29,7 @@ const syncTags = async (req, res) => {
             return res ? res.status(404).json({ message: 'Business not found' }) : null;
         }
 
-        // 1. Fetch all unique tags from Contacts (Optimized DB-level distinct)
-        const uniqueTagStrings = await Contact.distinct('tags', { businessId });
-
-        // 2. Fetch existing Tags to compare in memory (avoids N+1 queries)
-        const existingTags = await Tag.find({ businessId }).select('name');
-        const existingTagSet = new Set(existingTags.map(t => t.name.toLowerCase()));
-
-        const stats = { created: 0, skipped: 0 };
-
-        // 3. Loop and Check
-        for (const tagName of uniqueTagStrings) {
-            if (!tagName || typeof tagName !== 'string') continue;
-
-            const lowerName = tagName.toLowerCase();
-
-            if (!existingTagSet.has(lowerName)) {
-                // Create new
-                await Tag.create({
-                    businessId,
-                    name: tagName, // Keep original casing from contact
-                    color: '#A0AEC0' // Default Gray
-                });
-                existingTagSet.add(lowerName); // Prevent duplicates within same run
-                stats.created++;
-            } else {
-                stats.skipped++;
-            }
-        }
+        const stats = await tagService.syncTags(businessId);
 
         if (res) {
             res.json({ message: 'Sync completed', ...stats });
@@ -69,20 +42,9 @@ const syncTags = async (req, res) => {
     }
 };
 
-// Global Sync for Startup
-const runGlobalTagSync = async () => {
-    console.log('🔄 Starting Global Tag Sync...');
-    try {
-        const configs = await BusinessConfig.find({});
-        for (const config of configs) {
-            // Pass mock req object
-            await syncTags({ businessId: config._id }, null);
-        }
-        console.log('✅ Global Tag Sync Completed.');
-    } catch (error) {
-        console.error('❌ Global Tag Sync Failed:', error);
-    }
-};
+// Re-export for server startup, though server.js could import directly.
+// Keeping this for backward compatibility if other modules use it.
+const runGlobalTagSync = tagService.runGlobalTagSync;
 
 // 2. Get Tags
 const getTags = async (req, res) => {

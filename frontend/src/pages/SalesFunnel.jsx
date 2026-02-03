@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Button, Center, Heading, Text, useDisclosure, useToast, Spinner, Flex } from '@chakra-ui/react';
 import { SettingsIcon } from '@chakra-ui/icons';
 import { useApp } from '../context/AppContext';
-import { businessAPI } from '../services/api';
+import { businessAPI, tagAPI } from '../services/api';
 import FunnelConfigModal from '../components/funnel/FunnelConfigModal';
 import FunnelBoard from '../components/funnel/FunnelBoard';
 
@@ -12,11 +12,25 @@ const SalesFunnel = () => {
   const toast = useToast();
 
   const [contacts, setContacts] = useState([]);
+  const [tags, setTags] = useState([]); // <--- New state for Tags
   const [loading, setLoading] = useState(true);
 
   const businessConfig = state.businessConfig || {};
   const funnelSteps = businessConfig.funnelSteps || [];
-  const availableTags = businessConfig.availableTags || [];
+  // const availableTags = businessConfig.availableTags || []; // DEPRECATED
+
+  // Fetch Tags
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const { data } = await tagAPI.getAll();
+        setTags(data);
+      } catch (error) {
+        console.error("Error fetching tags:", error);
+      }
+    };
+    fetchTags();
+  }, []);
 
   // Fetch Contacts on Mount
   useEffect(() => {
@@ -79,7 +93,7 @@ const SalesFunnel = () => {
         <FunnelConfigModal
           isOpen={isOpen}
           onClose={onClose}
-          availableTags={availableTags}
+          availableTags={tags} // Pass Tag Objects
           initialSteps={funnelSteps}
           onSave={handleSaveConfig}
         />
@@ -112,7 +126,7 @@ const SalesFunnel = () => {
       <FunnelConfigModal
         isOpen={isOpen}
         onClose={onClose}
-        availableTags={availableTags}
+        availableTags={tags} // Pass Tag Objects
         initialSteps={funnelSteps}
         onSave={handleSaveConfig}
       />

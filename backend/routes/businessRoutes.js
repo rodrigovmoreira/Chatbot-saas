@@ -32,7 +32,8 @@ router.get('/tags', authenticateToken, async (req, res) => {
 // GET /api/business/config
 router.get('/config', authenticateToken, async (req, res) => {
   try {
-    let config = await BusinessConfig.findOne({ userId: req.user.userId });
+    // DO NOT return legacy tags (availableTags). Use Tag collection instead.
+    let config = await BusinessConfig.findOne({ userId: req.user.userId }).select('-availableTags');
 
     // Se não existir, cria um padrão
     if (!config) {

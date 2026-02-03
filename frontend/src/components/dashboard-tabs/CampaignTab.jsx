@@ -11,12 +11,12 @@ import { useApp } from '../../context/AppContext';
 // Using direct axios for this specific module as it is not fully integrated into standard services yet,
 // but auth headers are handled carefully.
 import axios from 'axios';
-import { Menu, MenuButton, MenuList, MenuItem, Checkbox as ChakraCheckbox } from '@chakra-ui/react';
-import { ChevronDownIcon, SmallCloseIcon, ViewIcon } from '@chakra-ui/icons';
+import { SmallCloseIcon, ViewIcon } from '@chakra-ui/icons';
 import CampaignAudienceModal from '../campaigns/CampaignAudienceModal';
+import TagAutocomplete from '../Tags/TagAutocomplete';
 
 const CampaignTab = () => {
-  const { state } = useApp(); // Access global state for availableTags
+  const { state } = useApp();
   const [campaigns, setCampaigns] = useState([]);
   const [currentCampaign, setCurrentCampaign] = useState(null);
 
@@ -368,28 +368,22 @@ const CampaignTab = () => {
 
                     <FormControl>
                         <FormLabel>Tags Alvo</FormLabel>
-                        <Menu closeOnSelect={false}>
-                            <MenuButton as={Button} rightIcon={<ChevronDownIcon />} w="100%" textAlign="left" variant="outline" fontWeight="normal">
-                                {currentCampaign?.targetTags?.length > 0
-                                    ? `${currentCampaign.targetTags.length} tag(s) selecionada(s)`
-                                    : "Selecione as Tags"}
-                            </MenuButton>
-                            <MenuList maxH="200px" overflowY="auto">
-                                {state.businessConfig?.availableTags?.map((tag) => (
-                                    <MenuItem key={tag} onClick={() => toggleTag(tag)}>
-                                        <ChakraCheckbox
-                                            isChecked={currentCampaign?.targetTags?.includes(tag)}
-                                            pointerEvents="none" // Pass click through to MenuItem
-                                            mr={2}
-                                        />
-                                        {tag}
-                                    </MenuItem>
-                                ))}
-                                {(!state.businessConfig?.availableTags || state.businessConfig.availableTags.length === 0) && (
-                                    <MenuItem isDisabled>Nenhuma tag disponível.</MenuItem>
-                                )}
-                            </MenuList>
-                        </Menu>
+                        <Box mb={2}>
+                            <TagAutocomplete
+                                placeholder="Adicionar Tag..."
+                                existingTags={currentCampaign?.targetTags || []}
+                                onSelect={(tagName) => {
+                                    const currentTags = currentCampaign?.targetTags || [];
+                                    if (!currentTags.includes(tagName)) {
+                                        setCurrentCampaign({
+                                            ...currentCampaign,
+                                            targetTags: [...currentTags, tagName]
+                                        });
+                                    }
+                                }}
+                            />
+                        </Box>
+
                         {/* Selected Tags Display */}
                         <HStack mt={2} wrap="wrap" spacing={2}>
                             {currentCampaign?.targetTags?.map(tag => (
@@ -398,7 +392,7 @@ const CampaignTab = () => {
                                     <SmallCloseIcon
                                         ml={1}
                                         cursor="pointer"
-                                        onClick={() => toggleTag(tag)}
+                                        onClick={() => toggleTag(tag)} // Reuse toggleTag to remove
                                         _hover={{ color: 'red.500' }}
                                     />
                                 </Badge>

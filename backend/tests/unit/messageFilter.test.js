@@ -196,4 +196,19 @@ describe('Message Handler Audience Filtering', () => {
 
         expect(result).toEqual({ text: 'AI Response' });
     });
+
+    test('Mode "whitelist": Should ALLOW if tag present (Object format)', async () => {
+        setupMocks('whitelist', ['VIP'], [], {
+            tags: [{ name: 'VIP', color: '#fff' }, { name: 'Lead', color: '#000' }]
+        });
+
+        const promise = handleIncomingMessage({
+            from: '123', body: 'Hi', type: 'text', activeBusinessId: 'biz1', channel: 'web'
+        }, 'biz1');
+
+        jest.runAllTimers();
+        const result = await promise;
+
+        expect(result).toEqual({ text: 'AI Response' });
+    });
 });
