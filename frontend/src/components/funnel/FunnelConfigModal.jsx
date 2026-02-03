@@ -15,7 +15,8 @@ import {
   Box,
   IconButton,
   Badge,
-  useToast
+  useToast,
+  Circle
 } from '@chakra-ui/react';
 import { ChevronUpIcon, ChevronDownIcon, CheckIcon } from '@chakra-ui/icons';
 
@@ -39,19 +40,21 @@ const FunnelConfigModal = ({ isOpen, onClose, availableTags = [], initialSteps =
     }
   }, [isOpen, initialSteps]);
 
-  const handleToggleTag = (tag) => {
-    const exists = selectedSteps.find(s => s.tag === tag);
+  const handleToggleTag = (tagObj) => {
+    const tagName = tagObj.name;
+    const exists = selectedSteps.find(s => s.tag === tagName);
+
     if (exists) {
       // Remove
-      setSelectedSteps(prev => prev.filter(s => s.tag !== tag));
+      setSelectedSteps(prev => prev.filter(s => s.tag !== tagName));
     } else {
       // Add
       setSelectedSteps(prev => [
         ...prev,
         {
-          tag: tag,
-          label: tag,
-          color: 'blue.500', // Default color
+          tag: tagName,
+          label: tagName,
+          color: tagObj.color || 'blue.500', // Use Tag Color
           order: prev.length
         }
       ]);
@@ -105,14 +108,17 @@ const FunnelConfigModal = ({ isOpen, onClose, availableTags = [], initialSteps =
                 {availableTags.length === 0 ? (
                   <Text fontStyle="italic">Nenhuma tag disponível.</Text>
                 ) : (
-                  availableTags.map(tag => (
+                  availableTags.map(tagObj => (
                     <Checkbox
-                      key={tag}
-                      isChecked={!!selectedSteps.find(s => s.tag === tag)}
-                      onChange={() => handleToggleTag(tag)}
+                      key={tagObj._id || tagObj.name}
+                      isChecked={!!selectedSteps.find(s => s.tag === tagObj.name)}
+                      onChange={() => handleToggleTag(tagObj)}
                       colorScheme="brand"
                     >
-                      {tag}
+                      <HStack>
+                        <Circle size="10px" bg={tagObj.color || 'gray.400'} />
+                        <Text>{tagObj.name}</Text>
+                      </HStack>
                     </Checkbox>
                   ))
                 )}
