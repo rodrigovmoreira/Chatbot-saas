@@ -11,6 +11,7 @@ const { app } = require('../server');
 const SystemUser = require('../models/SystemUser');
 const Contact = require('../models/Contact');
 const BusinessConfig = require('../models/BusinessConfig');
+const Tag = require('../models/Tag');
 
 describe('CRM & Tags Flow', () => {
   let token;
@@ -99,6 +100,13 @@ describe('CRM & Tags Flow', () => {
       phone: '5511000000002',
       tags: ['New', 'Lead']
     });
+
+    // Sync tags (Simulating what would happen in a real scenario or manual sync)
+    // Since we access DB directly in tests, we must populate the Tag collection manually
+    // to reflect the "Single Source of Truth" architecture.
+    await Tag.create({ businessId, name: 'VIP', color: '#000' });
+    await Tag.create({ businessId, name: 'New', color: '#000' });
+    await Tag.create({ businessId, name: 'Lead', color: '#000' });
 
     const res = await request(app)
       .get('/api/contacts/tags')

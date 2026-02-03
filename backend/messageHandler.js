@@ -30,6 +30,15 @@ const BUFFER_DELAY = 11000;
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+// Helper: Normalize Tags (Strings or Objects)
+const getTagNames = (tags) => {
+    if (!Array.isArray(tags)) return [];
+    return tags.map(t => {
+        // If it's an object with a name property, use that. If it's a string, use it directly.
+        return (t && t.name ? t.name : t).toString().toLowerCase().trim();
+    });
+};
+
 function checkRateLimit(key) {
   if (process.env.NODE_ENV === 'test') return true;
   const now = Date.now();
@@ -145,28 +154,33 @@ async function processBufferedMessages(uniqueKey) {
         }
         // Se !contact, ele foi criado agora pelo saveMessage, então é novo -> Allow
     }
-    else if (aiMode === 'whitelist') {
-        const whitelist = businessConfig.aiWhitelistTags || [];
-        // Whitelist Logic: Must have at least one tag. If whitelist is empty, nobody matches (Block All).
-        const contactTags = contact ? contact.tags : [];
-        const hasTag = contactTags.some(t => whitelist.includes(t));
+    else {
+        // Normalize Tags for Comparison
+        const contactTags = getTagNames(contact ? contact.tags : []);
+        const whitelist = getTagNames(businessConfig.aiWhitelistTags || []);
+        const blacklist = getTagNames(businessConfig.aiBlacklistTags || []);
 
-        if (!hasTag) {
-            console.log(`🛑 AI Audience Filter: Ignored (Mode: whitelist). Tags [${contactTags}] do not match whitelist [${whitelist}].`);
-            if (channel === 'web' && resolve) resolve({ text: "" });
-            return;
-        }
-    }
-    else if (aiMode === 'blacklist') {
-        const blacklist = businessConfig.aiBlacklistTags || [];
-        if (blacklist.length > 0) {
-            const contactTags = contact ? contact.tags : [];
-            const hasBadTag = contactTags.some(t => blacklist.includes(t));
+        console.log(`🤖 AI Check [${aiMode}]: Contact Tags:`, contactTags, '| WL:', whitelist, '| BL:', blacklist);
 
-            if (hasBadTag) {
-                console.log(`🛑 AI Audience Filter: Ignored (Mode: blacklist). Contact has blacklisted tag.`);
+        if (aiMode === 'whitelist') {
+            // Whitelist Logic: Must have at least one tag. If whitelist is empty, nobody matches (Block All).
+            const hasTag = contactTags.some(t => whitelist.includes(t));
+
+            if (!hasTag) {
+                console.log(`🛑 AI Audience Filter: Ignored (Mode: whitelist). Tags do not match.`);
                 if (channel === 'web' && resolve) resolve({ text: "" });
                 return;
+            }
+        }
+        else if (aiMode === 'blacklist') {
+            if (blacklist.length > 0) {
+                const hasBadTag = contactTags.some(t => blacklist.includes(t));
+
+                if (hasBadTag) {
+                    console.log(`🛑 AI Audience Filter: Ignored (Mode: blacklist). Contact has blacklisted tag.`);
+                    if (channel === 'web' && resolve) resolve({ text: "" });
+                    return;
+                }
             }
         }
     }
