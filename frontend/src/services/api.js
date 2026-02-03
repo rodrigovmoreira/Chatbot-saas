@@ -93,4 +93,11 @@ export const dashboardAPI = {
   getSummary: () => api.get('/api/dashboard/summary'),
 };
 
+// --- Tags (Sistema Unificado) ---
+export const tagAPI = {
+  getAll: () => api.get('/api/tags'),
+  create: (data) => api.post('/api/tags', data), // { name, color }
+  sync: () => api.post('/api/tags/sync')
+};
+
 export default api;

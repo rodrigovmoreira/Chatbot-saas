@@ -8,9 +8,9 @@ import {
   Drawer, DrawerOverlay, DrawerContent, DrawerCloseButton, DrawerBody,
   useBreakpointValue, Input,
   Tabs, TabList, TabPanels, Tab, TabPanel,
-  Menu, MenuButton, MenuList, MenuItem
+  Menu, MenuButton, MenuList, MenuItem, Flex
 } from '@chakra-ui/react';
-import { ChatIcon, LinkIcon, DeleteIcon, ArrowBackIcon, InfoIcon } from '@chakra-ui/icons';
+import { ChatIcon, LinkIcon, DeleteIcon, ArrowBackIcon, InfoIcon, ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
 import { FaRobot, FaUser, FaCloudUploadAlt, FaTags, FaDownload } from 'react-icons/fa';
 import { IoMdSend } from 'react-icons/io';
 import { businessAPI } from '../../services/api';
@@ -29,8 +29,11 @@ const LiveChatTab = () => {
   const [hasScrolled, setHasScrolled] = useState(false);
   const [tagColors, setTagColors] = useState({}); // Map name -> hex
 
-  // CRM UI State
-  const [showDesktopCrm, setShowDesktopCrm] = useState(true);
+  // Layout State
+  const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
+  const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(true);
+
+  // CRM UI State (Mobile)
   const { isOpen: isCrmOpen, onOpen: onCrmOpen, onClose: onCrmClose } = useDisclosure();
 
   // Import Modal State
@@ -273,7 +276,7 @@ const LiveChatTab = () => {
 
   const handleCrmToggle = () => {
       if (isLargeScreen) {
-          setShowDesktopCrm(!showDesktopCrm);
+          setIsRightSidebarOpen(!isRightSidebarOpen);
       } else {
           onCrmOpen();
       }
@@ -344,18 +347,19 @@ const LiveChatTab = () => {
       </Stack>
 
       <Card h={{ base: "calc(100dvh - 150px)", md: "75vh" }} overflow="hidden" border="1px solid" borderColor="gray.200">
-        <Stack direction={{ base: 'column', md: 'row' }} h="100%" spacing={0} align="stretch">
+        <Flex direction={{ base: 'column', md: 'row' }} h="100%" align="stretch">
 
           {/* LADO ESQUERDO: LISTA DE CONTATOS E TABS */}
           <Box
-            w={{ base: "100%", md: "350px" }}
-            display={{ base: showMobileChat ? 'none' : 'flex', md: 'flex' }}
+            w={{ base: "100%", md: isLeftSidebarOpen ? "350px" : "0px" }}
+            display={{ base: showMobileChat ? 'none' : 'flex', md: isLeftSidebarOpen ? 'flex' : 'none' }}
             flexDirection="column"
             h="100%"
             borderRight="1px solid"
             borderColor={gray50Bg}
             bg={gray50Bg}
             overflow="hidden"
+            transition="width 0.3s ease"
           >
              {/* Header com Botão Importar */}
             <HStack p={4} borderBottom="1px solid" borderColor={gray50Bg} bg={cardBg} justify="space-between" flexShrink={0}>
@@ -422,6 +426,16 @@ const LiveChatTab = () => {
                 <Box p={3} bg={cardBg} borderBottom="1px solid" borderColor={gray50Bg}>
                     <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" mb={2} spacing={2}>
                       <HStack>
+                         {/* Toggle Left Sidebar (Desktop) */}
+                        <IconButton
+                             display={{ base: 'none', md: 'flex' }}
+                             icon={isLeftSidebarOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+                             onClick={() => setIsLeftSidebarOpen(!isLeftSidebarOpen)}
+                             variant="ghost"
+                             size="sm"
+                             aria-label="Toggle Sidebar"
+                             mr={1}
+                        />
                         <IconButton
                           display={{ base: 'flex', md: 'none' }}
                           icon={<ArrowBackIcon />}
@@ -456,10 +470,10 @@ const LiveChatTab = () => {
                             <HStack>
                               <Tooltip label="Informações do Cliente (CRM)">
                                 <IconButton
-                                    icon={<InfoIcon />}
+                                    icon={isRightSidebarOpen && isLargeScreen ? <ChevronRightIcon /> : <InfoIcon />}
                                     onClick={handleCrmToggle}
-                                    variant={showDesktopCrm && isLargeScreen ? "solid" : "ghost"}
-                                    colorScheme={showDesktopCrm && isLargeScreen ? "brand" : "gray"}
+                                    variant={isRightSidebarOpen && isLargeScreen ? "solid" : "ghost"}
+                                    colorScheme={isRightSidebarOpen && isLargeScreen ? "brand" : "gray"}
                                     aria-label="CRM"
                                     size="sm"
                                 />
@@ -575,10 +589,12 @@ const LiveChatTab = () => {
           </Box>
 
           {/* LADO DIREITO: CRM SIDEBAR (DESKTOP) */}
-          {selectedContact && showDesktopCrm && (
+          {selectedContact && isRightSidebarOpen && (
               <Box
                   display={{ base: 'none', lg: 'block' }}
                   h="100%"
+                  w="300px"
+                  transition="width 0.3s ease"
               >
                   <CrmSidebar
                       contact={selectedContact}
@@ -587,12 +603,12 @@ const LiveChatTab = () => {
                       onAddTag={handleAddTag}
                       onRemoveTag={handleRemoveTag}
                       tagColors={tagColors}
-                      onClose={() => setShowDesktopCrm(false)}
+                      onClose={() => setIsRightSidebarOpen(false)}
                   />
               </Box>
           )}
 
-        </Stack>
+        </Flex>
       </Card>
 
       <Modal isOpen={isEmbedOpen} onClose={onEmbedClose} size="lg">

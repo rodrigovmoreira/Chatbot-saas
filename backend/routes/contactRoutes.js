@@ -32,16 +32,20 @@ router.get('/', authenticateToken, async (req, res) => {
     }
 });
 
-// Get all unique tags for the business
+// Get all unique tags for the business (DEPRECATED - Use /api/tags)
 router.get('/tags', authenticateToken, async (req, res) => {
+    // Redirect logic could go here, but for now we maintain backward compatibility
+    // by fetching from the new Source of Truth (Tags collection)
     try {
         const businessId = await getBusinessId(req.user.userId);
         if (!businessId) {
             return res.status(404).json({ message: 'Business configuration not found' });
         }
 
-        const tags = await Contact.distinct('tags', { businessId });
-        res.json(tags);
+        // Return just the names to maintain API contract with legacy frontends
+        const Tag = require('../models/Tag');
+        const tags = await Tag.find({ businessId }).sort({ name: 1 });
+        res.json(tags.map(t => t.name));
     } catch (error) {
         console.error('Error fetching tags:', error);
         res.status(500).json({ message: 'Error fetching tags' });

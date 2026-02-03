@@ -30,6 +30,7 @@ require('./config/passport');
 const connectDB = require('./services/database');
 const { startScheduler } = require('./services/scheduler');
 const { initScheduler: initCampaignScheduler } = require('./services/campaignScheduler');
+const { runGlobalTagSync } = require('./controllers/tagController');
 const { adaptTwilioMessage } = require('./services/providerAdapter');
 const { handleIncomingMessage } = require('./messageHandler');
 const { 
@@ -48,6 +49,7 @@ const publicChatRoutes = require('./routes/publicChatRoutes');
 const campaignRoutes = require('./routes/campaignRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+const tagRoutes = require('./routes/tagRoutes');
 
 // Carregar Models (Garantia de registro)
 require('./models/SystemUser');
@@ -114,7 +116,10 @@ app.use('/api/contacts', contactRoutes);
 // 8. Dashboard (Visão Geral)
 app.use('/api/dashboard', dashboardRoutes);
 
-// 9. Webhook (Mantido aqui por ser externo)
+// 9. Tags (Unified System)
+app.use('/api/tags', tagRoutes);
+
+// 10. Webhook (Mantido aqui por ser externo)
 app.post('/api/webhook', async (req, res) => {
   try {
     res.status(200).send('<Response></Response>');
@@ -186,6 +191,9 @@ async function start() {
   try {
     if (process.env.NODE_ENV !== 'test') {
       await connectDB();
+
+      // Auto-Migration: Sync Tags on Startup (Background)
+      runGlobalTagSync();
     }
     startScheduler();
     initCampaignScheduler(); // Initialize the new Campaign Scheduler
