@@ -97,7 +97,7 @@ const OverviewTab = () => {
       <Heading
         textAlign={'left'}
         fontSize={'3xl'}
-        py={10}
+        py={{ base: 5, md: 10 }}
         fontWeight={'bold'}
         mb={4}
       >

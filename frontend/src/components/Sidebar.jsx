@@ -217,7 +217,7 @@ export const Sidebar = ({ isOpen, onClose, activeTab, setActiveTab, isCollapsed,
         onClose={onClose}
         returnFocusOnClose={false}
         onOverlayClick={onClose}
-        size="xs"
+        size={{ base: 'full', md: 'xs' }}
       >
         <DrawerOverlay />
         <DrawerContent>
