@@ -242,12 +242,33 @@ async function processEventCampaign(campaign) {
 
   const config = await BusinessConfig.findOne({ userId: campaign.userId });
 
+  // Optimization: Batch fetch contacts and exclusions to avoid N+1 queries
+  const phones = appointments.map(a => a.clientPhone).filter(p => p);
+  const appointmentIds = appointments.map(a => a._id.toString());
+
+  const contacts = await Contact.find({
+    businessId: config._id,
+    phone: { $in: phones }
+  });
+
+  const contactMap = new Map();
+  contacts.forEach(c => contactMap.set(c.phone, c));
+
+  const sentLogs = await CampaignLog.find({
+    campaignId: campaign._id,
+    relatedId: { $in: appointmentIds }
+  }).distinct('relatedId');
+
+  const excludedSet = new Set(sentLogs.map(id => id.toString()));
+
   for (const appt of appointments) {
-    // Find contact by phone
-    const contact = await Contact.findOne({
-      businessId: config._id,
-      phone: appt.clientPhone // Assuming exact match. formatToE164 should be used on creation
-    });
+    // Check exclusion in memory
+    if (excludedSet.has(appt._id.toString())) {
+      continue;
+    }
+
+    // Find contact in Map
+    const contact = contactMap.get(appt.clientPhone);
 
     if (contact && contact.isHandover) continue; // Skip if human is talking
 
@@ -263,7 +284,7 @@ async function processEventCampaign(campaign) {
       businessId: config._id
     };
 
-    await dispatchCampaign(campaign, targetContact, appt, config);
+    await dispatchCampaign(campaign, targetContact, appt, config, { skipExclusionCheck: true });
   }
 }
 
