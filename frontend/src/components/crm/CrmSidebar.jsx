@@ -3,20 +3,16 @@ import {
   Box, VStack, Text, FormControl, FormLabel, Select, Textarea,
   Button, Badge, Icon, IconButton,
   InputGroup, InputLeftAddon,
-  Popover, PopoverTrigger, PopoverContent, PopoverBody, PopoverHeader, PopoverArrow, PopoverCloseButton,
-  List, ListItem, useColorModeValue, Flex, Input
+  useColorModeValue, Flex, Input
 } from '@chakra-ui/react';
-import { SmallCloseIcon, AddIcon, CloseIcon } from '@chakra-ui/icons';
+import { SmallCloseIcon, CloseIcon } from '@chakra-ui/icons';
+import TagAutocomplete from '../Tags/TagAutocomplete';
 
 const CrmSidebar = ({ contact, onUpdate, availableTags, onAddTag, onRemoveTag, tagColors, onClose }) => {
   const [dealValue, setDealValue] = useState('0.00');
   const [funnelStage, setFunnelStage] = useState('new');
   const [notes, setNotes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-
-  // Tag local state
-  const [newTag, setNewTag] = useState('');
-  const [isTagPopoverOpen, setIsTagPopoverOpen] = useState(false);
 
   // Sync state with contact (Hydration Fix)
   useEffect(() => {
@@ -64,12 +60,6 @@ const CrmSidebar = ({ contact, onUpdate, availableTags, onAddTag, onRemoveTag, t
       const hash = tag.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
       return { colorScheme: colors[hash % colors.length] };
   };
-
-  const handleLocalAddTag = (tag) => {
-      onAddTag(tag);
-      setNewTag('');
-      setIsTagPopoverOpen(false);
-  }
 
   const bg = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
@@ -145,74 +135,10 @@ const CrmSidebar = ({ contact, onUpdate, availableTags, onAddTag, onRemoveTag, t
                 ))}
             </Flex>
 
-            <Popover
-                isOpen={isTagPopoverOpen}
-                onClose={() => setIsTagPopoverOpen(false)}
-                placement="bottom-start"
-            >
-                <PopoverTrigger>
-                    <Button
-                        size={{ base: 'lg', md: 'sm' }}
-                        leftIcon={<AddIcon />}
-                        onClick={() => setIsTagPopoverOpen(!isTagPopoverOpen)}
-                        w="full"
-                        variant="outline"
-                        colorScheme="gray"
-                    >
-                        Adicionar Tag
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent w="250px">
-                    <PopoverHeader fontSize="sm" fontWeight="bold">Adicionar Tag</PopoverHeader>
-                    <PopoverArrow />
-                    <PopoverCloseButton />
-                    <PopoverBody p={2}>
-                        <Input
-                            size="sm"
-                            placeholder="Busca ou Nova Tag"
-                            value={newTag}
-                            onChange={(e) => setNewTag(e.target.value)}
-                            mb={2}
-                        />
-                        <List spacing={1} maxH="150px" overflowY="auto">
-                            {(availableTags || [])
-                                .filter(t =>
-                                    t.toLowerCase().includes(newTag.toLowerCase()) &&
-                                    !contact.tags?.includes(t)
-                                )
-                                .map(tag => (
-                                    <ListItem
-                                        key={tag}
-                                        px={2} py={1}
-                                        _hover={{ bg: "gray.100", cursor: "pointer" }}
-                                        onClick={() => handleLocalAddTag(tag)}
-                                        borderRadius="md"
-                                        fontSize="sm"
-                                    >
-                                        {tag}
-                                    </ListItem>
-                                ))
-                            }
-                            {newTag &&
-                             !(availableTags || []).some(t => t.toLowerCase() === newTag.toLowerCase()) &&
-                             !contact.tags?.includes(newTag) && (
-                                <ListItem
-                                    px={2} py={1}
-                                    color="brand.500"
-                                    fontWeight="bold"
-                                    cursor="pointer"
-                                    _hover={{ bg: "brand.50" }}
-                                    onClick={() => handleLocalAddTag(newTag)}
-                                    borderRadius="md"
-                                    fontSize="sm"
-                                >
-                                    + Criar "{newTag}"
-                                </ListItem>
-                            )}
-                        </List>
-                    </PopoverBody>
-                </PopoverContent>
-            </Popover>
+            <TagAutocomplete
+                onSelect={onAddTag}
+                existingTags={contact.tags || []}
+            />
         </FormControl>
 
         {/* Notes */}
