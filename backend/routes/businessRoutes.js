@@ -4,6 +4,7 @@ const BusinessConfig = require('../models/BusinessConfig');
 const IndustryPreset = require('../models/IndustryPreset');
 const CustomPrompt = require('../models/CustomPrompt');
 const Contact = require('../models/Contact');
+const Tag = require('../models/Tag');
 const authenticateToken = require('../middleware/auth');
 const messageService = require('../services/message'); // <--- IMPORTEI O SERVICE
 const { sendWWebJSMessage } = require('../services/wwebjsService');
@@ -13,6 +14,20 @@ const sharp = require('sharp');
 const { v4: uuidv4 } = require('uuid');
 
 // === CONFIGURAÇÕES GERAIS ===
+
+// GET /api/business/tags
+router.get('/tags', authenticateToken, async (req, res) => {
+  try {
+    const config = await BusinessConfig.findOne({ userId: req.user.userId });
+    if (!config) return res.status(404).json({ message: 'Negócio não encontrado' });
+
+    const tags = await Tag.find({ businessId: config._id }).sort({ name: 1 });
+    res.json(tags);
+  } catch (error) {
+    console.error('Erro GET /tags:', error);
+    res.status(500).json({ message: 'Erro ao buscar tags' });
+  }
+});
 
 // GET /api/business/config
 router.get('/config', authenticateToken, async (req, res) => {

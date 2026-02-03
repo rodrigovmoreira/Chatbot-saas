@@ -7,10 +7,11 @@ import {
   Switch, FormControl, FormLabel,
   Drawer, DrawerOverlay, DrawerContent, DrawerCloseButton, DrawerBody,
   useBreakpointValue, Input,
-  Tabs, TabList, TabPanels, Tab, TabPanel
+  Tabs, TabList, TabPanels, Tab, TabPanel,
+  Menu, MenuButton, MenuList, MenuItem
 } from '@chakra-ui/react';
 import { ChatIcon, LinkIcon, DeleteIcon, ArrowBackIcon, InfoIcon } from '@chakra-ui/icons';
-import { FaRobot, FaUser, FaCloudUploadAlt } from 'react-icons/fa';
+import { FaRobot, FaUser, FaCloudUploadAlt, FaTags, FaDownload } from 'react-icons/fa';
 import { IoMdSend } from 'react-icons/io';
 import { businessAPI } from '../../services/api';
 import { useApp } from '../../context/AppContext';
@@ -26,6 +27,7 @@ const LiveChatTab = () => {
   const [selectedContact, setSelectedContact] = useState(null);
   const [messages, setMessages] = useState([]);
   const [hasScrolled, setHasScrolled] = useState(false);
+  const [tagColors, setTagColors] = useState({}); // Map name -> hex
 
   // CRM UI State
   const [showDesktopCrm, setShowDesktopCrm] = useState(true);
@@ -173,6 +175,41 @@ const LiveChatTab = () => {
       }
   };
 
+  // 1c. Carregar Tags e Cores
+  const loadTags = async () => {
+      try {
+          const { data } = await businessAPI.getBusinessTags();
+          const map = {};
+          if (Array.isArray(data)) {
+              data.forEach(t => map[t.name] = t.color);
+          }
+          setTagColors(map);
+      } catch (error) {
+          console.error("Erro ao carregar tags:", error);
+      }
+  };
+
+  const handleImportLabels = async () => {
+      const toastId = toast({ title: "Importando etiquetas...", status: "info", duration: null, isClosable: false });
+      try {
+          const { data } = await businessAPI.importWhatsAppLabels();
+          toast.close(toastId);
+          toast({
+              title: "Importação concluída!",
+              description: `Tags: ${data.tagsCreated}, Contatos: ${data.contactsUpdated}`,
+              status: "success",
+              duration: 5000
+          });
+          loadTags(); // Reload colors
+          loadAllContacts(); // Reload contacts
+          loadConversations();
+      } catch (error) {
+          toast.close(toastId);
+          console.error("Erro import:", error);
+          toast({ title: "Erro ao importar.", description: error.response?.data?.message || "Erro desconhecido", status: "error" });
+      }
+  };
+
   // Tab Change Handler
   const [tabIndex, setTabIndex] = useState(0);
 
@@ -184,6 +221,7 @@ const LiveChatTab = () => {
 
   useEffect(() => {
     loadConversations();
+    loadTags(); // Load tags on mount
     // Polling de conversas a cada 10s
     const interval = setInterval(() => {
         if (tabIndex === 0) loadConversations();
@@ -290,6 +328,7 @@ const LiveChatTab = () => {
                 contact={contact}
                 isSelected={selectedContact?._id === contact._id}
                 onClick={handleContactSelect}
+                tagColors={tagColors}
               />
             ))}
           </VStack>
@@ -321,16 +360,28 @@ const LiveChatTab = () => {
              {/* Header com Botão Importar */}
             <HStack p={4} borderBottom="1px solid" borderColor={gray50Bg} bg={cardBg} justify="space-between" flexShrink={0}>
                 <Heading size="sm" color="gray.600">Chats</Heading>
-                <Tooltip label="Importar Contatos (CSV/Excel)">
-                    <IconButton
-                        icon={<Icon as={FaCloudUploadAlt} />}
-                        size="sm"
-                        variant="ghost"
-                        colorScheme="brand"
-                        onClick={onImportOpen}
-                        aria-label="Importar"
-                    />
-                </Tooltip>
+                <HStack spacing={1}>
+                    <Menu>
+                        <Tooltip label="Tags">
+                            <MenuButton as={IconButton} icon={<Icon as={FaTags} />} size="sm" variant="ghost" colorScheme="gray" aria-label="Tags" />
+                        </Tooltip>
+                        <MenuList zIndex={10}>
+                            <MenuItem icon={<Icon as={FaDownload} />} onClick={handleImportLabels}>
+                                Importar do WhatsApp
+                            </MenuItem>
+                        </MenuList>
+                    </Menu>
+                    <Tooltip label="Importar Contatos (CSV/Excel)">
+                        <IconButton
+                            icon={<Icon as={FaCloudUploadAlt} />}
+                            size="sm"
+                            variant="ghost"
+                            colorScheme="brand"
+                            onClick={onImportOpen}
+                            aria-label="Importar"
+                        />
+                    </Tooltip>
+                </HStack>
             </HStack>
 
             {/* Tabs */}
@@ -535,6 +586,7 @@ const LiveChatTab = () => {
                       availableTags={state.businessConfig?.availableTags || []}
                       onAddTag={handleAddTag}
                       onRemoveTag={handleRemoveTag}
+                      tagColors={tagColors}
                       onClose={() => setShowDesktopCrm(false)}
                   />
               </Box>
@@ -576,6 +628,7 @@ const LiveChatTab = () => {
                         availableTags={state.businessConfig?.availableTags || []}
                         onAddTag={handleAddTag}
                         onRemoveTag={handleRemoveTag}
+                        tagColors={tagColors}
                         onClose={onCrmClose}
                     />
                 )}
