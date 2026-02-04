@@ -37,35 +37,35 @@ const startSession = async (userId) => {
   // 2. The 'QR Timeout' Safety Valve
   // Clear any existing timeout just in case
   if (timeouts.has(userId)) {
-    clearTimeout(timeouts.get(userId));
-    timeouts.delete(userId);
+      clearTimeout(timeouts.get(userId));
+      timeouts.delete(userId);
   }
 
   // Set new timeout (120 seconds)
   const timeoutId = setTimeout(async () => {
-    const currentStatus = statuses.get(userId);
-    console.log(`⏱️ Timeout de conexão para User ${userId}. Status atual: ${currentStatus}`);
+      const currentStatus = statuses.get(userId);
+      console.log(`⏱️ Timeout de conexão para User ${userId}. Status atual: ${currentStatus}`);
 
-    if (currentStatus === 'initializing' || currentStatus === 'qrcode') {
-      console.warn(`⚠️ Forçando destruição por timeout (User ${userId})`);
+      if (currentStatus === 'initializing' || currentStatus === 'qrcode') {
+          console.warn(`⚠️ Forçando destruição por timeout (User ${userId})`);
 
-      const clientToDestroy = sessions.get(userId);
-      if (clientToDestroy) {
-        try {
-          await clientToDestroy.destroy();
-        } catch (e) {
-          console.error(`Erro ao destruir por timeout: ${e.message}`);
-        }
+          const clientToDestroy = sessions.get(userId);
+          if (clientToDestroy) {
+              try {
+                  await clientToDestroy.destroy();
+              } catch (e) {
+                  console.error(`Erro ao destruir por timeout: ${e.message}`);
+              }
+          }
+
+          cleanupSession(userId);
+
+          if (ioInstance) {
+              ioInstance.to(userId).emit('connection_timeout', { message: 'Tempo limite excedido. Tente novamente.' });
+              // Also update status to disconnected so frontend reflects it
+              ioInstance.to(userId).emit('wwebjs_status', 'disconnected');
+          }
       }
-
-      cleanupSession(userId);
-
-      if (ioInstance) {
-        ioInstance.to(userId).emit('connection_timeout', { message: 'Tempo limite excedido. Tente novamente.' });
-        // Also update status to disconnected so frontend reflects it
-        ioInstance.to(userId).emit('wwebjs_status', 'disconnected');
-      }
-    }
   }, 120000); // 2 minutes
 
   timeouts.set(userId, timeoutId);
@@ -89,12 +89,8 @@ const startSession = async (userId) => {
         '--disable-logging', // Desativa logs para evitar EBUSY no chrome_debug.log
         '--log-level=3'
       ],
-      timeout: 60000,
-      restartOnAuthFail: true, // Auto restart if auth fails
       executablePath: process.env.CHROME_BIN || undefined
-    },
-    authTimeoutMs: 60000, 
-    qrMaxRetries: 5
+    }
   });
 
   // Salva referência IMEDIATAMENTE para evitar duplicidade se o frontend chamar de novo rápido
@@ -108,8 +104,8 @@ const startSession = async (userId) => {
 
   client.on('ready', () => {
     if (timeouts.has(userId)) {
-      clearTimeout(timeouts.get(userId));
-      timeouts.delete(userId);
+        clearTimeout(timeouts.get(userId));
+        timeouts.delete(userId);
     }
     updateStatus(userId, 'ready');
     qrCodes.delete(userId);
@@ -117,8 +113,8 @@ const startSession = async (userId) => {
 
   client.on('authenticated', () => {
     if (timeouts.has(userId)) {
-      clearTimeout(timeouts.get(userId));
-      timeouts.delete(userId);
+        clearTimeout(timeouts.get(userId));
+        timeouts.delete(userId);
     }
     updateStatus(userId, 'authenticated');
     qrCodes.delete(userId);
@@ -127,43 +123,6 @@ const startSession = async (userId) => {
   client.on('auth_failure', () => {
     console.error(`❌ Falha de autenticação para: ${config.businessName}`);
     updateStatus(userId, 'disconnected');
-  });
-
-  client.on('message_create', (msg) => {
-    // Filtra mensagens de status/notificação para não poluir demais
-    if (msg.type === 'e2e_notification' || msg.type === 'notification_template') return;
-
-    console.log('📡 [RADAR - SOCKET] Mensagem detectada:', {
-      id: msg.id.id,       // ID único da mensagem
-      de: msg.from,        // Quem mandou
-      para: msg.to,        // Quem recebeu
-      texto: msg.body ? msg.body.substring(0, 50) : '[Sem corpo]',
-      tipo: msg.type,      // chat, image, ptt (audio), etc
-      souEu: msg.fromMe    // true se foi você, false se foi o cliente
-    });
-  });
-  // ==============================================================================
-
-  // Listener Padrão (Filtro de Entrada)
-  client.on('message', async (msg) => {
-    // ============================================================================
-    // 📨 LOG DE DEBUG DE ENTRADA - ADICIONE ISTO NA PRIMEIRA LINHA
-    // ============================================================================
-    console.log(`📨 [ENTRADA] Listener oficial 'message' acionado! Processando msg de: ${msg.from}`);
-    // ============================================================================
-
-    if (msg.type === 'e2e_notification' || msg.type === 'notification_template') return;
-    try {
-      const { handleIncomingMessage } = require('../messageHandler');
-      const normalizedMsg = await adaptWWebJSMessage(msg);
-
-      // LOG EXTRA: Confirmar que vai chamar o handler
-      console.log(`⚙️ [HANDLER] Enviando para messageHandler...`);
-
-      await handleIncomingMessage(normalizedMsg, config._id);
-    } catch (error) {
-      console.error(`Erro message:`, error);
-    }
   });
 
   client.on('message', async (msg) => {
@@ -178,17 +137,7 @@ const startSession = async (userId) => {
   });
 
   client.on('disconnected', async (reason) => {
-    console.log(`🔌 WhatsApp Disconnected (User ${userId}). Reason: ${reason}`);
-
-    // Stop cleans up everything
-    await stopSession(userId);
-
-    if (reason !== 'LOGOUT') {
-      console.log(`🔄 Auto-Reconnecting User ${userId} in 5s...`);
-      setTimeout(() => {
-        startSession(userId);
-      }, 5000);
-    }
+    await stopSession(userId); // Usa a função centralizada de stop
   });
 
   try {
@@ -203,23 +152,23 @@ const startSession = async (userId) => {
 // 2. FUNÇÃO DE PARADA BLINDADA (A Mágica acontece aqui)
 const stopSession = async (userId) => {
   const client = sessions.get(userId.toString());
-
+  
   if (client) {
     // Atualiza status para evitar que o usuário tente reconectar enquanto fecha
     updateStatus(userId, 'disconnecting');
 
     try {
-      // Tenta logout limpo (pode falhar no Windows por EBUSY)
-      await client.logout();
+        // Tenta logout limpo (pode falhar no Windows por EBUSY)
+        await client.logout(); 
     } catch (e) {
-      // Ignora erros de logout, pois vamos destruir o cliente de qualquer jeito
+        // Ignora erros de logout, pois vamos destruir o cliente de qualquer jeito
     }
 
     try {
-      // Força o fechamento do navegador (Libera RAM)
-      await client.destroy();
+        // Força o fechamento do navegador (Libera RAM)
+        await client.destroy();
     } catch (e) {
-      console.warn(`⚠️ Erro ao destruir cliente (não crítico): ${e.message}`);
+        console.warn(`⚠️ Erro ao destruir cliente (não crítico): ${e.message}`);
     }
   }
 
@@ -229,8 +178,8 @@ const stopSession = async (userId) => {
 
 const cleanupSession = (userId) => {
   if (timeouts.has(userId)) {
-    clearTimeout(timeouts.get(userId));
-    timeouts.delete(userId);
+      clearTimeout(timeouts.get(userId));
+      timeouts.delete(userId);
   }
   sessions.delete(userId);
   qrCodes.delete(userId);
