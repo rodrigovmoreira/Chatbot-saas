@@ -81,4 +81,7 @@ contactSchema.index({ businessId: 1, lastInteraction: -1 });
 // Optimization: Scheduler Polling (find active follow-ups)
 contactSchema.index({ businessId: 1, followUpActive: 1 });
 
+// Optimization: Campaign Targeting (segmentation by tags within business)
+contactSchema.index({ businessId: 1, tags: 1 });
+
 module.exports = mongoose.model('Contact', contactSchema);
