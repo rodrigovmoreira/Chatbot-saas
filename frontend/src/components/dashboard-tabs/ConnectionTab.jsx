@@ -162,13 +162,13 @@ const ConnectionTab = () => {
         <GridItem>
           <Card bg={cardBg} h="100%" boxShadow="md">
             <CardHeader>
-              <HStack justify="space-between"><Heading size="md">Dados da Empresa</Heading><Button size={{ base: 'md', md: 'xs' }} onClick={() => setEditingHours(!editingHours)} leftIcon={<EditIcon />}>{editingHours ? 'Cancelar' : 'Editar'}</Button></HStack>
+              <Stack direction={{ base: 'column', md: 'row' }} justify="space-between" align="center"><Heading size="md">Dados da Empresa</Heading><Button size={{ base: 'md', md: 'xs' }} onClick={() => setEditingHours(!editingHours)} leftIcon={<EditIcon />}>{editingHours ? 'Cancelar' : 'Editar'}</Button></Stack>
             </CardHeader>
             <CardBody>
               <VStack spacing={4} align="stretch">
                 <FormControl>
                   <FormLabel fontSize="xs" fontWeight="bold" color="gray.500">NOME FANTASIA</FormLabel>
-                  <Input isDisabled={!editingHours} value={configForm.businessName} onChange={e => setConfigForm({ ...configForm, businessName: e.target.value })} />
+                  <Input isDisabled={!editingHours} value={configForm.businessName} onChange={e => setConfigForm({ ...configForm, businessName: e.target.value })} size={{ base: 'lg', md: 'md' }} />
                 </FormControl>
                 <Stack direction={{ base: 'column', md: 'row' }} spacing={4}>
                   <FormControl><FormLabel fontSize="xs" fontWeight="bold" color="gray.500">ABERTURA</FormLabel><Input type="time" isDisabled={!editingHours} value={configForm.operatingHours.opening} onChange={e => setConfigForm({ ...configForm, operatingHours: { ...configForm.operatingHours, opening: e.target.value } })} size={{ base: 'lg', md: 'md' }} /></FormControl>
@@ -176,7 +176,7 @@ const ConnectionTab = () => {
                 </Stack>
                 <FormControl>
                   <FormLabel fontSize="xs" fontWeight="bold" color="gray.500">MENSAGEM DE AUSÊNCIA</FormLabel>
-                  <Textarea isDisabled={!editingHours} value={configForm.awayMessage} onChange={e => setConfigForm({ ...configForm, awayMessage: e.target.value })} rows={3} />
+                  <Textarea isDisabled={!editingHours} value={configForm.awayMessage} onChange={e => setConfigForm({ ...configForm, awayMessage: e.target.value })} rows={3} size={{ base: 'lg', md: 'md' }} />
                 </FormControl>
 
                 <Divider />

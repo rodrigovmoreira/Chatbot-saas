@@ -138,7 +138,7 @@ const Dashboard = ({ initialTab = 0 }) => {
   );
 
   return (
-    <Box minH="100vh" bg={mainBg}>
+    <Box minH="100dvh" bg={mainBg}>
       {/* Unified Sidebar (Handles Desktop Fixed & Mobile Drawer) */}
       <Sidebar
         isOpen={isSidebarOpen}

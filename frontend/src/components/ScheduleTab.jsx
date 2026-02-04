@@ -297,10 +297,10 @@ const ScheduleTab = () => {
   };
 
   return (
-    <Box h="85vh" bg={bg} p={4} borderRadius="md" boxShadow="sm" sx={calendarSx}>
+    <Box h={{ base: "calc(100dvh - 120px)", md: "85vh" }} bg={bg} p={4} borderRadius="md" boxShadow="sm" sx={calendarSx}>
 
       {/* MOBILE CARD VIEW */}
-      <Box display={{ base: 'block', md: 'none' }} h="90%" overflowY="auto" pb={20}>
+      <Box display={{ base: 'block', md: 'none' }} h="100%" overflowY="auto" pb={20}>
         <HStack justify="space-between" mb={4}>
            <Text fontWeight="bold" fontSize="lg">Agenda</Text>
            <HStack>
