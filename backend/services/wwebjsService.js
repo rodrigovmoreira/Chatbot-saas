@@ -89,9 +89,12 @@ const startSession = async (userId) => {
         '--disable-logging', // Desativa logs para evitar EBUSY no chrome_debug.log
         '--log-level=3'
       ],
+      timeout: 60000,
       restartOnAuthFail: true, // Auto restart if auth fails
       executablePath: process.env.CHROME_BIN || undefined
-    }
+    },
+    authTimeoutMs: 60000, 
+    qrMaxRetries: 5
   });
 
   // Salva referência IMEDIATAMENTE para evitar duplicidade se o frontend chamar de novo rápido
