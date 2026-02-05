@@ -10,7 +10,8 @@ const initialState = {
   whatsappStatus: {
     isConnected: false,
     mode: 'Iniciando...',
-    qrCode: null
+    qrCode: null,
+    error: null
   },
   loading: false
 };
@@ -33,7 +34,8 @@ function appReducer(state, action) {
           ...state.whatsappStatus,
           isConnected: isConnected,
           mode: action.payload.mode,
-          qrCode: (isConnected || isDisconnected) ? null : state.whatsappStatus.qrCode
+          error: action.payload.error || null,
+          qrCode: (isConnected || isDisconnected || action.payload.error) ? null : state.whatsappStatus.qrCode
         }
       };
       
@@ -44,7 +46,8 @@ function appReducer(state, action) {
           ...state.whatsappStatus, 
           qrCode: action.payload,
           isConnected: false,
-          mode: 'Aguardando Leitura'
+          mode: 'Aguardando Leitura',
+          error: null
         }
       };
 
@@ -100,6 +103,7 @@ export const AppProvider = ({ children }) => {
     socket.on('wwebjs_status', (status) => {
       let isConnected = false;
       let mode = 'Desconectado';
+      let error = null;
 
       if (status === 'ready' || status === 'authenticated') {
         isConnected = true;
@@ -108,11 +112,16 @@ export const AppProvider = ({ children }) => {
         mode = 'Aguardando Leitura';
       } else if (status === 'initializing') {
         mode = 'Iniciando...';
+      } else if (status === 'authenticating') {
+        mode = 'authenticating';
+      } else if (status === 'error') {
+        mode = 'Erro Fatal';
+        error = "Ocorreu uma falha na inicialização do robô. Por favor, aguarde alguns instantes e recarregue a página.";
       }
 
       dispatch({ 
         type: 'SET_WHATSAPP_STATUS', 
-        payload: { isConnected, mode } 
+        payload: { isConnected, mode, error }
       });
     });
 

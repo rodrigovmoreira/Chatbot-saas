@@ -14,10 +14,8 @@ class UnifiedMongoStore {
         const cleanId = path.basename(options.session);
         const db = this.mongoose.connection.db;
         const bucket = new GridFSBucket(db, { bucketName: this.bucketName });
-        
-        // CORREÇÃO 1: countDocuments em vez de count (remove o warning)
+
         const cursor = bucket.find({ filename: cleanId });
-        // O driver novo do Mongo usa hasNext ou toArray para verificar existência de forma eficiente
         const docs = await cursor.limit(1).toArray();
         return docs.length > 0;
     }
@@ -27,22 +25,39 @@ class UnifiedMongoStore {
         const db = this.mongoose.connection.db;
         const bucket = new GridFSBucket(db, { bucketName: this.bucketName });
 
-        // Apaga anterior
+        // 1. Apaga backup anterior do banco (evita lixo)
         await this.delete(options);
 
-        const filePath = `${options.session}.zip`;
+        const possiblePath1 = path.resolve(process.cwd(), '.wwebjs_auth', `${cleanId}.zip`);
+        const possiblePath2 = path.resolve(process.cwd(), `${cleanId}.zip`);
+        const possiblePath3 = `${options.session}.zip`; // Caminho relativo cru enviado pela lib
 
-        // Verifica se o arquivo realmente existe antes de tentar ler
-        if (!fs.existsSync(filePath)) {
-            console.warn(`⚠️ [UnifiedMongoStore] Arquivo não encontrado para salvar: ${filePath}`);
-            return;
+        let fileToUpload = null;
+
+        if (fs.existsSync(possiblePath1)) {
+            fileToUpload = possiblePath1;
+        } else if (fs.existsSync(possiblePath2)) {
+            fileToUpload = possiblePath2;
+        } else if (fs.existsSync(possiblePath3)) {
+            fileToUpload = possiblePath3;
+        }
+
+        if (!fileToUpload) {
+            // console.warn(`⚠️ [UnifiedMongoStore] Arquivo ZIP não encontrado para backup. Tentaremos no próximo ciclo.`);
+            return Promise.resolve();
         }
 
         return new Promise((resolve, reject) => {
-            fs.createReadStream(filePath)
+            fs.createReadStream(fileToUpload)
                 .pipe(bucket.openUploadStream(cleanId))
                 .on('error', reject)
-                .on('finish', resolve);
+                .on('finish', () => {
+                    // Opcional: Se achou o arquivo perdido na raiz, apaga ele para limpar a casa
+                    if (fileToUpload === possiblePath2) {
+                        try { fs.unlinkSync(fileToUpload); } catch (e) { }
+                    }
+                    resolve();
+                });
         });
     }
 
@@ -50,23 +65,30 @@ class UnifiedMongoStore {
         const cleanId = path.basename(options.session);
         const db = this.mongoose.connection.db;
         const bucket = new GridFSBucket(db, { bucketName: this.bucketName });
-        
-        const filePath = `${options.session}.zip`;
-        const dirPath = path.dirname(filePath);
 
-        // CORREÇÃO 2 (A MAIS IMPORTANTE): Cria a pasta se ela não existir
+        // Caminho de destino: Sempre forçamos para dentro da pasta organizada
+        const destinationPath = path.resolve(process.cwd(), '.wwebjs_auth', `${cleanId}.zip`);
+        const dirPath = path.dirname(destinationPath);
+
+        // 1. Garante que a pasta existe
         if (!fs.existsSync(dirPath)) {
             fs.mkdirSync(dirPath, { recursive: true });
         }
 
+        // 2. Verifica se tem o que baixar
+        const exists = await this.sessionExists(options);
+        if (!exists) {
+            // Se não tem no banco (Sessão Nova ou Reset), não faz nada e deixa o RemoteAuth seguir.
+            return Promise.resolve();
+        }
+
+        // 3. Baixa do banco
         return new Promise((resolve, reject) => {
             bucket.openDownloadStreamByName(cleanId)
-                .pipe(fs.createWriteStream(filePath))
+                .pipe(fs.createWriteStream(destinationPath))
                 .on('error', (err) => {
-                    // Se o erro for "File not found" no GridFS, rejeita limpo
-                    if (err.code === 'ENOENT') {
-                        console.warn(`⚠️ [UnifiedMongoStore] Sessão não encontrada no GridFS: ${cleanId}`);
-                        resolve(); // Resolve vazio para forçar novo QR Code
+                    if (err.code === 'ENOENT' || err.message.includes('FileNotFound')) {
+                        resolve();
                     } else {
                         reject(err);
                     }
@@ -82,7 +104,7 @@ class UnifiedMongoStore {
 
         const cursor = bucket.find({ filename: cleanId });
         const docs = await cursor.toArray();
-        
+
         if (docs.length > 0) {
             await Promise.all(docs.map(doc => bucket.delete(doc._id)));
         }
