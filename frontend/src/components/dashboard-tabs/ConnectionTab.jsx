@@ -10,6 +10,7 @@ import {
 } from '@chakra-ui/icons';
 import { useApp } from '../../context/AppContext';
 import { businessAPI } from '../../services/api';
+import SmartLoader from '../SmartLoader';
 
 const ConnectionTab = () => {
   const { state, dispatch } = useApp();
@@ -128,7 +129,14 @@ const ConnectionTab = () => {
           <Card bg={cardBg} h="100%" boxShadow="md" borderTop="4px solid" borderTopColor={state.whatsappStatus.isConnected ? "green.400" : "red.400"}>
             <CardHeader><Heading size="md">Status do WhatsApp</Heading></CardHeader>
             <CardBody display="flex" flexDirection="column" alignItems="center" justifyContent="center">
-              {state.whatsappStatus.isConnected ? (
+              {state.whatsappStatus.error ? (
+                <VStack spacing={4} textAlign="center" p={4} bg="red.50" borderRadius="md" border="1px solid" borderColor="red.200">
+                    <Icon as={WarningTwoIcon} color="red.500" boxSize={12} />
+                    <Text fontWeight="bold" color="red.700">Erro de Conexão</Text>
+                    <Text color="red.600">{state.whatsappStatus.error}</Text>
+                    <Button size="sm" colorScheme="red" variant="outline" onClick={() => window.location.reload()}>Recarregar Página</Button>
+                </VStack>
+              ) : state.whatsappStatus.isConnected ? (
                 <VStack spacing={4}>
                   <Icon as={CheckCircleIcon} color="green.500" boxSize={16} />
                   <Box textAlign="center">
@@ -144,8 +152,8 @@ const ConnectionTab = () => {
                       <Box bg="white" p={4} borderRadius="lg"><QRCodeSVG value={state.whatsappStatus.qrCode} size={180} /></Box>
                       <Button colorScheme="red" variant="outline" size="sm" onClick={handleLogoutWhatsApp}>Cancelar / Desligar</Button>
                     </VStack>
-                  ) : state.whatsappStatus.mode === 'Iniciando...' ? (
-                    <VStack py={6}><Spinner size="xl" color="brand.500" thickness="4px" /><Text color="gray.500">Iniciando motor...</Text></VStack>
+                  ) : (state.whatsappStatus.mode === 'Iniciando...' || state.whatsappStatus.mode === 'initializing' || state.whatsappStatus.mode === 'authenticating') ? (
+                    <SmartLoader />
                   ) : (
                     <VStack py={4}>
                       <Icon as={WarningTwoIcon} color="orange.400" boxSize={12} />
