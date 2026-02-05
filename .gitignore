@@ -23,6 +23,8 @@ Thumbs.db
 # Ignore wwebjs_cache folder
 .wwebjs_cache/
 .wwebjs_auth/
+*.zip
+**/*.zip
 
 # Ignore txt files
 *.txt

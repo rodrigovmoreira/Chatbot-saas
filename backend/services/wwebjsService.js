@@ -1,4 +1,8 @@
-const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
+const { Client, RemoteAuth, MessageMedia } = require('whatsapp-web.js');
+const mongoose = require('mongoose');
+//const { MongoStore } = require('wwebjs-mongo');
+const UnifiedMongoStore = require('./UnifiedMongoStore');
+
 const { adaptWWebJSMessage } = require('./providerAdapter');
 const BusinessConfig = require('../models/BusinessConfig');
 
@@ -71,9 +75,10 @@ const startSession = async (userId) => {
   timeouts.set(userId, timeoutId);
 
   const client = new Client({
-    authStrategy: new LocalAuth({
+    authStrategy: new RemoteAuth({
       clientId: userId,
-      dataPath: './.wwebjs_auth' // Define explicitamente a pasta para organização
+      store: new UnifiedMongoStore({ mongoose: mongoose }),
+      backupSyncIntervalMs: 300000 // Faz backup da sessão no banco a cada 5 minutos
     }),
     puppeteer: {
       headless: true,
