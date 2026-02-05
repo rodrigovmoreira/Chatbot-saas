@@ -24,7 +24,7 @@ router.get('/', authenticateToken, async (req, res) => {
             return res.status(404).json({ message: 'Business configuration not found' });
         }
 
-        const contacts = await Contact.find({ businessId }).sort({ lastInteraction: -1 });
+        const contacts = await Contact.find({ businessId }).sort({ lastInteraction: -1 }).lean();
         res.json(contacts);
     } catch (error) {
         console.error('Error fetching contacts:', error);
@@ -44,7 +44,7 @@ router.get('/tags', authenticateToken, async (req, res) => {
 
         // Return just the names to maintain API contract with legacy frontends
         const Tag = require('../models/Tag');
-        const tags = await Tag.find({ businessId }).sort({ name: 1 });
+        const tags = await Tag.find({ businessId }).sort({ name: 1 }).lean();
         res.json(tags.map(t => t.name));
     } catch (error) {
         console.error('Error fetching tags:', error);
@@ -94,7 +94,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
             return res.status(404).json({ message: 'Business configuration not found' });
         }
 
-        const contact = await Contact.findOne({ _id: id, businessId });
+        const contact = await Contact.findOne({ _id: id, businessId }).lean();
         if (!contact) {
             return res.status(404).json({ message: 'Contact not found' });
         }
