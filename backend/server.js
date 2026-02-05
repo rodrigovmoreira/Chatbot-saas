@@ -16,6 +16,7 @@ const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const express = require('express');
+const mongoose = require('mongoose');
 const http = require('http');
 const { Server } = require("socket.io");
 const cors = require('cors');
@@ -35,6 +36,7 @@ const { adaptTwilioMessage } = require('./services/providerAdapter');
 const { handleIncomingMessage } = require('./messageHandler');
 const { 
   initializeWWebJS, 
+  startSession,
   getSessionStatus, 
   getSessionQR, 
   closeAllSessions 
@@ -126,9 +128,6 @@ app.post('/api/webhook', async (req, res) => {
     if (req.body.Body || req.body.NumMedia) {
       const normalizedMsg = adaptTwilioMessage(req.body);
 
-      // FIX: Fallback to first BusinessConfig for Webhooks if ID is missing
-      // In production, this should map the 'To' number to a BusinessConfig
-
       // 1. Tenta mapear pelo número 'To' (destino)
       let targetPhone = req.body.To ? req.body.To.replace('whatsapp:', '') : null;
       let businessConfig = null;
@@ -167,7 +166,6 @@ io.on('connection', (socket) => {
   const visitorId = socket.handshake.query.visitorId;
   if (visitorId) {
     socket.join(visitorId);
-    // console.log(`🔌 Visitor connected: ${visitorId}`);
   }
 
   // 2. Admin do Dashboard
@@ -185,6 +183,45 @@ io.on('connection', (socket) => {
 });
 
 // ==========================================
+// 🔄 AUTO-START (RESSURREIÇÃO DE SESSÕES)
+// ==========================================
+const restoreActiveSessions = async () => {
+  console.log('🔄 [Auto-Start] Verificando sessões para restaurar...');
+  
+  try {
+    // 1. Pega todas as empresas cadastradas
+    const configs = await BusinessConfig.find().lean();
+    const db = mongoose.connection.db;
+    
+    // 2. Loop para verificar quem tem backup
+    for (const config of configs) {
+      const userId = config.userId;
+      
+      // Busca no GridFS se existe arquivo com o ID do usuário no nome
+      const collection = db.collection('wwebsessions.files');
+      const sessionFile = await collection.findOne({ 
+        filename: { $regex: new RegExp(userId) } 
+      });
+
+      if (sessionFile) {
+        console.log(`⚡ [Auto-Start] Backup encontrado para ${config.businessName} (ID: ${userId}). Iniciando robô...`);
+        
+        // Inicia a sessão automaticamente (Vai baixar do banco, extrair e conectar)
+        startSession(userId);
+
+        // ⚠️ DELAY DE SEGURANÇA: Espera 5 segundos antes de iniciar o próximo
+        // Isso evita pico de CPU/RAM se houver muitos clientes
+        await new Promise(resolve => setTimeout(resolve, 5000)); 
+      }
+    }
+    console.log('🏁 [Auto-Start] Verificação inicial concluída.');
+    
+  } catch (error) {
+    console.error('❌ [Auto-Start] Erro ao restaurar sessões:', error);
+  }
+};
+
+// ==========================================
 // INICIALIZAÇÃO
 // ==========================================
 async function start() {
@@ -196,10 +233,15 @@ async function start() {
       runGlobalTagSync();
     }
     startScheduler();
-    initCampaignScheduler(); // Initialize the new Campaign Scheduler
+    initCampaignScheduler();
     
     // Passamos o IO para o serviço WWebJS poder emitir eventos
     initializeWWebJS(io);
+
+    // 👇 CHAMA A FUNÇÃO DE RESSURREIÇÃO AQUI 👇
+    if (process.env.NODE_ENV !== 'test') {
+      restoreActiveSessions();
+    }
 
     server.listen(PORT, () => {
       console.log(`\n🚀 SERVIDOR SAAS ONLINE NA PORTA ${PORT}`);

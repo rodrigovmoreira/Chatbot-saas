@@ -19,10 +19,28 @@ const initializeWWebJS = async (io) => {
   ioInstance = io;
 };
 
-const startSession = async (userId) => {
+const startSession = async (userIdRaw) => {
+  // 0. NORMALIZAÇÃO DE ID (CRÍTICO)
+  // Garante que seja sempre string para evitar duplicidade entre ObjectId vs String
+  const userId = userIdRaw.toString();
+
   // 1. BLINDAGEM CONTRA DUPLICIDADE
-  if (sessions.has(userId)) return sessions.get(userId);
-  if (statuses.get(userId) === 'initializing') return;
+  if (sessions.has(userId)) {
+      console.log(`🛡️ Sessão ${userId} já está online. Ignorando start duplicado.`);
+      return sessions.get(userId);
+  }
+
+  // 2. BLINDAGEM CONTRA RACE CONDITION
+  if (statuses.get(userId) === 'initializing') {
+      console.log(`🛡️ Sessão ${userId} já está inicializando. Chamada duplicada ignorada.`);
+      return;
+  }
+
+  // 3. A TRAVA DE SEGURANÇA
+  updateStatus(userId, 'initializing');
+  console.log(`▶️ Iniciando sessão BLINDADA para: ${userId}`);
+
+  // --- RESTO DO CÓDIGO (SEGUE IGUAL) ---
 
   const authPath = './.wwebjs_auth';
   if (!fs.existsSync(authPath)) {
@@ -33,8 +51,6 @@ const startSession = async (userId) => {
     }
   }
 
-  updateStatus(userId, 'initializing');
-
   const config = await BusinessConfig.findOne({ userId });
   if (!config) {
     console.error(`❌ Config não encontrada para UserID: ${userId}`);
@@ -42,8 +58,7 @@ const startSession = async (userId) => {
     return;
   }
 
-  // 2. The 'QR Timeout' Safety Valve
-  // Clear any existing timeout just in case
+  // 4. The 'QR Timeout' Safety Valve
   if (timeouts.has(userId)) {
     clearTimeout(timeouts.get(userId));
     timeouts.delete(userId);
@@ -70,7 +85,6 @@ const startSession = async (userId) => {
 
       if (ioInstance) {
         ioInstance.to(userId).emit('connection_timeout', { message: 'Tempo limite excedido. Tente novamente.' });
-        // Also update status to disconnected so frontend reflects it
         ioInstance.to(userId).emit('wwebjs_status', 'disconnected');
       }
     }
@@ -82,7 +96,8 @@ const startSession = async (userId) => {
     authStrategy: new RemoteAuth({
       clientId: userId,
       store: new UnifiedMongoStore({ mongoose: mongoose }),
-      backupSyncIntervalMs: 300000 // Faz backup da sessão no banco a cada 5 minutos
+      backupSyncIntervalMs: 300000,
+      dataPath: './.wwebjs_auth'
     }),
     puppeteer: {
       headless: true,
@@ -108,18 +123,15 @@ const startSession = async (userId) => {
         '--disable-component-update',
         '--disable-domain-reliability',
         '--disable-sync',
-
-        // O PULO DO GATO (Economia Visual sem Bloqueio de Dados):
-        '--disable-remote-fonts', // Não baixa fontes pesadas (ícones, etc)
-        '--blink-settings=imagesEnabled=false', // Não renderiza imagens (mas permite download do binário)        
-        '--disable-software-rasterizer', // <--- NOVO: Evita crash gráfico no Linux
-        '--disable-features=IsolateOrigins,site-per-process' // <--- NOVO: Economiza memória e evita travamento de processo
+        '--disable-remote-fonts',
+        '--blink-settings=imagesEnabled=false',
+        '--disable-software-rasterizer',
+        '--disable-features=IsolateOrigins,site-per-process'
       ],
       executablePath: process.env.CHROME_BIN || undefined
     }
   });
 
-  // Salva referência IMEDIATAMENTE para evitar duplicidade se o frontend chamar de novo rápido
   sessions.set(userId, client);
 
   client.on('qr', (qr) => {
@@ -163,7 +175,7 @@ const startSession = async (userId) => {
   });
 
   client.on('disconnected', async (reason) => {
-    await stopSession(userId); // Usa a função centralizada de stop
+    await stopSession(userId);
   });
 
   try {
