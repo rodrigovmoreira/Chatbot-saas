@@ -1,3 +1,4 @@
+const fs = require('fs');
 const { Client, RemoteAuth, MessageMedia } = require('whatsapp-web.js');
 const mongoose = require('mongoose');
 //const { MongoStore } = require('wwebjs-mongo');
@@ -20,13 +21,16 @@ const initializeWWebJS = async (io) => {
 
 const startSession = async (userId) => {
   // 1. BLINDAGEM CONTRA DUPLICIDADE
-  if (sessions.has(userId)) {
-    return sessions.get(userId);
-  }
+  if (sessions.has(userId)) return sessions.get(userId);
+  if (statuses.get(userId) === 'initializing') return;
 
-  // Se o status diz que está iniciando, aborta para não criar condição de corrida
-  if (statuses.get(userId) === 'initializing') {
-    return;
+  const authPath = './.wwebjs_auth';
+  if (!fs.existsSync(authPath)) {
+    try {
+      fs.mkdirSync(authPath, { recursive: true });
+    } catch (err) {
+      console.error('❌ Falha ao criar pasta .wwebjs_auth:', err);
+    }
   }
 
   updateStatus(userId, 'initializing');
