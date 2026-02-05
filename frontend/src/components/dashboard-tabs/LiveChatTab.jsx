@@ -341,7 +341,7 @@ const LiveChatTab = () => {
   return (
     <Box>
       <Stack direction={{ base: 'column', md: 'row' }} mb={4} justify="flex-end" spacing={2}>
-        <Button leftIcon={<LinkIcon />} size="sm" onClick={onEmbedOpen} colorScheme="brand">
+        <Button leftIcon={<LinkIcon />} size={{ base: 'lg', md: 'sm' }} onClick={onEmbedOpen} colorScheme="brand" w={{ base: 'full', md: 'auto' }}>
           Instalar no Site
         </Button>
       </Stack>
@@ -475,14 +475,14 @@ const LiveChatTab = () => {
                                     variant={isRightSidebarOpen && isLargeScreen ? "solid" : "ghost"}
                                     colorScheme={isRightSidebarOpen && isLargeScreen ? "brand" : "gray"}
                                     aria-label="CRM"
-                                    size="sm"
+                                    size={{ base: 'md', md: 'sm' }}
                                 />
                               </Tooltip>
 
                               <Tooltip label="Limpar Histórico">
                                 <Button
                                   leftIcon={<DeleteIcon />}
-                                  size="sm"
+                                  size={{ base: 'md', md: 'sm' }}
                                   colorScheme="red"
                                   variant="ghost"
                                   onClick={handleClearHistory}

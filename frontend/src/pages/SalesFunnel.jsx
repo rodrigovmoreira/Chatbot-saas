@@ -102,10 +102,10 @@ const SalesFunnel = () => {
   }
 
   return (
-    <Box h="calc(100vh - 100px)" display="flex" flexDirection="column">
-      <Flex mb={4} justify="space-between" align="center">
+    <Box h="calc(100dvh - 100px)" display="flex" flexDirection="column">
+      <Flex mb={4} justify="space-between" align="center" flexDirection={{ base: 'column', md: 'row' }} gap={{ base: 2, md: 0 }}>
         <Heading size="md">Funil de Vendas</Heading>
-        <Button size="sm" leftIcon={<SettingsIcon />} onClick={onOpen}>
+        <Button size={{ base: 'lg', md: 'sm' }} leftIcon={<SettingsIcon />} onClick={onOpen} w={{ base: 'full', md: 'auto' }}>
           Configurar Etapas
         </Button>
       </Flex>

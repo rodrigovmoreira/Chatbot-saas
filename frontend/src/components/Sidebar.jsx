@@ -219,8 +219,8 @@ export const Sidebar = ({ isOpen, onClose, activeTab, setActiveTab, isCollapsed,
         onOverlayClick={onClose}
         size="xs"
       >
-        <DrawerOverlay />
-        <DrawerContent>
+        <DrawerOverlay zIndex="1400" />
+        <DrawerContent zIndex="1400">
           <SidebarContent
             onClose={onClose}
             activeTab={activeTab}

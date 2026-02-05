@@ -31,7 +31,7 @@ const StatsCard = ({ title, stat, icon, color }) => {
       rounded={'lg'}
       bg={bg}
     >
-      <Flex justifyContent={'space-between'}>
+      <Flex justifyContent={'space-between'} flexDirection={{ base: 'column', md: 'row' }}>
         <Box pl={{ base: 2, md: 4 }}>
           <StatLabel fontWeight={'medium'} isTruncated>
             {title}
@@ -44,6 +44,7 @@ const StatsCard = ({ title, stat, icon, color }) => {
           my={'auto'}
           color={iconColor}
           alignContent={'center'}
+          mt={{ base: 2, md: 0 }}
         >
           <Icon as={icon} w={8} h={8} color={color} />
         </Box>
@@ -104,7 +105,7 @@ const OverviewTab = () => {
         Visão Geral
       </Heading>
 
-      <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={{ base: 5, lg: 8 }}>
+      <SimpleGrid columns={{ base: 1, md: 3, lg: 4 }} spacing={{ base: 6, lg: 8 }}>
         <StatsCard
           title={'Pipeline Total'}
           stat={formatCurrency(data.pipelineValue)}
