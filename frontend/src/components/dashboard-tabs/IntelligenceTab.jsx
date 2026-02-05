@@ -492,8 +492,8 @@ const IntelligenceTab = () => {
                             setCurrentTagInput(e.target.value);
                             setShowTagSuggestions(true);
                           }}
-                          onFocus={() => setShowTagSuggestions(true)}
-                          onBlur={() => setTimeout(() => setShowTagSuggestions(false), 200)} // Delay to allow click
+                          onFocus={() => setShowTagSuggestions(true)} // Ao clicar, abre a lista
+                          onBlur={() => setTimeout(() => setShowTagSuggestions(false), 200)}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               e.preventDefault();
@@ -505,8 +505,8 @@ const IntelligenceTab = () => {
                         <Button onClick={() => handleAddTag(audienceRules.mode === 'whitelist' ? 'whitelist' : 'blacklist')}>Adicionar</Button>
                       </HStack>
 
-                      {/* Dropdown Suggestions */}
-                      {showTagSuggestions && currentTagInput && (
+                      {/* CORREÇÃO AQUI: Removemos '&& currentTagInput' */}
+                      {showTagSuggestions && filteredTags.length > 0 && (
                         <Box
                           position="absolute"
                           top="100%"
@@ -530,8 +530,12 @@ const IntelligenceTab = () => {
                                 py={2}
                                 cursor="pointer"
                                 _hover={{ bg: "blue.50" }}
-                                onMouseDown={(e) => e.preventDefault()} // Prevent blur
-                                onClick={() => handleAddTag(audienceRules.mode === 'whitelist' ? 'whitelist' : 'blacklist', tag)}
+                                onMouseDown={(e) => e.preventDefault()} // Impede que o Input perca foco ao clicar na barra de rolagem
+                                onClick={() => {
+                                  handleAddTag(audienceRules.mode === 'whitelist' ? 'whitelist' : 'blacklist', tag);
+                                  // Opcional: fechar lista após selecionar
+                                  // setShowTagSuggestions(false); 
+                                }}
                               >
                                 <HStack>
                                   <Icon as={StarIcon} color="blue.400" w={3} h={3} />
@@ -539,7 +543,6 @@ const IntelligenceTab = () => {
                                 </HStack>
                               </ListItem>
                             ))}
-
                           </List>
                         </Box>
                       )}
