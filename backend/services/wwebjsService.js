@@ -86,7 +86,23 @@ const startSession = async (userId) => {
         '--no-zygote',
         '--disable-gpu',
         '--disable-extensions',
+        '--disable-component-extensions-with-background-pages',
+        '--disable-default-apps',
         '--mute-audio',
+        '--no-default-browser-check',
+        '--autoplay-policy=user-gesture-required',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-notifications',
+        '--disable-background-networking',
+        '--disable-breakpad',
+        '--disable-component-update',
+        '--disable-domain-reliability',
+        '--disable-sync',
+
+        // O PULO DO GATO (Economia Visual sem Bloqueio de Dados):
+        '--disable-remote-fonts', // Não baixa fontes pesadas (ícones, etc)
+        '--blink-settings=imagesEnabled=false', // Não renderiza imagens (mas permite download do binário)        
         '--disable-software-rasterizer', // <--- NOVO: Evita crash gráfico no Linux
         '--disable-features=IsolateOrigins,site-per-process' // <--- NOVO: Economiza memória e evita travamento de processo
       ],
