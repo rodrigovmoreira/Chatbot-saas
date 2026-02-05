@@ -7,7 +7,6 @@ import {
   RadioGroup, Radio, Stack, FormHelperText
 } from '@chakra-ui/react';
 import { AddIcon, EditIcon, DeleteIcon, TimeIcon, CalendarIcon } from '@chakra-ui/icons';
-import { useApp } from '../../context/AppContext';
 // Using direct axios for this specific module as it is not fully integrated into standard services yet,
 // but auth headers are handled carefully.
 import axios from 'axios';
@@ -16,7 +15,6 @@ import CampaignAudienceModal from '../campaigns/CampaignAudienceModal';
 import TagAutocomplete from '../Tags/TagAutocomplete';
 
 const CampaignTab = () => {
-  const { state } = useApp();
   const [campaigns, setCampaigns] = useState([]);
   const [currentCampaign, setCurrentCampaign] = useState(null);
 

@@ -10,6 +10,8 @@ const messages = [
   "Arrumando tudo na velocidade da luz...",
   "Passeando pelo ciberespaço...",
   "Olhando para o horizonte digital...",
+  "Preparando um café virtual...",
+  "Seguindo o fluxo do cabo de rede...",
   "Quase lá..."
 ];
 

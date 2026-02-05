@@ -3,7 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import {
   Box, Grid, GridItem, Card, CardHeader, CardBody, Heading, Text, Button, VStack, HStack, Stack,
   useToast, Icon, useColorModeValue, FormControl, FormLabel, Input, Textarea,
-  Spinner, Divider, Switch, Badge
+  Divider, Switch, Badge
 } from '@chakra-ui/react';
 import {
   CheckCircleIcon, WarningTwoIcon, EditIcon, ViewIcon
