@@ -80,7 +80,7 @@ const TagAutocomplete = ({ onSelect, existingTags = [], placeholder = "Adicionar
     >
       <PopoverTrigger>
         <Button
-            size="sm"
+            size={{ base: 'lg', md: 'sm' }}
             leftIcon={<AddIcon />}
             variant="outline"
             colorScheme="gray"

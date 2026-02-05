@@ -398,6 +398,7 @@ const IntelligenceTab = () => {
                       placeholder="Ex: Viktor"
                       value={identity.botName}
                       onChange={(e) => setIdentity({ ...identity, botName: e.target.value })}
+                      size={{ base: 'lg', md: 'md' }}
                     />
                   </FormControl>
                   <FormControl>
@@ -406,6 +407,7 @@ const IntelligenceTab = () => {
                       placeholder="Ex: Formal, Amigável, Descontraído..."
                       value={identity.tone}
                       onChange={(e) => setIdentity({ ...identity, tone: e.target.value })}
+                      size={{ base: 'lg', md: 'md' }}
                     />
                   </FormControl>
                 </Stack>
