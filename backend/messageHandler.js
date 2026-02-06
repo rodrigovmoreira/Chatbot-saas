@@ -39,6 +39,32 @@ const getTagNames = (tags) => {
     });
 };
 
+// === FUNÇÃO DE LIMPEZA DE HISTÓRICO (O FAXINEIRO) ===
+const cleanMessageHistory = (history) => {
+    if (!history || history.length === 0) return [];
+
+    const uniqueHistory = [];
+    let lastContent = null;
+    
+    // 1. Mantém a System Message sempre (se existir no array, mas geralmente ela é injetada depois)
+    // Se o histórico vier do banco, ele não tem system message ainda.
+    
+    for (let i = 0; i < history.length; i++) {
+        const msg = history[i];
+        
+        // Regra A: Ignora mensagens vazias
+        if (!msg.content || msg.content.trim() === "") continue;
+
+        // Regra B: Ignora duplicatas exatas consecutivas (O Loop "E aí guerreiro")
+        if (msg.content === lastContent) continue;
+
+        uniqueHistory.push(msg);
+        lastContent = msg.content;
+    }
+
+    return uniqueHistory;
+};
+
 function checkRateLimit(key) {
   if (process.env.NODE_ENV === 'test') return true;
   const now = Date.now();
@@ -338,16 +364,25 @@ Assistant: {"action": "book", "clientName": "Rodrigo", "start": "2026-01-01T09:0
 
 Example of WRONG behavior (Do NOT do this):
 Assistant: "Ok, I will schedule that for you. {"action": "book"...}" (Do not add text before JSON)
+
+--- REGRAS DE ANTI-REPETIÇÃO ---
+1. Seja criativo. NÃO repita a última frase ou saudação que você disse se ela já estiver no histórico recente.
+2. Se o usuário insistir em apenas "Oi", varie a resposta (ex: "Olá novamente", "Em que posso ajudar?", "Tudo bem?").
 `;
 
     // C. Montagem do Histórico
-    const dbHistory = await getLastMessages(from, MAX_HISTORY, activeBusinessId, channel);
+    const rawDbHistory = await getLastMessages(from, MAX_HISTORY, activeBusinessId, channel);
     
+    // 🔥 APLICA O FAXINEIRO AQUI 🔥
+    // Limpa mensagens repetidas e vazias antes de enviar para a IA
+    const cleanDbHistory = cleanMessageHistory(rawDbHistory);
+
     const messages = [
         { role: "system", content: systemInstruction }
     ];
 
-    dbHistory.reverse().forEach(m => {
+    cleanDbHistory.reverse().forEach(m => {
+        // Garantia extra de conteúdo
         if (m.content && m.content.trim()) {
             messages.push({
                 role: m.role === 'user' ? 'user' : 'assistant',
@@ -442,9 +477,9 @@ Assistant: "Ok, I will schedule that for you. {"action": "book"...}" (Do not add
                    }
                    count++;
                 } else {
-                    if (channel !== 'web') {
-                        await sendUnifiedMessage(from, caption, provider, businessConfig.userId);
-                    }
+                   if (channel !== 'web') {
+                       await sendUnifiedMessage(from, caption, provider, businessConfig.userId);
+                   }
                 }
               }
               toolResult = `Encontrei ${products.length} produtos e já enviei ${count} com fotos para o cliente.`;

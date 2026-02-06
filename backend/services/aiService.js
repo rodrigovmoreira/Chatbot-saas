@@ -64,7 +64,7 @@ async function callDeepSeek(messages) {
         // 2. Inject Circuit Breaker
         finalMessages.push({
             role: 'system',
-            content: '[SYSTEM URGENT: The assistant MUST stop laughing. Be concise, serious, and direct. Do not repeat previous offers.]'
+            content: '[SYSTEM URGENT: Be concise, serious, and direct. Do not repeat previous talks.]'
         });
 
         console.log('🔍 [DEEPSEEK PROMPT]', JSON.stringify(finalMessages, null, 2));
@@ -110,8 +110,8 @@ SYSTEM: You are a helpful assistant writing a message for a marketing campaign.
 CONTEXT:
 Recipient Name: ${context.name || 'Cliente'}
 
-INSTRUCTION: Write a short, friendly message based on the following request: "${promptText}".
-Personalize it using the recipient's name if appropriate.
+INSTRUCTION: Write a short message based on the following request: "${promptText}".
+Personalize it using the recipient's name if appropriate. Don't repeat yourself, see the history role system and avoid repeat the same message multiple times. Be concise and engaging.
 Do not add "Subject:" or any other headers. Just the message body.
 `;
 
