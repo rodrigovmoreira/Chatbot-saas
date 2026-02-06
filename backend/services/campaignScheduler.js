@@ -5,19 +5,27 @@ const CampaignLog = require('../models/CampaignLog');
 const Contact = require('../models/Contact');
 const Appointment = require('../models/Appointment');
 const BusinessConfig = require('../models/BusinessConfig');
-const { callDeepSeek, generateCampaignMessage } = require('./aiService');
+const { callDeepSeek } = require('./aiService'); // Use direct caller
 const { sendUnifiedMessage } = require('./responseService');
 const { getLastMessages } = require('./message');
 
-const SCHEDULE_INTERVAL = '0 0-23 * * *'; // Every hour? No, prompt says "Runs every minute".
-// Cron pattern for every minute: '* * * * *'
+// Runs every minute to check for triggers
 const CRON_EXPRESSION = '* * * * *';
 
-async function processCampaigns() {
-  //console.log('🔄 [CampaignScheduler] Checking active campaigns...');
+// === HELPER: CLEAN AI THOUGHTS (Consolidated Logic) ===
+const stripThinking = (text) => {
+    if (!text) return "";
+    let clean = text;
+    clean = clean.replace(/```json/g, '').replace(/```/g, '');
+    clean = clean.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
+    if (clean.includes('<thinking>')) clean = clean.split('<thinking>')[0];
+    clean = clean.replace(/<\/thinking>/gi, '');
+    return clean.trim();
+};
 
+async function processCampaigns() {
   try {
-    // Exclude campaigns already processing to prevent race conditions (re-entrancy)
+    // Prevent re-entrancy race conditions
     const campaigns = await Campaign.find({
       isActive: true,
       processing: { $ne: true }
@@ -32,6 +40,8 @@ async function processCampaigns() {
         }
       } catch (err) {
         console.error(`❌ Error processing campaign ${campaign._id}:`, err);
+        // Unlock on error so it can be picked up again or fixed
+        await Campaign.updateOne({ _id: campaign._id }, { processing: false });
       }
     }
   } catch (error) {
@@ -41,7 +51,9 @@ async function processCampaigns() {
 
 async function processTimeCampaign(campaign) {
   const config = await BusinessConfig.findOne({ userId: campaign.userId });
-  const timeZone = config?.operatingHours?.timezone || 'America/Sao_Paulo';
+  if (!config) return;
+
+  const timeZone = config.operatingHours?.timezone || 'America/Sao_Paulo';
   const now = new Date();
   let shouldTrigger = false;
 
@@ -62,78 +74,43 @@ async function processTimeCampaign(campaign) {
 
     if (!lastRun || (now.getTime() - lastRun.getTime()) >= intervalMs) {
       shouldTrigger = true;
-
-      // Mark as processing before dispatch
       await Campaign.updateOne({ _id: campaign._id }, { processing: true });
-
-      // Calculate next run
-      const nextRun = new Date(now.getTime() + intervalMs);
-
-      // Note: Dispatch loop happens below after switch block.
-      // We need to pass nextRun info or handle update after dispatch.
-      // Since processTimeCampaign logic continues below to "2. Find Targets",
-      // we should defer the final status update until AFTER dispatch loop.
-
-      // Store nextRun in campaign object for later use in this scope?
-      // Or we can just attach it to campaign instance.
-      campaign.tempNextRun = nextRun;
+      campaign.tempNextRun = new Date(now.getTime() + intervalMs);
     }
   } else {
-    // CLOCK TIME LOGIC (Daily, Weekly, Monthly, Once)
+    // CLOCK TIME LOGIC
     const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone,
-      hour: '2-digit',
-      minute: '2-digit',
-      weekday: 'short', // Sun, Mon, Tue...
-      hour12: false
+      timeZone, hour: '2-digit', minute: '2-digit', weekday: 'short', hour12: false
     });
 
     const parts = formatter.formatToParts(now);
     const hour = parts.find(p => p.type === 'hour').value;
     const minute = parts.find(p => p.type === 'minute').value;
-    const weekdayStr = parts.find(p => p.type === 'weekday').value; // 'Sun', 'Mon' etc.
-
+    const weekdayStr = parts.find(p => p.type === 'weekday').value;
     const currentHM = `${hour}:${minute}`;
 
-    // Map weekday string to index (0-6)
     const daysMap = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
     const currentDay = daysMap[weekdayStr];
 
-    // Debug for Testing
-    if (process.env.NODE_ENV === 'test') {
-      console.log(`[DEBUG] Time Check: Campaign=${campaign.name}, Schedule=${campaign.schedule.time}, Current=${currentHM}, Day=${currentDay}`);
-    }
+    if (campaign.schedule.days.length > 0 && !campaign.schedule.days.includes(currentDay)) return;
 
-    // Check Days
-    if (campaign.schedule.days.length > 0 && !campaign.schedule.days.includes(currentDay)) {
-      return; // Not today
-    }
-
-    // Check Time
     if (campaign.schedule.time === currentHM) {
       shouldTrigger = true;
       await Campaign.updateOne({ _id: campaign._id }, { processing: true });
     }
   }
 
-  if (!shouldTrigger) {
-    return;
-  }
+  if (!shouldTrigger) return;
 
-  console.log(`🎯 Triggering TIME campaign: ${campaign.name} (${campaign._id})`);
+  console.log(`🎯 Triggering TIME campaign: ${campaign.name}`);
 
-  // Optimization: Pre-fetch excluded IDs to avoid N+1 queries in loop
+  // 1. Exclusion Logic (Batch optimization)
   let excludedContactIds = [];
+  
   if (campaign.type === 'broadcast') {
-    excludedContactIds = await CampaignLog.find({
-      campaignId: campaign._id
-    }).distinct('contactId');
+    excludedContactIds = await CampaignLog.find({ campaignId: campaign._id }).distinct('contactId');
   } else if (campaign.type === 'recurring') {
-    // Only exclude contacts if frequency is NOT intraday (e.g. daily/weekly)
-    // For intraday (minutes/hours), we allow multiple sends per day,
-    // relying on the campaign's lastRun/nextRun logic to control frequency.
     const intradayFreqs = ['minutes_1', 'minutes_30', 'hours_1', 'hours_6', 'hours_12'];
-
     if (!intradayFreqs.includes(campaign.schedule?.frequency)) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -145,7 +122,6 @@ async function processTimeCampaign(campaign) {
   }
 
   // 2. Find Targets
-  // Only users with phone numbers
   const contacts = await Contact.find({
     businessId: config._id,
     tags: { $in: campaign.targetTags },
@@ -154,129 +130,66 @@ async function processTimeCampaign(campaign) {
     _id: { $nin: excludedContactIds }
   });
 
-  console.log(`👥 Found ${contacts.length} potential targets for campaign ${campaign.name}`);
+  console.log(`👥 Found ${contacts.length} targets for ${campaign.name}`);
 
-  // Batch Processing for verification (Safety Check)
+  // 3. Process Batch
   const BATCH_SIZE = 50;
   for (let i = 0; i < contacts.length; i += BATCH_SIZE) {
     const batch = contacts.slice(i, i + BATCH_SIZE);
-    const batchIds = batch.map(c => c._id);
-    let batchExcludedIds = [];
-
-    // Re-verify exclusions for this batch (Double-check for race conditions/consistency)
-    if (campaign.type === 'broadcast') {
-      batchExcludedIds = await CampaignLog.find({
-        campaignId: campaign._id,
-        contactId: { $in: batchIds }
-      }).distinct('contactId');
-    } else if (campaign.type === 'recurring') {
-      const intradayFreqs = ['minutes_1', 'minutes_30', 'hours_1', 'hours_6', 'hours_12'];
-      if (!intradayFreqs.includes(campaign.schedule?.frequency)) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        batchExcludedIds = await CampaignLog.find({
-          campaignId: campaign._id,
-          contactId: { $in: batchIds },
-          sentAt: { $gte: today }
-        }).distinct('contactId');
-      }
-    }
-
-    const batchExcludedSet = new Set(batchExcludedIds.map(id => id.toString()));
-
+    
+    // Process each contact in batch
+    // We do sequential dispatch per batch to not overload, but parallel inside batch could be an option.
+    // Sticking to sequential for safety with AI rate limits.
     for (const contact of batch) {
-      if (batchExcludedSet.has(contact._id.toString())) {
-        continue; // Skip if found in batch check
-      }
-      await dispatchCampaign(campaign, contact, null, config, { skipExclusionCheck: true });
+      await dispatchCampaign(campaign, contact, null, config);
     }
   }
 
-  // Finalize Status
-  const updateData = {
-      'stats.lastRun': now,
-      processing: false
-  };
-
+  // 4. Update Campaign Status
+  const updateData = { 'stats.lastRun': now, processing: false };
   if (campaign.schedule?.frequency === 'once') {
       updateData.status = 'completed';
       updateData.isActive = false;
   } else {
-      updateData.status = 'active'; // As requested
-      if (campaign.tempNextRun) {
-          updateData.nextRun = campaign.tempNextRun;
-      }
-      // For daily/weekly clock campaigns, we assume they remain active without explicit nextRun calc for now,
-      // or we could add +1 day etc. but keeping it simple as per prompt scope.
+      updateData.status = 'active';
+      if (campaign.tempNextRun) updateData.nextRun = campaign.tempNextRun;
   }
-
   await Campaign.updateOne({ _id: campaign._id }, updateData);
 }
 
 async function processEventCampaign(campaign) {
-  // 1. Calculate Time Window
-  // targetTime = appointment.start - offset
-  // trigger if targetTime is NOW (within this minute)
-  // So: appointment.start = NOW + offset
+  const config = await BusinessConfig.findOne({ userId: campaign.userId });
+  if (!config) return;
 
   const now = new Date();
   const offsetMinutes = campaign.eventOffset || 0;
-
-  // We want appointments starting in [now + offset, now + offset + 1min]
   const startRange = new Date(now.getTime() + offsetMinutes * 60000);
-  const endRange = new Date(startRange.getTime() + 60000); // +1 minute window
+  const endRange = new Date(startRange.getTime() + 60000);
 
-  // Find appointments
   const appointments = await Appointment.find({
     userId: campaign.userId,
     status: { $in: campaign.eventTargetStatus },
-    start: {
-      $gte: startRange,
-      $lt: endRange
-    }
+    start: { $gte: startRange, $lt: endRange }
   });
 
-  if (appointments.length > 0) {
-      console.log(`📅 Found ${appointments.length} appointments for EVENT campaign: ${campaign.name}`);
-  }
+  if (appointments.length === 0) return;
 
-  const config = await BusinessConfig.findOne({ userId: campaign.userId });
-
-  // Optimization: Batch fetch contacts and exclusions to avoid N+1 queries
-  const phones = appointments.map(a => a.clientPhone).filter(p => p);
-  const appointmentIds = appointments.map(a => a._id.toString());
-
-  const contacts = await Contact.find({
-    businessId: config._id,
-    phone: { $in: phones }
-  });
-
-  const contactMap = new Map();
-  contacts.forEach(c => contactMap.set(c.phone, c));
-
-  const sentLogs = await CampaignLog.find({
-    campaignId: campaign._id,
-    relatedId: { $in: appointmentIds }
-  }).distinct('relatedId');
-
-  const excludedSet = new Set(sentLogs.map(id => id.toString()));
+  console.log(`📅 Found ${appointments.length} appointments for EVENT campaign: ${campaign.name}`);
 
   for (const appt of appointments) {
-    // Check exclusion in memory
-    if (excludedSet.has(appt._id.toString())) {
-      continue;
-    }
+    // Find or create temp contact wrapper
+    let contact = await Contact.findOne({ businessId: config._id, phone: appt.clientPhone });
+    
+    if (contact && contact.isHandover) continue;
 
-    // Find contact in Map
-    const contact = contactMap.get(appt.clientPhone);
+    // Check if already sent for this specific appointment ID
+    const alreadySent = await CampaignLog.exists({
+        campaignId: campaign._id,
+        relatedId: appt._id.toString()
+    });
 
-    if (contact && contact.isHandover) continue; // Skip if human is talking
+    if (alreadySent) continue;
 
-    // If contact not found but we have phone, we can still send?
-    // The prompt says "Use the contact associated...".
-    // If no contact doc exists, we might create a temp one or just send if we have the number?
-    // Dispatch logic expects a contact object for filtering history etc.
-    // If no contact, we can construct a minimal one.
     const targetContact = contact || {
       _id: null,
       phone: appt.clientPhone,
@@ -284,99 +197,100 @@ async function processEventCampaign(campaign) {
       businessId: config._id
     };
 
-    await dispatchCampaign(campaign, targetContact, appt, config, { skipExclusionCheck: true });
+    await dispatchCampaign(campaign, targetContact, appt, config);
   }
 }
 
-async function dispatchCampaign(campaign, contact, appointment, config, options = {}) {
-  // 1. Exclusion Logic (Already Sent?)
-  if (!options.skipExclusionCheck) {
-    // For Broadcast: Check if ANY log exists for this campaign + contact
-    if (campaign.type === 'broadcast') {
-      const exists = await CampaignLog.exists({
-        campaignId: campaign._id,
-        contactId: contact._id
-      });
-      if (exists) return; // Already sent
-    }
-
-    // For Recurring: Check if sent TODAY (only if NOT intraday)
-    if (campaign.type === 'recurring') {
-      const intradayFreqs = ['minutes_1', 'minutes_30', 'hours_1', 'hours_6', 'hours_12'];
-      if (!intradayFreqs.includes(campaign.schedule?.frequency)) {
-          const today = new Date();
-          today.setHours(0,0,0,0);
-          const exists = await CampaignLog.exists({
-            campaignId: campaign._id,
-            contactId: contact._id,
-            sentAt: { $gte: today }
-          });
-          if (exists) return; // Already sent today
-      }
-    }
-
-    // For Event: Check if sent for this APPOINTMENT
-    if (campaign.triggerType === 'event' && appointment) {
-      const exists = await CampaignLog.exists({
-          campaignId: campaign._id,
-          relatedId: appointment._id.toString()
-      });
-      if (exists) return; // Already sent for this appointment
-    }
-  }
-
-  // 2. Content Logic
+async function dispatchCampaign(campaign, contact, appointment, config) {
+  // --- AI GENERATION WITH HISTORY CONTEXT ---
   let messageToSend = campaign.message;
 
   if (campaign.contentMode === 'ai_prompt') {
-    // AI Generation (Dynamic)
     try {
-        messageToSend = await generateCampaignMessage(campaign.message, { name: contact.name });
+        // 1. Fetch History (Last 10 messages)
+        // We use the phone number or contact ID to fetch history
+        const identifier = contact.phone || contact._id;
+        const rawHistory = await getLastMessages(identifier, 10, config._id, 'whatsapp');
+        
+        // Format history for the prompt
+        const historyText = rawHistory.reverse().map(m => 
+            `${m.role === 'bot' || m.role === 'assistant' ? 'Assistant' : 'User'}: "${m.content}"`
+        ).join('\n');
+
+        // 2. Build Smart Prompt
+        const prompt = [
+            {
+                role: 'system',
+                content: `
+You are a marketing assistant for ${config.businessName || 'a business'}.
+CONTEXT: You are sending a campaign message to ${contact.name || 'a client'}.
+
+CAMPAIGN GOAL: "${campaign.message}"
+
+--- CONVERSATION HISTORY ---
+${historyText || "No previous history."}
+
+--- RULES ---
+1. **CHECK HISTORY:** Look at what was last sent. If we already offered this, do NOT repeat the same phrase. Change the angle.
+2. **NO ROBOTS:** Write natural, short, engaging copy.
+3. **ANTI-REPETITION:** If the history shows the user already rejected this offer, do not offer again. Just check in on them.
+4. **THINKING:** Use <thinking>...</thinking> to plan, but it will be hidden.
+`
+            },
+            {
+                role: 'user',
+                content: "Generate the campaign message now."
+            }
+        ];
+
+        // 3. Call AI
+        const rawResponse = await callDeepSeek(prompt);
+        
+        // 4. Strip Thoughts
+        messageToSend = stripThinking(rawResponse);
+        
+        // Safety Fallback
+        if (!messageToSend) messageToSend = campaign.message; // Fallback to raw prompt if AI fails
+
     } catch (e) {
-      console.error('Campaign AI generation failed, falling back to static:', e);
-      // Fallback to static message (original behavior preserved via try-catch inside generateCampaignMessage too)
+      console.error('⚠️ Campaign AI failed, using static fallback:', e.message);
+      messageToSend = campaign.message;
     }
   } else {
-    // Static mode: Replace variables if needed?
-    // Prompt doesn't specify variable replacement for static, but it's good practice.
-    // "Use campaign.message directly" -> Okay.
-
-    // Minimal replacement for Event
+    // Static Replacements
     if (appointment) {
         messageToSend = messageToSend
-            .replace('{{name}}', appointment.clientName)
+            .replace('{{name}}', appointment.clientName || contact.name || '')
             .replace('{{time}}', new Date(appointment.start).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}));
+    } else {
+        messageToSend = messageToSend.replace('{{name}}', contact.name || '');
     }
   }
 
-  // 3. Humanized Dispatch
+  // --- DISPATCH ---
   const minDelay = (campaign.delayRange?.min || 0) * 1000;
-  const maxDelay = (campaign.delayRange?.max || 5) * 1000; // Default 5s if 0
+  const maxDelay = (campaign.delayRange?.max || 5) * 1000;
   let delay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
+  
+  if (process.env.NODE_ENV === 'test') delay = 0;
 
-  if (process.env.NODE_ENV === 'test') {
-    delay = 0;
-  }
+  console.log(`⏳ Sending to ${contact.phone} in ${delay}ms`);
 
-  console.log(`⏳ Scheduling send to ${contact.phone} in ${delay}ms`);
-
-  const executeDispatch = async () => {
+  setTimeout(async () => {
     try {
       const sent = await sendUnifiedMessage(contact.phone, messageToSend, 'wwebjs', campaign.userId);
-
-      const logStatus = sent ? 'sent' : 'failed';
+      const status = sent ? 'sent' : 'failed';
 
       await CampaignLog.create({
         campaignId: campaign._id,
-        contactId: contact._id || new mongoose.Types.ObjectId(), // Handle temp contact
+        contactId: contact._id || new mongoose.Types.ObjectId(),
         relatedId: appointment ? appointment._id.toString() : null,
         messageContent: messageToSend,
-        status: logStatus,
+        status: status,
         sentAt: new Date()
       });
-
     } catch (err) {
-      console.error(`💥 Failed to send campaign message to ${contact.phone}:`, err);
+      console.error(`💥 Campaign send error for ${contact.phone}:`, err);
       await CampaignLog.create({
         campaignId: campaign._id,
         contactId: contact._id || new mongoose.Types.ObjectId(),
@@ -384,19 +298,12 @@ async function dispatchCampaign(campaign, contact, appointment, config, options 
         error: err.message
       });
     }
-  };
-
-  if (delay === 0) {
-    await executeDispatch();
-  } else {
-    setTimeout(executeDispatch, delay);
-  }
+  }, delay);
 }
 
 function initScheduler() {
-  // Start the cron job
   cron.schedule(CRON_EXPRESSION, processCampaigns);
-  console.log('🚀 Campaign Scheduler initialized (runs every minute).');
+  console.log('🚀 Campaign Scheduler initialized.');
 }
 
 module.exports = { initScheduler, processCampaigns };
