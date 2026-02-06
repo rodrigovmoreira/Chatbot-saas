@@ -74,7 +74,7 @@ async function processConfigBatch(configs) {
         userId: { $in: userIds },
         status: { $in: ['scheduled', 'confirmed', 'completed', 'followup_pending'] },
         start: { $gte: recentStart }
-    });
+    }).lean();
 
     // Agrupa por userId
     const appointmentsByUserId = new Map();
@@ -90,7 +90,7 @@ async function processConfigBatch(configs) {
         businessId: { $in: businessIds },
         followUpActive: true,
         lastResponseTime: { $exists: true }
-    });
+    }).lean();
 
     // Agrupa por businessId
     const contactsByBusinessId = new Map();
@@ -113,7 +113,7 @@ async function processConfigBatch(configs) {
                     if (!rule.isActive) continue;
 
                     // Verifica se já enviou esta regra
-                    if (appt.notificationHistory && appt.notificationHistory.get(rule.id)) {
+                    if (appt.notificationHistory && appt.notificationHistory[rule.id]) {
                         continue;
                     }
 
@@ -134,9 +134,13 @@ async function processConfigBatch(configs) {
                             config.userId
                         );
 
-                        if (!appt.notificationHistory) appt.notificationHistory = new Map();
-                        appt.notificationHistory.set(rule.id, now);
-                        await appt.save();
+                        if (!appt.notificationHistory) appt.notificationHistory = {};
+                        appt.notificationHistory[rule.id] = now;
+
+                        await Appointment.updateOne(
+                            { _id: appt._id },
+                            { $set: { [`notificationHistory.${rule.id}`]: now } }
+                        );
 
                         await saveMessage(appt.clientPhone, 'bot', message, 'text', null, config._id);
                     }
@@ -158,7 +162,10 @@ async function processConfigBatch(configs) {
 
                 if (!nextStep) {
                     contact.followUpActive = false;
-                    await contact.save();
+                    await Contact.updateOne(
+                        { _id: contact._id },
+                        { $set: { followUpActive: false } }
+                    );
                     continue;
                 }
 
@@ -175,7 +182,15 @@ async function processConfigBatch(configs) {
                     contact.followUpStage = nextStepIndex + 1;
                     contact.lastResponseTime = now;
 
-                    await contact.save();
+                    await Contact.updateOne(
+                        { _id: contact._id },
+                        {
+                            $set: {
+                                followUpStage: nextStepIndex + 1,
+                                lastResponseTime: now
+                            }
+                        }
+                    );
                 }
             }
         }
@@ -190,7 +205,7 @@ async function processSchedulerTick() {
                 { notificationRules: { $exists: true, $not: { $size: 0 } } },
                 { followUpSteps: { $exists: true, $not: { $size: 0 } } }
             ]
-        });
+        }).lean();
 
         // Batch Processing: Process 50 businesses at a time to prevent massive memory spikes
         // while solving N+1 query problem.
