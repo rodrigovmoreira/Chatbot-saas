@@ -183,41 +183,54 @@ io.on('connection', (socket) => {
 });
 
 // ==========================================
-// 🔄 AUTO-START (RESSURREIÇÃO DE SESSÕES)
+// 🔄 AUTO-START INTELIGENTE (FILTRO AMBIENTAL)
 // ==========================================
 const restoreActiveSessions = async () => {
   console.log('🔄 [Auto-Start] Verificando sessões para restaurar...');
   
   try {
-    // 1. Pega todas as empresas cadastradas
-    const configs = await BusinessConfig.find().lean();
-    const db = mongoose.connection.db;
+    let filter = {};
+
+    // 🛡️ MODO LOCAL (Whitelist): Carrega SÓ o que você quer testar
+    if (process.env.ONLY_LOAD_USER_ID) {
+        console.warn(`🚧 [DEV MODE] Filtro Ativo: Carregando APENAS o ID ${process.env.ONLY_LOAD_USER_ID}`);
+        filter.userId = process.env.ONLY_LOAD_USER_ID;
+    }
+
+    // 🌍 MODO RAILWAY (Blacklist): Carrega tudo, MENOS o seu teste
+    else if (process.env.IGNORE_USER_IDS) {
+        const idsToIgnore = process.env.IGNORE_USER_IDS.split(',').map(id => id.trim());
+        console.warn(`🏭 [PROD MODE] Filtro Ativo: Ignorando IDs de teste: ${idsToIgnore.join(', ')}`);
+        filter.userId = { $nin: idsToIgnore };
+    }
+
+    const configs = await BusinessConfig.find(filter).lean();
     
-    // 2. Loop para verificar quem tem backup
-    for (const config of configs) {
+    if (configs.length === 0) {
+        console.log('🤷‍♂️ [Auto-Start] Nenhuma empresa para iniciar neste ambiente.');
+        return;
+    }
+
+    const db = mongoose.connection.db;
+    const collection = db.collection('wwebsessions.files');
+
+    for (const [index, config] of configs.entries()) {
       const userId = config.userId;
-      
-      // Busca no GridFS se existe arquivo com o ID do usuário no nome
-      const collection = db.collection('wwebsessions.files');
       const sessionFile = await collection.findOne({ 
         filename: { $regex: new RegExp(userId) } 
       });
 
       if (sessionFile) {
-        console.log(`⚡ [Auto-Start] Backup encontrado para ${config.businessName} (ID: ${userId}). Iniciando robô...`);
-        
-        // Inicia a sessão automaticamente (Vai baixar do banco, extrair e conectar)
+        console.log(`▶️ [${index + 1}/${configs.length}] Iniciando ${config.businessName} (ID: ${userId})...`);
         startSession(userId);
-
-        // ⚠️ DELAY DE SEGURANÇA: Espera 5 segundos antes de iniciar o próximo
-        // Isso evita pico de CPU/RAM se houver muitos clientes
+        // Delay escalonado para evitar pico de CPU
         await new Promise(resolve => setTimeout(resolve, 5000)); 
       }
     }
-    console.log('🏁 [Auto-Start] Verificação inicial concluída.');
+    console.log('🏁 [Auto-Start] Finalizado.');
     
   } catch (error) {
-    console.error('❌ [Auto-Start] Erro ao restaurar sessões:', error);
+    console.error('❌ [Auto-Start] Erro crítico:', error);
   }
 };
 

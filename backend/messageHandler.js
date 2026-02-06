@@ -39,29 +39,33 @@ const getTagNames = (tags) => {
     });
 };
 
-// === FUNÇÃO DE LIMPEZA DE HISTÓRICO (O FAXINEIRO) ===
+// Aggressive cleaner for <thinking> tags
+const stripThinking = (text) => {
+    if (!text) return "";
+    let clean = text;
+    clean = clean.replace(/```json/g, '').replace(/```/g, '').trim();
+    // Remove complete blocks
+    clean = clean.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
+    // Safety: cut off unclosed tags
+    if (clean.includes('<thinking>')) clean = clean.split('<thinking>')[0];
+    // Remove orphan tags
+    clean = clean.replace(/<\/thinking>/gi, '');
+    return clean.trim();
+};
+
+// History Cleaner (Prevents immediate repetition)
 const cleanMessageHistory = (history) => {
     if (!history || history.length === 0) return [];
-
     const uniqueHistory = [];
     let lastContent = null;
-    
-    // 1. Mantém a System Message sempre (se existir no array, mas geralmente ela é injetada depois)
-    // Se o histórico vier do banco, ele não tem system message ainda.
-    
     for (let i = 0; i < history.length; i++) {
         const msg = history[i];
-        
-        // Regra A: Ignora mensagens vazias
         if (!msg.content || msg.content.trim() === "") continue;
-
-        // Regra B: Ignora duplicatas exatas consecutivas (O Loop "E aí guerreiro")
-        if (msg.content === lastContent) continue;
-
+        // Ignore if AI repeats exact same message consecutively
+        if (msg.role === 'assistant' && msg.content === lastContent) continue;
         uniqueHistory.push(msg);
         lastContent = msg.content;
     }
-
     return uniqueHistory;
 };
 
@@ -327,47 +331,19 @@ Cliente: ${userMessage}`;
 
     const systemInstruction = `
 ${basePrompt}
-
---- AUDIO & IMAGE HANDLING ---
-1. If you receive text marked as \`[Transcrição do Áudio]: "..."\`, it means the user sent a voice message that has been converted to text for you.
-   - TREAT THIS AS DIRECT USER INPUT.
-   - DO NOT say "I cannot listen to audio" or "I cannot play messages".
-   - Answer the content of the transcription naturally.
-2. If you receive \`[VISÃO DA IMAGEM]\`, treat it as what the user is showing you.
-
---- CONTEXTO ATUAL ---
-Data/Hora Atual: ${contextDateTime}.
-IMPORTANTE: Todos os horários que você sugerir ou agendar devem estar baseados nesta data/hora e timezone.
-Ao enviar comandos JSON, use o formato ISO (YYYY-MM-DDTHH:mm:ss). Se você enviar "2024-01-01T14:00:00", o sistema entenderá que é 14:00 NO TIMEZONE ${timeZone}.
-
+--- CONTEXTO TÉCNICO ---
+Data/Hora: ${contextDateTime}
 ${catalogContext}
+Links: Insta=${instagram || 'N/A'}, Site=${website || 'N/A'}
 
---- LINKS & CONTATOS ---
-Se o usuário pedir pelo site, portfólio ou instagram, responda imediatamente com os links abaixo:
-Instagram: ${instagram || 'Não informado'}
-Site: ${website || 'Não informado'}
-Portfólio: ${portfolio || 'Não informado'}
+--- PROTOCOLO DE RACIOCÍNIO ---
+1. **ANALISE O HISTÓRICO:** Veja o que já foi dito.
+2. **NÃO REPITA:** É proibido usar a mesma saudação ou frase feita que já aparece no histórico recente. Se você já disse "Olá", não diga "Olá" de novo.
+3. **PENSAMENTO OCULTO:** Use a tag <thinking>...</thinking> para planejar sua resposta, mas NUNCA deixe essa tag aparecer na resposta final.
 
---- FERRAMENTAS DE AGENDA E CATÁLOGO ---
-Você tem acesso total à agenda e ao catálogo visual.
-CRITICAL PROTOCOL FOR ACTIONS:
-1. **SILENT EXECUTION:** When you have enough information to Schedule, Check Availability, or Search, **DO NOT** write conversational filler like "Just a moment", "I will check", or "Let me see".
-2. **IMMEDIATE JSON:** Output **ONLY** the JSON command immediately. The system will process it and show the result to you.
-3. **Format:**
-   - Verificar: {"action": "check", "start": "YYYY-MM-DDTHH:mm", "end": "YYYY-MM-DDTHH:mm"}
-   - Agendar: {"action": "book", "clientName": "Nome", "start": "YYYY-MM-DDTHH:mm", "title": "Serviço"}
-   - Buscar Fotos: {"action": "search_catalog", "keywords": ["tag1", "tag2"]}
-
-Example of CORRECT behavior:
-User: "I want 9am tomorrow."
-Assistant: {"action": "book", "clientName": "Rodrigo", "start": "2026-01-01T09:00:00", "title": "Corte"}
-
-Example of WRONG behavior (Do NOT do this):
-Assistant: "Ok, I will schedule that for you. {"action": "book"...}" (Do not add text before JSON)
-
---- REGRAS DE ANTI-REPETIÇÃO ---
-1. Seja criativo. NÃO repita a última frase ou saudação que você disse se ela já estiver no histórico recente.
-2. Se o usuário insistir em apenas "Oi", varie a resposta (ex: "Olá novamente", "Em que posso ajudar?", "Tudo bem?").
+--- FORMATO DE SAÍDA ---
+Para texto normal: Apenas a resposta.
+Para ações: Use JSON puro (check, book, search_catalog).
 `;
 
     // C. Montagem do Histórico
@@ -400,7 +376,8 @@ Assistant: "Ok, I will schedule that for you. {"action": "book"...}" (Do not add
       //console.log(JSON.stringify(messages, null, 2));
       //console.log('-------------------------------');
 
-      const responseText = await callDeepSeek(messages);
+      const rawResponseText = await callDeepSeek(messages);
+      const responseText = stripThinking(rawResponseText);
 
       const cleanResponse = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
       const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
