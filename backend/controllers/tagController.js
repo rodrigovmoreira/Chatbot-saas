@@ -8,17 +8,10 @@ const getBusinessId = async (userId) => {
     return config ? config._id : null;
 };
 
-// Helper to escape Regex characters
-const escapeRegExp = (string) => {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-};
-
-// 1. Sync Logic (Delegated to Service)
+// 1. Sync Logic (Refactored to be thin)
 const syncTags = async (req, res) => {
     try {
         let businessId;
-
-        // If called internally or via script, businessId might be passed directly
         if (req && req.businessId) {
             businessId = req.businessId;
         } else if (req && req.user) {
@@ -29,7 +22,8 @@ const syncTags = async (req, res) => {
             return res ? res.status(404).json({ message: 'Business not found' }) : null;
         }
 
-        const stats = await tagService.syncTags(businessId);
+        // Call service method
+        const stats = await tagService.syncWithWhatsapp(businessId);
 
         if (res) {
             res.json({ message: 'Sync completed', ...stats });
@@ -38,15 +32,13 @@ const syncTags = async (req, res) => {
 
     } catch (error) {
         console.error('Error syncing tags:', error);
-        if (res) res.status(500).json({ message: 'Error syncing tags' });
+        if (res) res.status(500).json({ message: 'Error syncing tags', error: error.message });
     }
 };
 
-// Re-export for server startup, though server.js could import directly.
-// Keeping this for backward compatibility if other modules use it.
 const runGlobalTagSync = tagService.runGlobalTagSync;
 
-// 2. Get Tags
+// 2. Get Tags (Remains mostly same, read-only)
 const getTags = async (req, res) => {
     try {
         const businessId = await getBusinessId(req.user.userId);
@@ -60,7 +52,7 @@ const getTags = async (req, res) => {
     }
 };
 
-// 3. Create Tag
+// 3. Create Tag (Delegated)
 const createTag = async (req, res) => {
     try {
         const { name, color } = req.body;
@@ -69,27 +61,45 @@ const createTag = async (req, res) => {
         const businessId = await getBusinessId(req.user.userId);
         if (!businessId) return res.status(404).json({ message: 'Business not found' });
 
-        // Check existence (Safe Regex)
-        const escapedName = escapeRegExp(name);
-        const existing = await Tag.findOne({
-            businessId,
-            name: { $regex: new RegExp(`^${escapedName}$`, 'i') }
-        });
-
-        if (existing) {
-            return res.status(409).json({ message: 'Tag already exists', tag: existing });
-        }
-
-        const newTag = await Tag.create({
-            businessId,
-            name,
-            color: color || '#A0AEC0' // Default if not provided
-        });
+        const newTag = await tagService.createTag(businessId, { name, color });
 
         res.status(201).json(newTag);
     } catch (error) {
         console.error('Error creating tag:', error);
-        res.status(500).json({ message: 'Error creating tag' });
+        res.status(500).json({ message: 'Error creating tag', error: error.message });
+    }
+};
+
+// 4. Update Tag (New/Delegated)
+const updateTag = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, color } = req.body;
+
+        const businessId = await getBusinessId(req.user.userId);
+        if (!businessId) return res.status(404).json({ message: 'Business not found' });
+
+        const updatedTag = await tagService.updateTag(businessId, id, { name, color });
+        res.json(updatedTag);
+    } catch (error) {
+        console.error('Error updating tag:', error);
+        res.status(500).json({ message: 'Error updating tag', error: error.message });
+    }
+};
+
+// 5. Delete Tag (New/Delegated)
+const deleteTag = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const businessId = await getBusinessId(req.user.userId);
+        if (!businessId) return res.status(404).json({ message: 'Business not found' });
+
+        await tagService.deleteTag(businessId, id);
+        res.json({ message: 'Tag deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting tag:', error);
+        res.status(500).json({ message: 'Error deleting tag', error: error.message });
     }
 };
 
@@ -97,5 +107,7 @@ module.exports = {
     syncTags,
     runGlobalTagSync,
     getTags,
-    createTag
+    createTag,
+    updateTag,
+    deleteTag
 };

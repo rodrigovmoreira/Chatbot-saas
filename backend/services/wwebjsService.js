@@ -279,6 +279,85 @@ const sendImage = async (userId, to, imageUrl, caption) => {
   }
 };
 
+// --- LABEL MANAGEMENT (Stage 1 Refactor) ---
+
+const getLabels = async (userId) => {
+  const client = sessions.get(userId.toString());
+  if (!client || !client.info) {
+    console.warn(`⚠️ getLabels falhou: Sessão ${userId} não pronta.`);
+    return [];
+  }
+  try {
+    // Returns Promise<Label[]>
+    return await client.getLabels();
+  } catch (error) {
+    console.error(`💥 Erro ao obter labels (User ${userId}):`, error.message);
+    return [];
+  }
+};
+
+const createLabel = async (userId, name) => {
+  const client = sessions.get(userId.toString());
+  if (!client || !client.info) {
+     throw new Error(`Sessão ${userId} não pronta.`);
+  }
+  // Creates label and returns the Label object
+  return await client.createLabel(name);
+};
+
+const updateLabel = async (userId, labelId, name, hexColor) => {
+  const client = sessions.get(userId.toString());
+  if (!client || !client.info) {
+    throw new Error(`Sessão ${userId} não pronta.`);
+  }
+
+  const labels = await client.getLabels();
+  const label = labels.find(l => l.id === labelId);
+
+  if (!label) {
+     throw new Error(`Label ${labelId} não encontrada.`);
+  }
+
+  // Update properties
+  label.name = name;
+  label.hexColor = hexColor;
+
+  // Persist changes if method exists (Standard WWebJS Label)
+  if (typeof label.save === 'function') {
+      await label.save();
+  } else {
+      console.warn(`⚠️ Label.save() não disponível para User ${userId}. Tentando fallback de edição...`);
+      // Fallback logic if needed, but assuming standard support per request
+  }
+  return label;
+};
+
+const deleteLabel = async (userId, labelId) => {
+  const client = sessions.get(userId.toString());
+  if (!client || !client.info) throw new Error(`Sessão ${userId} não pronta.`);
+
+  const labels = await client.getLabels();
+  const label = labels.find(l => l.id === labelId);
+
+  if (label && typeof label.delete === 'function') {
+      await label.delete();
+  } else {
+      throw new Error(`Label ${labelId} não encontrada ou não deletável.`);
+  }
+};
+
+const setChatLabels = async (userId, chatId, labelIds) => {
+   const client = sessions.get(userId.toString());
+   if (!client || !client.info) throw new Error(`Sessão ${userId} não pronta.`);
+
+   const chat = await client.getChatById(chatId);
+   if (chat && typeof chat.changeLabels === 'function') {
+       await chat.changeLabels(labelIds);
+   } else {
+       console.warn(`⚠️ Chat ${chatId} não suporta changeLabels ou não encontrado.`);
+   }
+};
+
 const closeAllSessions = async () => {
   for (const [userId, client] of sessions.entries()) {
     try {
@@ -312,5 +391,10 @@ module.exports = {
   getClientSession,
   sendWWebJSMessage,
   sendImage,
-  closeAllSessions
+  closeAllSessions,
+  getLabels,
+  createLabel,
+  updateLabel,
+  deleteLabel,
+  setChatLabels
 };

@@ -12,6 +12,11 @@ const tagSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  whatsappId: {
+    type: String, // ID from WhatsApp
+    unique: true,
+    sparse: true
+  },
   color: {
     type: String, // Hex color
     required: true
