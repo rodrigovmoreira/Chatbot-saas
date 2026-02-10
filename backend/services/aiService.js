@@ -66,7 +66,7 @@ async function callDeepSeek(messages) {
             content: '[SYSTEM URGENT: Be concise, serious, and direct. Do not repeat previous talks.]'
         });
 
-        console.log('🔍 [DEEPSEEK PROMPT]', JSON.stringify(finalMessages, null, 2));
+        //console.log('🔍 [DEEPSEEK PROMPT]', JSON.stringify(finalMessages, null, 2));
 
         const response = await axios.post(
             apiUrl,

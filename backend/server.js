@@ -34,12 +34,12 @@ const { initScheduler: initCampaignScheduler } = require('./services/campaignSch
 const { runGlobalTagSync } = require('./controllers/tagController');
 const { adaptTwilioMessage } = require('./services/providerAdapter');
 const { handleIncomingMessage } = require('./messageHandler');
-const { 
-  initializeWWebJS, 
+const {
+  initializeWWebJS,
   startSession,
-  getSessionStatus, 
-  getSessionQR, 
-  closeAllSessions 
+  getSessionStatus,
+  getSessionQR,
+  closeAllSessions
 } = require('./services/wwebjsService');
 
 // --- IMPORTAÇÃO DOS NOVOS PLUGINS (ROTAS) ---
@@ -135,7 +135,7 @@ app.post('/api/webhook', async (req, res) => {
       if (targetPhone) {
         businessConfig = await BusinessConfig.findOne({ phoneNumber: targetPhone });
         if (businessConfig) {
-           console.log(`🎯 Webhook roteado para BusinessConfig: ${businessConfig._id} (Phone: ${targetPhone})`);
+          console.log(`🎯 Webhook roteado para BusinessConfig: ${businessConfig._id} (Phone: ${targetPhone})`);
         }
       }
 
@@ -143,14 +143,14 @@ app.post('/api/webhook', async (req, res) => {
       if (!businessConfig) {
         businessConfig = await BusinessConfig.findOne();
         if (businessConfig) {
-           console.log(`⚠️ Webhook: Fallback para primeira BusinessConfig encontrada: ${businessConfig._id}`);
+          console.log(`⚠️ Webhook: Fallback para primeira BusinessConfig encontrada: ${businessConfig._id}`);
         }
       }
 
       if (businessConfig) {
-         await handleIncomingMessage(normalizedMsg, businessConfig._id);
+        await handleIncomingMessage(normalizedMsg, businessConfig._id);
       } else {
-         console.error('❌ Webhook Ignorado: Nenhuma BusinessConfig encontrada.');
+        console.error('❌ Webhook Ignorado: Nenhuma BusinessConfig encontrada.');
       }
     }
   } catch (error) {
@@ -185,39 +185,41 @@ io.on('connection', (socket) => {
 // ==========================================
 // 🔄 AUTO-START (RESSURREIÇÃO DE SESSÕES)
 // ==========================================
+// backend/server.js
+
 const restoreActiveSessions = async () => {
   console.log('🔄 [Auto-Start] Verificando sessões para restaurar...');
-  
+
   try {
-    // 1. Pega todas as empresas cadastradas
+    // Busca TODAS as configs do banco conectado.
+    // No Local: busca do 'test'. No Railway: busca do 'calango_prod_db'.
     const configs = await BusinessConfig.find().lean();
+
+    if (configs.length === 0) {
+      console.log('🤷‍♂️ [Auto-Start] Nenhuma empresa encontrada neste banco.');
+      return;
+    }
+
     const db = mongoose.connection.db;
-    
-    // 2. Loop para verificar quem tem backup
-    for (const config of configs) {
+    const collection = db.collection('wwebsessions.files');
+
+    for (const [index, config] of configs.entries()) {
       const userId = config.userId;
-      
-      // Busca no GridFS se existe arquivo com o ID do usuário no nome
-      const collection = db.collection('wwebsessions.files');
-      const sessionFile = await collection.findOne({ 
-        filename: { $regex: new RegExp(userId) } 
+
+      const sessionFile = await collection.findOne({
+        filename: { $regex: new RegExp(userId) }
       });
 
       if (sessionFile) {
-        console.log(`⚡ [Auto-Start] Backup encontrado para ${config.businessName} (ID: ${userId}). Iniciando robô...`);
-        
-        // Inicia a sessão automaticamente (Vai baixar do banco, extrair e conectar)
+        console.log(`▶️ [${index + 1}/${configs.length}] Iniciando ${config.businessName}...`);
         startSession(userId);
-
-        // ⚠️ DELAY DE SEGURANÇA: Espera 5 segundos antes de iniciar o próximo
-        // Isso evita pico de CPU/RAM se houver muitos clientes
-        await new Promise(resolve => setTimeout(resolve, 5000)); 
+        await new Promise(resolve => setTimeout(resolve, 5000));
       }
     }
-    console.log('🏁 [Auto-Start] Verificação inicial concluída.');
-    
+    console.log('🏁 [Auto-Start] Finalizado.');
+
   } catch (error) {
-    console.error('❌ [Auto-Start] Erro ao restaurar sessões:', error);
+    console.error('❌ [Auto-Start] Erro crítico:', error);
   }
 };
 
@@ -234,7 +236,7 @@ async function start() {
     }
     startScheduler();
     initCampaignScheduler();
-    
+
     // Passamos o IO para o serviço WWebJS poder emitir eventos
     initializeWWebJS(io);
 
