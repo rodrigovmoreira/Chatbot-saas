@@ -164,6 +164,26 @@ const startSession = async (userIdRaw) => {
   });
 
   client.on('message', async (msg) => {
+    // 🛡️ IRON GATE: Global Block for Non-Contact Messages
+    // 1. Block Groups (@g.us)
+    // 2. Block Status Updates (status@broadcast)
+    // 3. Block Channels/Newsletters (@newsletter)
+    const isInvalidSource =
+        msg.from.includes('@g.us') ||
+        msg.from === 'status@broadcast' ||
+        msg.from.includes('@newsletter');
+
+    // 4. Block Technical/Community IDs (Length Check)
+    // Standard phone numbers (even international) are rarely > 15 digits.
+    // Community/Technical IDs (like 120363335026718801) are usually 18+ digits.
+    const numericPart = msg.from.replace(/\D/g, '');
+    const isTooLong = numericPart.length > 15;
+
+    if (isInvalidSource || isTooLong) {
+        // console.log(`🚫 Iron Gate: Blocked message from ${msg.from}`);
+        return; // STOP execution immediately.
+    }
+
     if (msg.type === 'e2e_notification' || msg.type === 'notification_template') return;
     try {
       const { handleIncomingMessage } = require('../messageHandler');
