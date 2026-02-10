@@ -1,48 +1,46 @@
 const express = require('express');
 const router = express.Router();
-const Contact = require('../models/Contact');
-const BusinessConfig = require('../models/BusinessConfig');
+const contactController = require('../controllers/contactController');
 const authenticateToken = require('../middleware/auth');
+const BusinessConfig = require('../models/BusinessConfig');
 const multer = require('multer');
-const xlsx = require('xlsx');
-const csv = require('csv-parser');
-const { Readable } = require('stream');
 
+// Configure multer for file uploads
 const upload = multer({ storage: multer.memoryStorage() });
 
-// Middleware helper to get Business Config ID
-const getBusinessId = async (userId) => {
-    const config = await BusinessConfig.findOne({ userId });
-    return config ? config._id : null;
-};
+// --- CONTACT ROUTES ---
 
-// List all contacts for the business
-router.get('/', authenticateToken, async (req, res) => {
-    try {
-        const businessId = await getBusinessId(req.user.userId);
-        if (!businessId) {
-            return res.status(404).json({ message: 'Business configuration not found' });
-        }
+// List all contacts
+router.get('/', authenticateToken, contactController.getContacts);
 
-        const contacts = await Contact.find({ businessId }).sort({ lastInteraction: -1 });
-        res.json(contacts);
-    } catch (error) {
-        console.error('Error fetching contacts:', error);
-        res.status(500).json({ message: 'Error fetching contacts' });
-    }
-});
+// Get tags (Deprecated but kept for backward compatibility)
+// Note: This logic was inline before. We can keep it inline or move to controller if we want purely thin routes.
+// The previous logic was: fetch unique tags from Contact model.
+// However, with Stage 1 refactor, we should prefer querying Tag model directly.
+// The inline logic in `contactRoutes.js` previously did:
+/*
+    const Tag = require('../models/Tag');
+    const tags = await Tag.find({ businessId }).sort({ name: 1 });
+    res.json(tags.map(t => t.name));
+*/
+// I'll keep this specific endpoint inline here or move to controller?
+// The prompt focused on `contactController` for "Contact Management".
+// Tag management is `tagController`.
+// The deprecated `/contacts/tags` endpoint is kind of an orphan.
+// I will keep it inline here to minimize disruption, as it wasn't explicitly asked to be moved.
+// Wait, I should import `getBusinessId` logic or just replicate it?
+// The previous code had a helper `getBusinessId`.
+// I'll re-implement the helper or import it? Easier to just query BusinessConfig inline for this small deprecated route.
 
-// Get all unique tags for the business (DEPRECATED - Use /api/tags)
 router.get('/tags', authenticateToken, async (req, res) => {
-    // Redirect logic could go here, but for now we maintain backward compatibility
-    // by fetching from the new Source of Truth (Tags collection)
     try {
-        const businessId = await getBusinessId(req.user.userId);
+        const config = await BusinessConfig.findOne({ userId: req.user.userId });
+        const businessId = config ? config._id : null;
+
         if (!businessId) {
             return res.status(404).json({ message: 'Business configuration not found' });
         }
 
-        // Return just the names to maintain API contract with legacy frontends
         const Tag = require('../models/Tag');
         const tags = await Tag.find({ businessId }).sort({ name: 1 });
         res.json(tags.map(t => t.name));
@@ -52,154 +50,16 @@ router.get('/tags', authenticateToken, async (req, res) => {
     }
 });
 
-// Update contact (tags, handover, name, funnelStage)
-router.put('/:id', authenticateToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { tags, name, isHandover, funnelStage, dealValue, notes } = req.body; // Expanded allow-list
+// Sync Contacts from WhatsApp (New Feature - Stage 2)
+router.post('/sync', authenticateToken, contactController.syncContacts);
 
-    const businessId = await getBusinessId(req.user.userId);
-    if (!businessId) {
-        return res.status(404).json({ message: 'Business configuration not found' });
-    }
+// Import Contacts from CSV/XLSX
+router.post('/import', authenticateToken, upload.single('file'), contactController.importContacts);
 
-    // Ensure the contact belongs to the business
-    const contact = await Contact.findOne({ _id: id, businessId });
-    if (!contact) {
-      return res.status(404).json({ message: 'Contact not found' });
-    }
+// Get single contact
+router.get('/:id', authenticateToken, contactController.getContact);
 
-    if (tags !== undefined) contact.tags = tags;
-    if (name !== undefined) contact.name = name;
-    if (isHandover !== undefined) contact.isHandover = isHandover;
-    if (funnelStage !== undefined) contact.funnelStage = funnelStage;
-    if (dealValue !== undefined) contact.dealValue = Number(dealValue);
-    if (notes !== undefined) contact.notes = notes;
-
-    await contact.save();
-    res.json(contact);
-  } catch (error) {
-    console.error('Error updating contact:', error);
-    res.status(500).json({ message: 'Error updating contact' });
-  }
-});
-
-// Get a single contact details (Optional, but useful)
-router.get('/:id', authenticateToken, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const businessId = await getBusinessId(req.user.userId);
-
-        if (!businessId) {
-            return res.status(404).json({ message: 'Business configuration not found' });
-        }
-
-        const contact = await Contact.findOne({ _id: id, businessId });
-        if (!contact) {
-            return res.status(404).json({ message: 'Contact not found' });
-        }
-
-        res.json(contact);
-    } catch (error) {
-        console.error('Error fetching contact:', error);
-        res.status(500).json({ message: 'Error fetching contact' });
-    }
-});
-
-// Import Contacts (CSV/XLSX)
-router.post('/import', authenticateToken, upload.single('file'), async (req, res) => {
-    try {
-        const businessId = await getBusinessId(req.user.userId);
-        if (!businessId) {
-            return res.status(404).json({ message: 'Business configuration not found' });
-        }
-
-        if (!req.file) {
-            return res.status(400).json({ message: 'No file uploaded' });
-        }
-
-        const stats = { imported: 0, updated: 0, failed: 0 };
-        let rows = [];
-
-        // Parse File
-        if (req.file.mimetype.includes('csv') || req.file.originalname.endsWith('.csv')) {
-            await new Promise((resolve, reject) => {
-                const stream = Readable.from(req.file.buffer);
-                stream
-                    .pipe(csv())
-                    .on('data', (data) => rows.push(data))
-                    .on('end', resolve)
-                    .on('error', reject);
-            });
-        } else {
-             // XLSX
-             const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
-             const sheetName = workbook.SheetNames[0];
-             const sheet = workbook.Sheets[sheetName];
-             rows = xlsx.utils.sheet_to_json(sheet);
-        }
-
-        // Process Rows
-        for (const row of rows) {
-             // Normalize keys helper
-             const getField = (r, key) => r[key] || r[key.toLowerCase()] || r[key.toUpperCase()];
-
-             let phone = getField(row, 'phone') || getField(row, 'Phone') || getField(row, 'telefone') || getField(row, 'Celular');
-             const name = getField(row, 'name') || getField(row, 'Name') || getField(row, 'nome');
-             const email = getField(row, 'email') || getField(row, 'Email');
-             const tagsRaw = getField(row, 'tags') || getField(row, 'Tags');
-
-             if (!phone) {
-                 stats.failed++;
-                 continue;
-             }
-
-             // Sanitize Phone (Basic) - remove spaces, dashes, parens
-             phone = String(phone).replace(/\D/g, '');
-
-             if (phone.length < 8) {
-                 stats.failed++;
-                 continue;
-             }
-
-             // Find or Create
-             let contact = await Contact.findOne({ businessId, phone });
-
-             if (contact) {
-                 // Update
-                 if (name) contact.name = name;
-                 if (email) contact.email = email;
-                 if (tagsRaw) {
-                     const newTags = String(tagsRaw).split(',').map(t => t.trim()).filter(t => t);
-                     // Merge unique
-                     contact.tags = [...new Set([...contact.tags, ...newTags])];
-                 }
-                 await contact.save();
-                 stats.updated++;
-             } else {
-                 // Create
-                 const tags = tagsRaw ? String(tagsRaw).split(',').map(t => t.trim()).filter(t => t) : [];
-                 await Contact.create({
-                     businessId,
-                     phone,
-                     name: name || 'Desconhecido',
-                     email,
-                     tags,
-                     channel: 'whatsapp',
-                     followUpStage: 0,
-                     dealValue: 0,
-                     funnelStage: 'new'
-                 });
-                 stats.imported++;
-             }
-        }
-
-        res.json(stats);
-
-    } catch (error) {
-        console.error('Error importing contacts:', error);
-        res.status(500).json({ message: 'Error processing import file' });
-    }
-});
+// Update contact
+router.put('/:id', authenticateToken, contactController.updateContact);
 
 module.exports = router;
