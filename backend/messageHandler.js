@@ -513,6 +513,22 @@ Links: Insta=${instagram || 'N/A'}, Site=${website || 'N/A'}
 async function handleIncomingMessage(normalizedMsg, activeBusinessId) {
     const { from, body, name, type, mediaData, provider, channel = 'whatsapp' } = normalizedMsg;
 
+    // 🛡️ IRON GATE: Redundant Safety Block
+    if (from) {
+        const isInvalidSource =
+            from.includes('@g.us') ||
+            from.includes('status@broadcast') ||
+            from.includes('@newsletter');
+
+        const numericPart = from.replace(/\D/g, '');
+        const isTooLong = numericPart.length > 15;
+
+        if (isInvalidSource || isTooLong) {
+            console.warn(`🚫 Handler Blocked: Invalid source ${from}`);
+            return { error: "Blocked Source (Group/Channel/Invalid)" };
+        }
+    }
+
     if (!body && type === 'text') return;
 
     const uniqueKey = `${activeBusinessId}_${from}`;

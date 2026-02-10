@@ -21,6 +21,9 @@ const contactSchema = new mongoose.Schema({
   },
 
   name: { type: String, default: 'Visitante' },
+  pushname: { type: String }, // WhatsApp Public Name
+  profilePicUrl: { type: String }, // URL da foto
+  isGroup: { type: Boolean, default: false }, // Se é grupo (apenas para filtro)
   
   // Tags para segmentação
   tags: {

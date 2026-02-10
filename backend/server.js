@@ -232,7 +232,7 @@ async function start() {
       await connectDB();
 
       // Auto-Migration: Sync Tags on Startup (Background)
-      runGlobalTagSync();
+      //runGlobalTagSync();
     }
     startScheduler();
     initCampaignScheduler();
