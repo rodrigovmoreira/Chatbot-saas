@@ -10,7 +10,7 @@ try {
     const Tag = require('../models/Tag');
 
     console.log('--- Verifying wwebjsService ---');
-    const requiredWwebjsMethods = ['getLabels', 'createLabel', 'updateLabel', 'deleteLabel', 'setChatLabels'];
+    const requiredWwebjsMethods = ['getLabels', 'createLabel', 'updateLabel', 'deleteLabel', 'setChatLabels', 'getChatLabels'];
     requiredWwebjsMethods.forEach(method => {
         if (typeof wwebjsService[method] !== 'function') {
             console.error(`❌ wwebjsService missing method: ${method}`);

@@ -358,6 +358,19 @@ const setChatLabels = async (userId, chatId, labelIds) => {
    }
 };
 
+const getChatLabels = async (userId, chatId) => {
+   const client = sessions.get(userId.toString());
+   if (!client || !client.info) throw new Error(`Sessão ${userId} não pronta.`);
+
+   const chat = await client.getChatById(chatId);
+   if (chat && typeof chat.getLabels === 'function') {
+       return await chat.getLabels();
+   } else {
+       console.warn(`⚠️ Chat ${chatId} não suporta getLabels ou não encontrado.`);
+       return [];
+   }
+};
+
 const closeAllSessions = async () => {
   for (const [userId, client] of sessions.entries()) {
     try {
@@ -396,5 +409,6 @@ module.exports = {
   createLabel,
   updateLabel,
   deleteLabel,
-  setChatLabels
+  setChatLabels,
+  getChatLabels
 };
