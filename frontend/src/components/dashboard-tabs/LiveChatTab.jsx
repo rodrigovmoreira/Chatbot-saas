@@ -11,12 +11,13 @@ import {
   Menu, MenuButton, MenuList, MenuItem, Flex
 } from '@chakra-ui/react';
 import { ChatIcon, LinkIcon, DeleteIcon, ArrowBackIcon, InfoIcon, ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
-import { FaRobot, FaUser, FaCloudUploadAlt, FaTags, FaDownload } from 'react-icons/fa';
+import { FaRobot, FaUser, FaTags, FaSync, FaEdit, FaFileImport } from 'react-icons/fa';
 import { IoMdSend } from 'react-icons/io';
-import { businessAPI } from '../../services/api';
+import { businessAPI, tagAPI } from '../../services/api';
 import { useApp } from '../../context/AppContext';
 import CrmSidebar from '../crm/CrmSidebar';
 import ImportModal from '../crm/ImportModal';
+import TagManagerModal from '../Tags/TagManagerModal';
 import ContactItem from '../ContactItem';
 import axios from 'axios';
 
@@ -38,6 +39,9 @@ const LiveChatTab = () => {
 
   // Import Modal State
   const { isOpen: isImportOpen, onOpen: onImportOpen, onClose: onImportClose } = useDisclosure();
+
+  // Tag Manager State
+  const { isOpen: isTagManagerOpen, onOpen: onTagManagerOpen, onClose: onTagManagerClose } = useDisclosure();
 
   // Mobile View State
   const [showMobileChat, setShowMobileChat] = useState(false);
@@ -192,24 +196,42 @@ const LiveChatTab = () => {
       }
   };
 
-  const handleImportLabels = async () => {
-      const toastId = toast({ title: "Importando etiquetas...", status: "info", duration: null, isClosable: false });
+  const handleSyncTags = async () => {
+      const toastId = toast({ title: "Sincronizando etiquetas...", status: "info", duration: null, isClosable: false });
       try {
-          const { data } = await businessAPI.importWhatsAppLabels();
+          await tagAPI.sync();
           toast.close(toastId);
           toast({
-              title: "Importação concluída!",
-              description: `Tags: ${data.tagsCreated}, Contatos: ${data.contactsUpdated}`,
+              title: "Sincronização concluída!",
               status: "success",
-              duration: 5000
+              duration: 3000
           });
           loadTags(); // Reload colors
           loadAllContacts(); // Reload contacts
           loadConversations();
       } catch (error) {
           toast.close(toastId);
-          console.error("Erro import:", error);
-          toast({ title: "Erro ao importar.", description: error.response?.data?.message || "Erro desconhecido", status: "error" });
+          console.error("Erro sync tags:", error);
+          toast({ title: "Erro ao sincronizar etiquetas.", description: error.response?.data?.message || "Erro desconhecido", status: "error" });
+      }
+  };
+
+  const handleSyncContacts = async () => {
+      const toastId = toast({ title: "Sincronizando contatos e fotos...", description: "Isso pode levar alguns minutos.", status: "info", duration: null, isClosable: false });
+      try {
+          await businessAPI.syncContacts();
+          toast.close(toastId);
+          toast({
+              title: "Sincronização concluída!",
+              status: "success",
+              duration: 3000
+          });
+          loadAllContacts();
+          loadConversations();
+      } catch (error) {
+          toast.close(toastId);
+          console.error("Erro sync contacts:", error);
+          toast({ title: "Erro ao sincronizar contatos.", status: "error" });
       }
   };
 
@@ -365,26 +387,26 @@ const LiveChatTab = () => {
             <HStack p={4} borderBottom="1px solid" borderColor={gray50Bg} bg={cardBg} justify="space-between" flexShrink={0}>
                 <Heading size="sm" color="gray.600">Chats</Heading>
                 <HStack spacing={1}>
-                    <Menu>
-                        <Tooltip label="Tags">
-                            <MenuButton as={IconButton} icon={<Icon as={FaTags} />} size="sm" variant="ghost" colorScheme="gray" aria-label="Tags" />
+                     {/* Global Sync Menu */}
+                     <Menu>
+                        <Tooltip label="Sincronização e Tags">
+                            <MenuButton as={IconButton} icon={<Icon as={FaSync} />} size="sm" variant="ghost" colorScheme="brand" aria-label="Sync Menu" />
                         </Tooltip>
                         <MenuList zIndex={10}>
-                            <MenuItem icon={<Icon as={FaDownload} />} onClick={handleImportLabels}>
-                                Importar do WhatsApp
+                            <MenuItem icon={<Icon as={FaUser} />} onClick={handleSyncContacts}>
+                                Sincronizar Contatos (Fotos)
+                            </MenuItem>
+                            <MenuItem icon={<Icon as={FaTags} />} onClick={handleSyncTags}>
+                                Sincronizar Etiquetas
+                            </MenuItem>
+                            <MenuItem icon={<Icon as={FaEdit} />} onClick={onTagManagerOpen}>
+                                Gerenciar Etiquetas
+                            </MenuItem>
+                            <MenuItem icon={<Icon as={FaFileImport} />} onClick={onImportOpen}>
+                                Importar CSV/Excel
                             </MenuItem>
                         </MenuList>
                     </Menu>
-                    <Tooltip label="Importar Contatos (CSV/Excel)">
-                        <IconButton
-                            icon={<Icon as={FaCloudUploadAlt} />}
-                            size="sm"
-                            variant="ghost"
-                            colorScheme="brand"
-                            onClick={onImportOpen}
-                            aria-label="Importar"
-                        />
-                    </Tooltip>
                 </HStack>
             </HStack>
 
@@ -444,7 +466,7 @@ const LiveChatTab = () => {
                           aria-label="Voltar"
                           mr={2}
                         />
-                        <Avatar size="sm" name={selectedContact.name} src={selectedContact.avatarUrl} />
+                        <Avatar size="sm" name={selectedContact.name} src={selectedContact.profilePicUrl} />
                         <Box>
                           <Text fontWeight="bold">{selectedContact.name || 'Visitante'}</Text>
                           <Text fontSize="xs" color="gray.500">
@@ -660,6 +682,13 @@ const LiveChatTab = () => {
             loadAllContacts();
             loadConversations();
         }}
+      />
+
+      {/* Tag Manager Modal */}
+      <TagManagerModal
+        isOpen={isTagManagerOpen}
+        onClose={onTagManagerClose}
+        onTagsUpdated={loadTags}
       />
 
     </Box>
