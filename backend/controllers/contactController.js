@@ -195,14 +195,16 @@ const syncContacts = async (req, res) => {
         const stats = { totalChatsFound: chats.length, contactsImported: 0, groupsIgnored: 0 };
 
         for (const chat of chats) {
-            // 1. Filtering
-            if (chat.isGroup) {
+            // 🛡️ IRON GATE: Filter out Groups, Channels, Newsletters, and System Users
+            if (chat.isGroup ||
+                chat.id.user === 'status' ||
+                chat.id.user === '0' ||
+                chat.id.user.includes('newsletter') ||
+                chat.id._serialized.includes('@newsletter') ||
+                chat.id.user.length > 15
+            ) {
                 stats.groupsIgnored++;
                 continue;
-            }
-
-            if (chat.id.user === 'status' || chat.id.user === '0') {
-                continue; // Ignore status broadcasts and system
             }
 
             // 2. Data Enrichment
