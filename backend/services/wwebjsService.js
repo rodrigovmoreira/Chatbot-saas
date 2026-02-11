@@ -50,7 +50,7 @@ const startSession = async (userIdRaw) => {
   // Garante que seja sempre string para evitar duplicidade entre ObjectId vs String
   const userId = userIdRaw.toString();
 
-  cleanUpTempFolders(userId);
+  //cleanUpTempFolders(userId);
 
   // 1. BLINDAGEM CONTRA DUPLICIDADE
   if (sessions.has(userId)) {
