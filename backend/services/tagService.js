@@ -65,8 +65,17 @@ const syncWithWhatsapp = async (businessId) => {
         }
         const userId = config.userId;
 
-        // 2. Fetch Labels from WhatsApp
-        const waLabels = await wwebjsService.getLabels(userId);
+        // 2. Fetch Labels from WhatsApp (Safe Mode)
+        let waLabels = [];
+        try {
+            waLabels = await wwebjsService.getLabels(userId);
+        } catch (e) {
+            console.warn("WhatsApp not ready for tags, skipping wwebjs sync.", e.message);
+            // Don't throw, just return what we have or empty stats if critical
+            return { error: "WhatsApp offline or not ready", synced: 0 };
+        }
+
+        if (!waLabels) waLabels = [];
 
         const stats = { created: 0, updated: 0, synced: waLabels.length };
 
@@ -74,15 +83,16 @@ const syncWithWhatsapp = async (businessId) => {
         for (const label of waLabels) {
             // Label structure: { id, name, hexColor }
             const { id: whatsappId, name, hexColor } = label;
+            const finalColor = hexColor || label.color || '#A0AEC0'; // Fallback Color
 
             // Try to find by whatsappId first
             let tag = await Tag.findOne({ businessId, whatsappId });
 
             if (tag) {
                 // Update if changed
-                if (tag.name !== name || tag.color !== hexColor) {
+                if (tag.name !== name || tag.color !== finalColor) {
                     tag.name = name;
-                    tag.color = hexColor;
+                    tag.color = finalColor;
                     await tag.save();
                     stats.updated++;
                 }
@@ -98,7 +108,7 @@ const syncWithWhatsapp = async (businessId) => {
                      // Link legacy tag to WhatsApp ID
                      tag.whatsappId = whatsappId;
                      tag.name = name; // Enforce WA name case
-                     tag.color = hexColor; // Enforce WA color
+                     tag.color = finalColor; // Enforce WA color
                      await tag.save();
                      stats.updated++;
                  } else {
@@ -107,7 +117,7 @@ const syncWithWhatsapp = async (businessId) => {
                          businessId,
                          whatsappId,
                          name,
-                         color: hexColor || '#A0AEC0'
+                         color: finalColor
                      });
                      stats.created++;
                  }
