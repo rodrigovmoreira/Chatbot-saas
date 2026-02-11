@@ -136,43 +136,58 @@ const createTag = async (businessId, tagData) => {
     try {
         const { name, color } = tagData;
 
-        // 1. Create on WhatsApp
+        // 1. Create on WhatsApp (Safe Fail)
         const config = await BusinessConfig.findById(businessId);
         if (!config || !config.userId) throw new Error('Business Config not found');
 
-        // Note: wwebjs createLabel typically only takes name.
-        const waLabel = await wwebjsService.createLabel(config.userId, name);
+        let waLabel = null;
+        let whatsappId = null;
+        let finalColor = color || '#A0AEC0';
 
-        if (!waLabel || !waLabel.id) {
-            throw new Error('Failed to create label on WhatsApp');
-        }
-
-        // If we want to set color immediately and it differs from default:
-        if (color && waLabel.hexColor !== color) {
-            try {
-               // Update color on WA
-               const updatedLabel = await wwebjsService.updateLabel(config.userId, waLabel.id, name, color);
-               if(updatedLabel) waLabel.hexColor = updatedLabel.hexColor || color;
-            } catch (e) {
-                console.warn('Failed to update color on WA after creation', e);
+        try {
+            // Check if service function exists
+            if (typeof wwebjsService.createLabel === 'function') {
+                waLabel = await wwebjsService.createLabel(config.userId, name);
+            } else {
+                 // Fallback if service wrapper is missing method (e.g. mock or old version)
+                const client = wwebjsService.getClientSession(config.userId);
+                if (client && typeof client.createLabel === 'function') {
+                     waLabel = await client.createLabel(name);
+                }
             }
+
+            if (waLabel && waLabel.id) {
+                whatsappId = waLabel.id;
+                // Update color on WA if needed
+                if (color && waLabel.hexColor !== color) {
+                     try {
+                        if (typeof wwebjsService.updateLabel === 'function') {
+                             const updated = await wwebjsService.updateLabel(config.userId, whatsappId, name, color);
+                             if(updated) finalColor = updated.hexColor || color;
+                        }
+                     } catch (e) { console.warn('Failed to update color on WA:', e.message); }
+                } else if (waLabel.hexColor) {
+                    finalColor = waLabel.hexColor;
+                }
+            }
+        } catch (error) {
+             console.warn(`⚠️ WA Label creation skipped: ${error.message}. Creating in CRM only.`);
         }
 
-        // 2. Create in Mongo
-        // Check for existing tag with same name to avoid duplicates (should have been synced, but race condition check)
+        // 2. Create in Mongo (Always proceed)
         const escapedName = escapeRegExp(name);
         let tag = await Tag.findOne({ businessId, name: { $regex: new RegExp(`^${escapedName}$`, 'i') } });
 
         if (tag) {
-            tag.whatsappId = waLabel.id;
-            tag.color = waLabel.hexColor || color;
+            if (whatsappId) tag.whatsappId = whatsappId;
+            tag.color = finalColor;
             await tag.save();
         } else {
             tag = await Tag.create({
                 businessId,
-                name: waLabel.name,
-                whatsappId: waLabel.id,
-                color: waLabel.hexColor || color || '#A0AEC0'
+                name: waLabel ? waLabel.name : name, // Use WA name if available, else requested name
+                whatsappId,
+                color: finalColor
             });
         }
 
