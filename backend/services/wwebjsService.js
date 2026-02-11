@@ -1,5 +1,4 @@
 const fs = require('fs');
-const path = require('path');
 const { Client, RemoteAuth, MessageMedia } = require('whatsapp-web.js');
 const mongoose = require('mongoose');
 //const { MongoStore } = require('wwebjs-mongo');
@@ -20,31 +19,6 @@ const initializeWWebJS = async (io) => {
   ioInstance = io;
 };
 
-const cleanUpTempFolders = (userId) => {
-  const authPath = path.resolve('./.wwebjs_auth'); // Ou o caminho que você configurou
-
-  // Se a pasta base não existir, não tem o que limpar
-  if (!fs.existsSync(authPath)) return;
-
-  try {
-    const files = fs.readdirSync(authPath);
-
-    files.forEach(file => {
-      // Procura por pastas que começam com 'wwebjs_temp_session' e pertencem ao usuario (opcional)
-      // O padrão do erro é 'wwebjs_temp_session_REMOTEAUTH-ID...'
-      if (file.startsWith('wwebjs_temp_session_') && file.includes(userId)) {
-        const fullPath = path.join(authPath, file);
-        console.log(`🧹 [Auto-Limpeza] Removendo lixo temporário: ${file}`);
-
-        // Força a remoção recursiva
-        fs.rmSync(fullPath, { recursive: true, force: true });
-      }
-    });
-  } catch (err) {
-    console.error(`⚠️ Erro na auto-limpeza de arquivos temporários: ${err.message}`);
-  }
-};
-
 const startSession = async (userIdRaw) => {
   // 0. NORMALIZAÇÃO DE ID (CRÍTICO)
   // Garante que seja sempre string para evitar duplicidade entre ObjectId vs String
@@ -54,14 +28,14 @@ const startSession = async (userIdRaw) => {
 
   // 1. BLINDAGEM CONTRA DUPLICIDADE
   if (sessions.has(userId)) {
-    console.log(`🛡️ Sessão ${userId} já está online. Ignorando start duplicado.`);
-    return sessions.get(userId);
+      console.log(`🛡️ Sessão ${userId} já está online. Ignorando start duplicado.`);
+      return sessions.get(userId);
   }
 
   // 2. BLINDAGEM CONTRA RACE CONDITION
   if (statuses.get(userId) === 'initializing') {
-    console.log(`🛡️ Sessão ${userId} já está inicializando. Chamada duplicada ignorada.`);
-    return;
+      console.log(`🛡️ Sessão ${userId} já está inicializando. Chamada duplicada ignorada.`);
+      return;
   }
 
   // 3. A TRAVA DE SEGURANÇA
@@ -197,9 +171,9 @@ const startSession = async (userIdRaw) => {
     // 2. Block Status Updates (status@broadcast)
     // 3. Block Channels/Newsletters (@newsletter)
     const isInvalidSource =
-      msg.from.includes('@g.us') ||
-      msg.from === 'status@broadcast' ||
-      msg.from.includes('@newsletter');
+        msg.from.includes('@g.us') ||
+        msg.from === 'status@broadcast' ||
+        msg.from.includes('@newsletter');
 
     // 4. Block Technical/Community IDs (Length Check)
     // Standard phone numbers (even international) are rarely > 15 digits.
@@ -208,8 +182,8 @@ const startSession = async (userIdRaw) => {
     const isTooLong = numericPart.length > 15;
 
     if (isInvalidSource || isTooLong) {
-      // console.log(`🚫 Iron Gate: Blocked message from ${msg.from}`);
-      return; // STOP execution immediately.
+        // console.log(`🚫 Iron Gate: Blocked message from ${msg.from}`);
+        return; // STOP execution immediately.
     }
 
     if (msg.type === 'e2e_notification' || msg.type === 'notification_template') return;
@@ -347,7 +321,7 @@ const getLabels = async (userId) => {
 const createLabel = async (userId, name) => {
   const client = sessions.get(userId.toString());
   if (!client || !client.info) {
-    throw new Error(`Sessão ${userId} não pronta.`);
+     throw new Error(`Sessão ${userId} não pronta.`);
   }
   // Creates label and returns the Label object
   return await client.createLabel(name);
@@ -363,7 +337,7 @@ const updateLabel = async (userId, labelId, name, hexColor) => {
   const label = labels.find(l => l.id === labelId);
 
   if (!label) {
-    throw new Error(`Label ${labelId} não encontrada.`);
+     throw new Error(`Label ${labelId} não encontrada.`);
   }
 
   // Update properties
@@ -372,10 +346,10 @@ const updateLabel = async (userId, labelId, name, hexColor) => {
 
   // Persist changes if method exists (Standard WWebJS Label)
   if (typeof label.save === 'function') {
-    await label.save();
+      await label.save();
   } else {
-    console.warn(`⚠️ Label.save() não disponível para User ${userId}. Tentando fallback de edição...`);
-    // Fallback logic if needed, but assuming standard support per request
+      console.warn(`⚠️ Label.save() não disponível para User ${userId}. Tentando fallback de edição...`);
+      // Fallback logic if needed, but assuming standard support per request
   }
   return label;
 };
@@ -388,35 +362,35 @@ const deleteLabel = async (userId, labelId) => {
   const label = labels.find(l => l.id === labelId);
 
   if (label && typeof label.delete === 'function') {
-    await label.delete();
+      await label.delete();
   } else {
-    throw new Error(`Label ${labelId} não encontrada ou não deletável.`);
+      throw new Error(`Label ${labelId} não encontrada ou não deletável.`);
   }
 };
 
 const setChatLabels = async (userId, chatId, labelIds) => {
-  const client = sessions.get(userId.toString());
-  if (!client || !client.info) throw new Error(`Sessão ${userId} não pronta.`);
+   const client = sessions.get(userId.toString());
+   if (!client || !client.info) throw new Error(`Sessão ${userId} não pronta.`);
 
-  const chat = await client.getChatById(chatId);
-  if (chat && typeof chat.changeLabels === 'function') {
-    await chat.changeLabels(labelIds);
-  } else {
-    console.warn(`⚠️ Chat ${chatId} não suporta changeLabels ou não encontrado.`);
-  }
+   const chat = await client.getChatById(chatId);
+   if (chat && typeof chat.changeLabels === 'function') {
+       await chat.changeLabels(labelIds);
+   } else {
+       console.warn(`⚠️ Chat ${chatId} não suporta changeLabels ou não encontrado.`);
+   }
 };
 
 const getChatLabels = async (userId, chatId) => {
-  const client = sessions.get(userId.toString());
-  if (!client || !client.info) throw new Error(`Sessão ${userId} não pronta.`);
+   const client = sessions.get(userId.toString());
+   if (!client || !client.info) throw new Error(`Sessão ${userId} não pronta.`);
 
-  const chat = await client.getChatById(chatId);
-  if (chat && typeof chat.getLabels === 'function') {
-    return await chat.getLabels();
-  } else {
-    console.warn(`⚠️ Chat ${chatId} não suporta getLabels ou não encontrado.`);
-    return [];
-  }
+   const chat = await client.getChatById(chatId);
+   if (chat && typeof chat.getLabels === 'function') {
+       return await chat.getLabels();
+   } else {
+       console.warn(`⚠️ Chat ${chatId} não suporta getLabels ou não encontrado.`);
+       return [];
+   }
 };
 
 const closeAllSessions = async () => {

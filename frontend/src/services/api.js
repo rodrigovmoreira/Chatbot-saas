@@ -87,7 +87,7 @@ export const businessAPI = {
   getTags: () => api.get('/api/contacts/tags'),
   updateContact: (id, data) => api.put(`/api/contacts/${id}`, data),
   importContacts: (formData) => api.post('/api/contacts/import', formData),
-  syncContacts: () => api.post('/api/contacts/import'), // <--- NOVO: Sincronização sem arquivo
+  syncContacts: () => api.post('/api/contacts/sync'), // <--- FIXED: Correct sync endpoint
 };
 
 export const dashboardAPI = {
