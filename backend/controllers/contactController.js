@@ -107,60 +107,60 @@ const importContacts = async (req, res) => {
                     .on('error', reject);
             });
         } else {
-             // XLSX
-             const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
-             const sheetName = workbook.SheetNames[0];
-             const sheet = workbook.Sheets[sheetName];
-             rows = xlsx.utils.sheet_to_json(sheet);
+            // XLSX
+            const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            rows = xlsx.utils.sheet_to_json(sheet);
         }
 
         // Process Rows
         for (const row of rows) {
-             const getField = (r, key) => r[key] || r[key.toLowerCase()] || r[key.toUpperCase()];
+            const getField = (r, key) => r[key] || r[key.toLowerCase()] || r[key.toUpperCase()];
 
-             let phone = getField(row, 'phone') || getField(row, 'Phone') || getField(row, 'telefone') || getField(row, 'Celular');
-             const name = getField(row, 'name') || getField(row, 'Name') || getField(row, 'nome');
-             const email = getField(row, 'email') || getField(row, 'Email');
-             const tagsRaw = getField(row, 'tags') || getField(row, 'Tags');
+            let phone = getField(row, 'phone') || getField(row, 'Phone') || getField(row, 'telefone') || getField(row, 'Celular');
+            const name = getField(row, 'name') || getField(row, 'Name') || getField(row, 'nome');
+            const email = getField(row, 'email') || getField(row, 'Email');
+            const tagsRaw = getField(row, 'tags') || getField(row, 'Tags');
 
-             if (!phone) {
-                 stats.failed++;
-                 continue;
-             }
+            if (!phone) {
+                stats.failed++;
+                continue;
+            }
 
-             phone = String(phone).replace(/\D/g, '');
+            phone = String(phone).replace(/\D/g, '');
 
-             if (phone.length < 8) {
-                 stats.failed++;
-                 continue;
-             }
+            if (phone.length < 8) {
+                stats.failed++;
+                continue;
+            }
 
-             let contact = await Contact.findOne({ businessId, phone });
+            let contact = await Contact.findOne({ businessId, phone });
 
-             if (contact) {
-                 if (name) contact.name = name;
-                 if (email) contact.email = email;
-                 if (tagsRaw) {
-                     const newTags = String(tagsRaw).split(',').map(t => t.trim()).filter(t => t);
-                     contact.tags = [...new Set([...contact.tags, ...newTags])];
-                 }
-                 await contact.save();
-                 stats.updated++;
-             } else {
-                 const tags = tagsRaw ? String(tagsRaw).split(',').map(t => t.trim()).filter(t => t) : [];
-                 await Contact.create({
-                     businessId,
-                     phone,
-                     name: name || 'Desconhecido',
-                     email,
-                     tags,
-                     channel: 'whatsapp',
-                     followUpStage: 0,
-                     dealValue: 0,
-                     funnelStage: 'new'
-                 });
-                 stats.imported++;
-             }
+            if (contact) {
+                if (name) contact.name = name;
+                if (email) contact.email = email;
+                if (tagsRaw) {
+                    const newTags = String(tagsRaw).split(',').map(t => t.trim()).filter(t => t);
+                    contact.tags = [...new Set([...contact.tags, ...newTags])];
+                }
+                await contact.save();
+                stats.updated++;
+            } else {
+                const tags = tagsRaw ? String(tagsRaw).split(',').map(t => t.trim()).filter(t => t) : [];
+                await Contact.create({
+                    businessId,
+                    phone,
+                    name: name || 'Desconhecido',
+                    email,
+                    tags,
+                    channel: 'whatsapp',
+                    followUpStage: 0,
+                    dealValue: 0,
+                    funnelStage: 'new'
+                });
+                stats.imported++;
+            }
         }
 
         res.json(stats);
@@ -176,89 +176,108 @@ const importContacts = async (req, res) => {
 const syncContacts = async (req, res) => {
     try {
         const { userId } = req.user;
+        const config = await BusinessConfig.findOne({ userId });
+
+        if (!config) {
+            return res.status(404).json({ message: 'Configuração não encontrada.' });
+        }
+
+        const businessId = config._id;
         const client = wwebjsService.getClientSession(userId);
 
         if (!client || !client.info) {
-             return res.status(503).json({ message: 'WhatsApp não está pronto. Aguarde.' });
+            return res.status(503).json({ message: 'WhatsApp não está pronto. Aguarde a conexão.' });
         }
 
-        // 1. Fetch Chats (Wrap in try/catch to handle Puppeteer errors)
-        let chats = [];
-        try {
-            chats = await client.getChats();
-        } catch (e) {
-            console.error("Puppeteer getChats failed:", e);
-            return res.status(500).json({ message: 'Erro de comunicação com o WhatsApp. Tente reiniciar a conexão.' });
-        }
+        console.log('🔄 Iniciando Sincronização Cirúrgica (Via Injeção)...');
 
-        // 2. FILTER & SORT: Top 15 Recent Active Chats Only
-        // Sort descending by timestamp (newest first)
-        const recentChats = chats
-            .filter(chat => !chat.isGroup && !chat.id.user.includes('newsletter') && !chat.id.user.includes('status'))
-            .sort((a, b) => b.timestamp - a.timestamp)
-            .slice(0, 15); // Strict limit
+        const rawChats = await client.pupPage.evaluate(() => {
+            const chats = window.Store.Chat.getModelsArray();
 
-        const config = await BusinessConfig.findOne({ userId });
-        if (!config) {
-             return res.status(404).json({ message: 'Business configuration not found' });
-        }
-        const businessId = config._id;
+            return chats
+                .filter(chat => {
+                    // --- FILTRO DE BLINDAGEM CONTRA GRUPOS ---
+                    const id = chat.id._serialized;
+                    const user = chat.id.user;
+
+                    // 1. Elimina Grupos explicitamente
+                    if (chat.isGroup) return false;
+
+                    // 2. Elimina Canais e Status
+                    if (chat.isNewsletter || id.includes('newsletter') || id.includes('status')) return false;
+
+                    // 3. Elimina Grupos pelo padrão de ID (@g.us)
+                    if (id.includes('@g.us')) return false;
+
+                    // 4. Elimina Grupos antigos pelo formato (número-timestamp)
+                    if (user.includes('-')) return false;
+
+                    // 5. Elimina números suspeitosamente longos (Grupos tem IDs gigantes)
+                    // Um número de telefone tem no máximo 13-14 dígitos (DDI + DDD + 9 + Num)
+                    if (user.length > 15) return false;
+
+                    return true;
+                })
+                .sort((a, b) => b.t - a.t)
+                .slice(0, 15) // Top 15 conversas LIMPAS
+                .map(chat => ({
+                    phone: chat.id.user,
+                    name: chat.formattedTitle || chat.name || chat.contact.name || chat.contact.pushname,
+                    pushname: chat.contact.pushname,
+                    timestamp: chat.t,
+                    unread: chat.unreadCount
+                }));
+        });
+
+        console.log(`✅ Recebidos ${rawChats.length} chats do navegador.`);
 
         let imported = 0;
-        console.log(`🔄 Syncing top ${recentChats.length} chats (Text Only)...`);
 
-        for (const chat of recentChats) {
+        for (const chatData of rawChats) {
             try {
-                // LIGHTWEIGHT SYNC: NO Profile Pic fetch
-                // We rely on data already present in the Chat object or lightweight Contact fetch
-                const contact = await chat.getContact();
-
-                const phone = chat.id.user;
-                // Use existing name or format number
-                // Fallback name logic: Saved Name -> Pushname -> Number
-                let name = contact.name || contact.pushname || contact.number || `Client ${phone.slice(-4)}`;
-
-                // Clean name if it's just the number
-                if (name && name.replace(/\D/g,'') === chat.id.user) {
-                     if (contact.pushname) name = contact.pushname;
-                }
+                // Monta o nome
+                const displayName = chatData.name || chatData.pushname || `Cliente ${chatData.phone.slice(-4)}`;
+                const lastInteraction = new Date(chatData.timestamp * 1000);
 
                 await Contact.findOneAndUpdate(
-                    { businessId, phone },
+                    { businessId, phone: chatData.phone },
                     {
                         $set: {
-                            name: name || 'Desconhecido',
-                            pushname: contact.pushname, // Save pushname if available
+                            name: displayName,
+                            pushname: chatData.pushname,
                             isGroup: false,
-                            lastInteraction: new Date(chat.timestamp * 1000),
-                            // profilePicUrl: null // Don't overwrite if exists, just skip fetching
+                            lastInteraction: lastInteraction,
+                            // profilePicUrl: null // Evita buscar foto para não pesar
                         },
                         $setOnInsert: {
                             channel: 'whatsapp',
                             followUpStage: 0,
                             dealValue: 0,
                             funnelStage: 'new',
-                            profilePicUrl: null, // Default for new
-                            totalMessages: chat.unreadCount || 0
+                            profilePicUrl: null
                         }
                     },
                     { upsert: true, new: true, setDefaultsOnInsert: true }
                 );
                 imported++;
             } catch (err) {
-                console.warn(`Skipped ${chat.id.user}: ${err.message}`);
+                console.warn(`⚠️ Erro ao salvar contato ${chatData.phone}: ${err.message}`);
             }
         }
 
         res.json({
-            message: 'Sincronização Rápida Concluída (Top 15)',
-            totalFound: chats.length,
+            message: 'Sincronização Otimizada Concluída',
+            totalFound: rawChats.length,
             imported: imported
         });
 
     } catch (error) {
-        console.error('Critical Sync Error:', error);
-        res.status(500).json({ message: 'Falha crítica na sincronização.' });
+        console.error('Erro no Sync:', error);
+        // Se der erro de "pupPage undefined", significa que o cliente caiu
+        if (error.message.includes('pupPage')) {
+            return res.status(503).json({ message: 'Navegador fechado. Reinicie a conexão.' });
+        }
+        res.status(500).json({ message: 'Erro ao sincronizar', error: error.message });
     }
 };
 
