@@ -8,7 +8,7 @@
     "dev": "nodemon server.js",
     "test": "jest"
   },
-    "overrides": {
+  "overrides": {
     "p-retry": "4.6.2"
   },
   "dependencies": {
