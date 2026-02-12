@@ -1,3 +1,8 @@
+// Apenas ignora SSL se houver uma variável específica no .env (Local)
+if (process.env.IGNORE_SSL_ERRORS === 'true') {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+    console.warn('⚠️ ATENÇÃO: Verificação SSL desativada (Bypass de Proxy Corporativo)');
+}
 // ==================== TRATAMENTO GLOBAL DE ERROS (CRASH SHIELD) ====================
 process.on('uncaughtException', (err) => {
   if (err.code === 'EBUSY' || (err.message && err.message.includes('EBUSY'))) {
