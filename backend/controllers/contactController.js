@@ -175,114 +175,90 @@ const importContacts = async (req, res) => {
 
 const syncContacts = async (req, res) => {
     try {
-        const userId = req.user.userId;
-        const config = await BusinessConfig.findOne({ userId });
-
-        if (!config) {
-            return res.status(404).json({ message: 'Business configuration not found' });
-        }
-
-        const businessId = config._id;
+        const { userId } = req.user;
         const client = wwebjsService.getClientSession(userId);
 
         if (!client || !client.info) {
-             return res.status(503).json({ message: 'WhatsApp session not ready or disconnected.' });
+             return res.status(503).json({ message: 'WhatsApp não está pronto. Aguarde.' });
         }
 
-        // 1. Fetch Chats
-        const chats = await client.getChats();
+        // 1. Fetch Chats (Wrap in try/catch to handle Puppeteer errors)
+        let chats = [];
+        try {
+            chats = await client.getChats();
+        } catch (e) {
+            console.error("Puppeteer getChats failed:", e);
+            return res.status(500).json({ message: 'Erro de comunicação com o WhatsApp. Tente reiniciar a conexão.' });
+        }
 
-        // 2. FILTER: "Recent & Relevant" Strategy
-        // Keep chats that are:
-        // a) Not Groups/Newsletters
-        // b) Have activity in the last 90 days
-        const THREE_MONTHS = 90 * 24 * 60 * 60;
-        const now = Math.floor(Date.now() / 1000);
+        // 2. FILTER & SORT: Top 15 Recent Active Chats Only
+        // Sort descending by timestamp (newest first)
+        const recentChats = chats
+            .filter(chat => !chat.isGroup && !chat.id.user.includes('newsletter') && !chat.id.user.includes('status'))
+            .sort((a, b) => b.timestamp - a.timestamp)
+            .slice(0, 15); // Strict limit
 
-        const relevantChats = chats.filter(chat => {
-            // 🛡️ IRON GATE: Filter out Groups, Channels, Newsletters, and System Users
-            if (chat.isGroup ||
-                chat.id.user === 'status' ||
-                chat.id.user === '0' ||
-                chat.id.user.includes('newsletter') ||
-                chat.id._serialized.includes('@newsletter') ||
-                chat.id.user.length > 15
-            ) {
-                return false;
+        const config = await BusinessConfig.findOne({ userId });
+        if (!config) {
+             return res.status(404).json({ message: 'Business configuration not found' });
+        }
+        const businessId = config._id;
+
+        let imported = 0;
+        console.log(`🔄 Syncing top ${recentChats.length} chats (Text Only)...`);
+
+        for (const chat of recentChats) {
+            try {
+                // LIGHTWEIGHT SYNC: NO Profile Pic fetch
+                // We rely on data already present in the Chat object or lightweight Contact fetch
+                const contact = await chat.getContact();
+
+                const phone = chat.id.user;
+                // Use existing name or format number
+                // Fallback name logic: Saved Name -> Pushname -> Number
+                let name = contact.name || contact.pushname || contact.number || `Client ${phone.slice(-4)}`;
+
+                // Clean name if it's just the number
+                if (name && name.replace(/\D/g,'') === chat.id.user) {
+                     if (contact.pushname) name = contact.pushname;
+                }
+
+                await Contact.findOneAndUpdate(
+                    { businessId, phone },
+                    {
+                        $set: {
+                            name: name || 'Desconhecido',
+                            pushname: contact.pushname, // Save pushname if available
+                            isGroup: false,
+                            lastInteraction: new Date(chat.timestamp * 1000),
+                            // profilePicUrl: null // Don't overwrite if exists, just skip fetching
+                        },
+                        $setOnInsert: {
+                            channel: 'whatsapp',
+                            followUpStage: 0,
+                            dealValue: 0,
+                            funnelStage: 'new',
+                            profilePicUrl: null, // Default for new
+                            totalMessages: chat.unreadCount || 0
+                        }
+                    },
+                    { upsert: true, new: true, setDefaultsOnInsert: true }
+                );
+                imported++;
+            } catch (err) {
+                console.warn(`Skipped ${chat.id.user}: ${err.message}`);
             }
+        }
 
-            // Check recency
-            const isRecent = (now - chat.timestamp) < THREE_MONTHS;
-            return isRecent;
+        res.json({
+            message: 'Sincronização Rápida Concluída (Top 15)',
+            totalFound: chats.length,
+            imported: imported
         });
 
-        // Limit to prevent timeouts (e.g., max 200 contacts per sync batch)
-        const batch = relevantChats.slice(0, 200);
-        const stats = { totalChatsFound: chats.length, relevantChats: relevantChats.length, contactsImported: 0 };
-
-        for (const chat of batch) {
-            // 2. Data Enrichment
-            let contact = null;
-            try {
-                contact = await chat.getContact();
-            } catch (e) {
-                console.warn(`Failed to get contact info for chat ${chat.id._serialized}`, e.message);
-            }
-
-            // Name Priority: Saved Name -> Pushname -> Number
-            let name = contact?.name || contact?.pushname || contact?.number || chat.name;
-            // Clean name if it's just the number
-            if (name && name.replace(/\D/g,'') === chat.id.user) {
-                // If name is just the number, try to use pushname if distinct, else keep it.
-                if (contact?.pushname) name = contact.pushname;
-            }
-
-            let profilePicUrl = null;
-            try {
-                if (contact) {
-                    profilePicUrl = await contact.getProfilePicUrl();
-                }
-            } catch (e) {
-                // Profile pic might fail if privacy settings block it or 404
-                // console.warn(`No profile pic for ${chat.id.user}`);
-            }
-
-            // 3. Database Upsert
-            const phone = chat.id.user; // Pure number part for @c.us
-
-            const updateData = {
-                name: name || 'Desconhecido',
-                isGroup: false,
-                lastInteraction: new Date(chat.timestamp * 1000),
-            };
-
-            if (profilePicUrl) updateData.profilePicUrl = profilePicUrl;
-            if (contact?.pushname) updateData.pushname = contact.pushname;
-
-            // Use findOneAndUpdate with Upsert
-            await Contact.findOneAndUpdate(
-                { businessId, phone },
-                {
-                    $set: updateData,
-                    $setOnInsert: {
-                        channel: 'whatsapp',
-                        followUpStage: 0,
-                        dealValue: 0,
-                        funnelStage: 'new',
-                        totalMessages: chat.unreadCount
-                    }
-                },
-                { upsert: true, new: true, setDefaultsOnInsert: true }
-            );
-
-            stats.contactsImported++;
-        }
-
-        res.json(stats);
-
     } catch (error) {
-        console.error('Error syncing contacts from WhatsApp:', error);
-        res.status(500).json({ message: 'Error syncing contacts', error: error.message });
+        console.error('Critical Sync Error:', error);
+        res.status(500).json({ message: 'Falha crítica na sincronização.' });
     }
 };
 
