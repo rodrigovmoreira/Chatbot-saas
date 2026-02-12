@@ -373,8 +373,10 @@ const setChatLabels = async (userId, chatId, labelIds) => {
    if (!client || !client.info) throw new Error(`Sessão ${userId} não pronta.`);
 
    const chat = await client.getChatById(chatId);
+
+   // Use the method confirmed to exist in Chat.js
    if (chat && typeof chat.changeLabels === 'function') {
-       await chat.changeLabels(labelIds);
+       return await chat.changeLabels(labelIds);
    } else {
        console.warn(`⚠️ Chat ${chatId} não suporta changeLabels ou não encontrado.`);
    }

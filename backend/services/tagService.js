@@ -65,66 +65,48 @@ const syncWithWhatsapp = async (businessId) => {
         }
         const userId = config.userId;
 
-        // 2. Fetch Labels from WhatsApp (Safe Mode)
+        // 2. Fetch Labels from WhatsApp (Safe Fail)
         let waLabels = [];
         try {
             waLabels = await wwebjsService.getLabels(userId);
         } catch (e) {
-            console.warn("WhatsApp not ready for tags, skipping wwebjs sync.", e.message);
-            // Don't throw, just return what we have or empty stats if critical
-            return { error: "WhatsApp offline or not ready", synced: 0 };
+            console.warn("WA Labels unavailable, skipping fetch.");
+            return { warning: "WhatsApp offline", synced: 0 };
         }
 
         if (!waLabels) waLabels = [];
 
-        const stats = { created: 0, updated: 0, synced: waLabels.length };
-
-        // 3. Update/Create Tags based on WA Labels
+        // 3. MERGE STRATEGY (Update/Create only)
         for (const label of waLabels) {
-            // Label structure: { id, name, hexColor }
-            const { id: whatsappId, name, hexColor } = label;
-            const finalColor = hexColor || label.color || '#A0AEC0'; // Fallback Color
+            // Check if label.hexColor exists, if not use label.color, if not default
+            const finalColor = label.hexColor || label.color || '#A0AEC0';
 
-            // Try to find by whatsappId first
-            let tag = await Tag.findOne({ businessId, whatsappId });
-
-            if (tag) {
-                // Update if changed
-                if (tag.name !== name || tag.color !== finalColor) {
-                    tag.name = name;
-                    tag.color = finalColor;
-                    await tag.save();
-                    stats.updated++;
-                }
-            } else {
-                // Try to find by name (legacy migration linkage)
-                 const escapedName = escapeRegExp(name);
-                 tag = await Tag.findOne({
-                    businessId,
-                    name: { $regex: new RegExp(`^${escapedName}$`, 'i') }
-                 });
-
-                 if (tag) {
-                     // Link legacy tag to WhatsApp ID
-                     tag.whatsappId = whatsappId;
-                     tag.name = name; // Enforce WA name case
-                     tag.color = finalColor; // Enforce WA color
-                     await tag.save();
-                     stats.updated++;
-                 } else {
-                     // Create new
-                     await Tag.create({
-                         businessId,
-                         whatsappId,
-                         name,
-                         color: finalColor
-                     });
-                     stats.created++;
-                 }
-            }
+            // Upsert: Update if exists, Create if new
+            await Tag.findOneAndUpdate(
+                { businessId, whatsappId: label.id }, // Try matching by ID first
+                {
+                    name: label.name,
+                    color: finalColor,
+                    whatsappId: label.id
+                },
+                { upsert: true, new: true, setDefaultsOnInsert: true }
+            );
         }
 
-        return stats;
+        // 4. NAME MATCHING (Link Legacy Tags)
+        // If we have a local tag named "Lead" and WA has "Lead", link them.
+        for (const label of waLabels) {
+             const finalColor = label.hexColor || label.color || '#A0AEC0';
+             await Tag.findOneAndUpdate(
+                { businessId, name: label.name, whatsappId: null },
+                { whatsappId: label.id, color: finalColor }
+             );
+        }
+
+        // 🛡️ CRITICAL: We DO NOT run deleteMany().
+        // Local tags used in Funnels are preserved even if they don't exist on WA.
+
+        return { synced: waLabels.length };
 
     } catch (error) {
         console.error('Error syncing tags with WhatsApp:', error);

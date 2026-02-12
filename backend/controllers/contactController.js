@@ -189,12 +189,17 @@ const syncContacts = async (req, res) => {
              return res.status(503).json({ message: 'WhatsApp session not ready or disconnected.' });
         }
 
-        // Fetch Chats
+        // 1. Fetch Chats
         const chats = await client.getChats();
 
-        const stats = { totalChatsFound: chats.length, contactsImported: 0, groupsIgnored: 0 };
+        // 2. FILTER: "Recent & Relevant" Strategy
+        // Keep chats that are:
+        // a) Not Groups/Newsletters
+        // b) Have activity in the last 90 days
+        const THREE_MONTHS = 90 * 24 * 60 * 60;
+        const now = Math.floor(Date.now() / 1000);
 
-        for (const chat of chats) {
+        const relevantChats = chats.filter(chat => {
             // 🛡️ IRON GATE: Filter out Groups, Channels, Newsletters, and System Users
             if (chat.isGroup ||
                 chat.id.user === 'status' ||
@@ -203,10 +208,19 @@ const syncContacts = async (req, res) => {
                 chat.id._serialized.includes('@newsletter') ||
                 chat.id.user.length > 15
             ) {
-                stats.groupsIgnored++;
-                continue;
+                return false;
             }
 
+            // Check recency
+            const isRecent = (now - chat.timestamp) < THREE_MONTHS;
+            return isRecent;
+        });
+
+        // Limit to prevent timeouts (e.g., max 200 contacts per sync batch)
+        const batch = relevantChats.slice(0, 200);
+        const stats = { totalChatsFound: chats.length, relevantChats: relevantChats.length, contactsImported: 0 };
+
+        for (const chat of batch) {
             // 2. Data Enrichment
             let contact = null;
             try {
@@ -240,10 +254,6 @@ const syncContacts = async (req, res) => {
                 name: name || 'Desconhecido',
                 isGroup: false,
                 lastInteraction: new Date(chat.timestamp * 1000),
-                // Only update pushname/profilePic if we have them, don't overwrite with null if existing?
-                // Actually, if they removed it, we might want to remove it too.
-                // But let's be safe and only set if truthy or explicitly handle it.
-                // The prompt says "Fields to Update: name, profilePicUrl, pushname".
             };
 
             if (profilePicUrl) updateData.profilePicUrl = profilePicUrl;
@@ -259,7 +269,7 @@ const syncContacts = async (req, res) => {
                         followUpStage: 0,
                         dealValue: 0,
                         funnelStage: 'new',
-                        totalMessages: chat.unreadCount // Maybe? Or just 0
+                        totalMessages: chat.unreadCount
                     }
                 },
                 { upsert: true, new: true, setDefaultsOnInsert: true }
