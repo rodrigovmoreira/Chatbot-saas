@@ -318,14 +318,14 @@ const getLabels = async (userId) => {
   }
 };
 
-const createLabel = async (userId, name) => {
-  const client = sessions.get(userId.toString());
-  if (!client || !client.info) {
-     throw new Error(`Sessão ${userId} não pronta.`);
-  }
-  // Creates label and returns the Label object
-  return await client.createLabel(name);
-};
+// const createLabel = async (userId, name) => {
+//   const client = sessions.get(userId.toString());
+//   if (!client || !client.info) {
+//      throw new Error(`Sessão ${userId} não pronta.`);
+//   }
+//   // Creates label and returns the Label object
+//   return await client.createLabel(name);
+// };
 
 const updateLabel = async (userId, labelId, name, hexColor) => {
   const client = sessions.get(userId.toString());
@@ -430,7 +430,7 @@ module.exports = {
   sendImage,
   closeAllSessions,
   getLabels,
-  createLabel,
+ // createLabel,
   updateLabel,
   deleteLabel,
   setChatLabels,
