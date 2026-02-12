@@ -217,7 +217,7 @@ const LiveChatTab = () => {
   };
 
   const handleSyncContacts = async () => {
-      const toastId = toast({ title: "Sincronizando contatos e fotos...", description: "Isso pode levar alguns minutos.", status: "info", duration: null, isClosable: false });
+      const toastId = toast({ title: "Sincronizando contatos...", description: "Isso pode levar alguns minutos.", status: "info", duration: null, isClosable: false });
       try {
           await businessAPI.syncContacts();
           toast.close(toastId);
@@ -394,7 +394,7 @@ const LiveChatTab = () => {
                         </Tooltip>
                         <MenuList zIndex={10}>
                             <MenuItem icon={<Icon as={FaUser} />} onClick={handleSyncContacts}>
-                                Sincronizar Contatos (Fotos)
+                                Sincronizar Contatos
                             </MenuItem>
                             <MenuItem icon={<Icon as={FaTags} />} onClick={handleSyncTags}>
                                 Sincronizar Etiquetas
