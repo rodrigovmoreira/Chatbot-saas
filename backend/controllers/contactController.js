@@ -107,60 +107,60 @@ const importContacts = async (req, res) => {
                     .on('error', reject);
             });
         } else {
-             // XLSX
-             const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
-             const sheetName = workbook.SheetNames[0];
-             const sheet = workbook.Sheets[sheetName];
-             rows = xlsx.utils.sheet_to_json(sheet);
+            // XLSX
+            const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            rows = xlsx.utils.sheet_to_json(sheet);
         }
 
         // Process Rows
         for (const row of rows) {
-             const getField = (r, key) => r[key] || r[key.toLowerCase()] || r[key.toUpperCase()];
+            const getField = (r, key) => r[key] || r[key.toLowerCase()] || r[key.toUpperCase()];
 
-             let phone = getField(row, 'phone') || getField(row, 'Phone') || getField(row, 'telefone') || getField(row, 'Celular');
-             const name = getField(row, 'name') || getField(row, 'Name') || getField(row, 'nome');
-             const email = getField(row, 'email') || getField(row, 'Email');
-             const tagsRaw = getField(row, 'tags') || getField(row, 'Tags');
+            let phone = getField(row, 'phone') || getField(row, 'Phone') || getField(row, 'telefone') || getField(row, 'Celular');
+            const name = getField(row, 'name') || getField(row, 'Name') || getField(row, 'nome');
+            const email = getField(row, 'email') || getField(row, 'Email');
+            const tagsRaw = getField(row, 'tags') || getField(row, 'Tags');
 
-             if (!phone) {
-                 stats.failed++;
-                 continue;
-             }
+            if (!phone) {
+                stats.failed++;
+                continue;
+            }
 
-             phone = String(phone).replace(/\D/g, '');
+            phone = String(phone).replace(/\D/g, '');
 
-             if (phone.length < 8) {
-                 stats.failed++;
-                 continue;
-             }
+            if (phone.length < 8) {
+                stats.failed++;
+                continue;
+            }
 
-             let contact = await Contact.findOne({ businessId, phone });
+            let contact = await Contact.findOne({ businessId, phone });
 
-             if (contact) {
-                 if (name) contact.name = name;
-                 if (email) contact.email = email;
-                 if (tagsRaw) {
-                     const newTags = String(tagsRaw).split(',').map(t => t.trim()).filter(t => t);
-                     contact.tags = [...new Set([...contact.tags, ...newTags])];
-                 }
-                 await contact.save();
-                 stats.updated++;
-             } else {
-                 const tags = tagsRaw ? String(tagsRaw).split(',').map(t => t.trim()).filter(t => t) : [];
-                 await Contact.create({
-                     businessId,
-                     phone,
-                     name: name || 'Desconhecido',
-                     email,
-                     tags,
-                     channel: 'whatsapp',
-                     followUpStage: 0,
-                     dealValue: 0,
-                     funnelStage: 'new'
-                 });
-                 stats.imported++;
-             }
+            if (contact) {
+                if (name) contact.name = name;
+                if (email) contact.email = email;
+                if (tagsRaw) {
+                    const newTags = String(tagsRaw).split(',').map(t => t.trim()).filter(t => t);
+                    contact.tags = [...new Set([...contact.tags, ...newTags])];
+                }
+                await contact.save();
+                stats.updated++;
+            } else {
+                const tags = tagsRaw ? String(tagsRaw).split(',').map(t => t.trim()).filter(t => t) : [];
+                await Contact.create({
+                    businessId,
+                    phone,
+                    name: name || 'Desconhecido',
+                    email,
+                    tags,
+                    channel: 'whatsapp',
+                    followUpStage: 0,
+                    dealValue: 0,
+                    funnelStage: 'new'
+                });
+                stats.imported++;
+            }
         }
 
         res.json(stats);
@@ -175,102 +175,109 @@ const importContacts = async (req, res) => {
 
 const syncContacts = async (req, res) => {
     try {
-        const userId = req.user.userId;
+        const { userId } = req.user;
         const config = await BusinessConfig.findOne({ userId });
 
         if (!config) {
-            return res.status(404).json({ message: 'Business configuration not found' });
+            return res.status(404).json({ message: 'Configuração não encontrada.' });
         }
 
         const businessId = config._id;
         const client = wwebjsService.getClientSession(userId);
 
         if (!client || !client.info) {
-             return res.status(503).json({ message: 'WhatsApp session not ready or disconnected.' });
+            return res.status(503).json({ message: 'WhatsApp não está pronto. Aguarde a conexão.' });
         }
 
-        // Fetch Chats
-        const chats = await client.getChats();
+        console.log('🔄 Iniciando Sincronização Cirúrgica (Via Injeção)...');
 
-        const stats = { totalChatsFound: chats.length, contactsImported: 0, groupsIgnored: 0 };
+        const rawChats = await client.pupPage.evaluate(() => {
+            const chats = window.Store.Chat.getModelsArray();
 
-        for (const chat of chats) {
-            // 1. Filtering
-            if (chat.isGroup) {
-                stats.groupsIgnored++;
-                continue;
-            }
+            return chats
+                .filter(chat => {
+                    // --- FILTRO DE BLINDAGEM CONTRA GRUPOS ---
+                    const id = chat.id._serialized;
+                    const user = chat.id.user;
 
-            if (chat.id.user === 'status' || chat.id.user === '0') {
-                continue; // Ignore status broadcasts and system
-            }
+                    // 1. Elimina Grupos explicitamente
+                    if (chat.isGroup) return false;
 
-            // 2. Data Enrichment
-            let contact = null;
+                    // 2. Elimina Canais e Status
+                    if (chat.isNewsletter || id.includes('newsletter') || id.includes('status')) return false;
+
+                    // 3. Elimina Grupos pelo padrão de ID (@g.us)
+                    if (id.includes('@g.us')) return false;
+
+                    // 4. Elimina Grupos antigos pelo formato (número-timestamp)
+                    if (user.includes('-')) return false;
+
+                    // 5. Elimina números suspeitosamente longos (Grupos tem IDs gigantes)
+                    // Um número de telefone tem no máximo 13-14 dígitos (DDI + DDD + 9 + Num)
+                    if (user.length > 15) return false;
+
+                    return true;
+                })
+                .sort((a, b) => b.t - a.t)
+                .slice(0, 15) // Top 15 conversas LIMPAS
+                .map(chat => ({
+                    phone: chat.id.user,
+                    name: chat.formattedTitle || chat.name || chat.contact.name || chat.contact.pushname,
+                    pushname: chat.contact.pushname,
+                    timestamp: chat.t,
+                    unread: chat.unreadCount
+                }));
+        });
+
+        console.log(`✅ Recebidos ${rawChats.length} chats do navegador.`);
+
+        let imported = 0;
+
+        for (const chatData of rawChats) {
             try {
-                contact = await chat.getContact();
-            } catch (e) {
-                console.warn(`Failed to get contact info for chat ${chat.id._serialized}`, e.message);
+                // Monta o nome
+                const displayName = chatData.name || chatData.pushname || `Cliente ${chatData.phone.slice(-4)}`;
+                const lastInteraction = new Date(chatData.timestamp * 1000);
+
+                await Contact.findOneAndUpdate(
+                    { businessId, phone: chatData.phone },
+                    {
+                        $set: {
+                            name: displayName,
+                            pushname: chatData.pushname,
+                            isGroup: false,
+                            lastInteraction: lastInteraction,
+                            // profilePicUrl: null // Evita buscar foto para não pesar
+                        },
+                        $setOnInsert: {
+                            channel: 'whatsapp',
+                            followUpStage: 0,
+                            dealValue: 0,
+                            funnelStage: 'new',
+                            profilePicUrl: null
+                        }
+                    },
+                    { upsert: true, new: true, setDefaultsOnInsert: true }
+                );
+                imported++;
+            } catch (err) {
+                console.warn(`⚠️ Erro ao salvar contato ${chatData.phone}: ${err.message}`);
             }
-
-            // Name Priority: Saved Name -> Pushname -> Number
-            let name = contact?.name || contact?.pushname || contact?.number || chat.name;
-            // Clean name if it's just the number
-            if (name && name.replace(/\D/g,'') === chat.id.user) {
-                // If name is just the number, try to use pushname if distinct, else keep it.
-                if (contact?.pushname) name = contact.pushname;
-            }
-
-            let profilePicUrl = null;
-            try {
-                if (contact) {
-                    profilePicUrl = await contact.getProfilePicUrl();
-                }
-            } catch (e) {
-                // Profile pic might fail if privacy settings block it or 404
-                // console.warn(`No profile pic for ${chat.id.user}`);
-            }
-
-            // 3. Database Upsert
-            const phone = chat.id.user; // Pure number part for @c.us
-
-            const updateData = {
-                name: name || 'Desconhecido',
-                isGroup: false,
-                lastInteraction: new Date(chat.timestamp * 1000),
-                // Only update pushname/profilePic if we have them, don't overwrite with null if existing?
-                // Actually, if they removed it, we might want to remove it too.
-                // But let's be safe and only set if truthy or explicitly handle it.
-                // The prompt says "Fields to Update: name, profilePicUrl, pushname".
-            };
-
-            if (profilePicUrl) updateData.profilePicUrl = profilePicUrl;
-            if (contact?.pushname) updateData.pushname = contact.pushname;
-
-            // Use findOneAndUpdate with Upsert
-            await Contact.findOneAndUpdate(
-                { businessId, phone },
-                {
-                    $set: updateData,
-                    $setOnInsert: {
-                        channel: 'whatsapp',
-                        followUpStage: 0,
-                        dealValue: 0,
-                        funnelStage: 'new',
-                        totalMessages: chat.unreadCount // Maybe? Or just 0
-                    }
-                },
-                { upsert: true, new: true, setDefaultsOnInsert: true }
-            );
-
-            stats.contactsImported++;
         }
 
-        res.json(stats);
+        res.json({
+            message: 'Sincronização Otimizada Concluída',
+            totalFound: rawChats.length,
+            imported: imported
+        });
 
     } catch (error) {
-        console.error('Error syncing contacts from WhatsApp:', error);
-        res.status(500).json({ message: 'Error syncing contacts', error: error.message });
+        console.error('Erro no Sync:', error);
+        // Se der erro de "pupPage undefined", significa que o cliente caiu
+        if (error.message.includes('pupPage')) {
+            return res.status(503).json({ message: 'Navegador fechado. Reinicie a conexão.' });
+        }
+        res.status(500).json({ message: 'Erro ao sincronizar', error: error.message });
     }
 };
 

@@ -24,6 +24,8 @@ const startSession = async (userIdRaw) => {
   // Garante que seja sempre string para evitar duplicidade entre ObjectId vs String
   const userId = userIdRaw.toString();
 
+  //cleanUpTempFolders(userId);
+
   // 1. BLINDAGEM CONTRA DUPLICIDADE
   if (sessions.has(userId)) {
       console.log(`🛡️ Sessão ${userId} já está online. Ignorando start duplicado.`);
@@ -316,14 +318,14 @@ const getLabels = async (userId) => {
   }
 };
 
-const createLabel = async (userId, name) => {
-  const client = sessions.get(userId.toString());
-  if (!client || !client.info) {
-     throw new Error(`Sessão ${userId} não pronta.`);
-  }
-  // Creates label and returns the Label object
-  return await client.createLabel(name);
-};
+// const createLabel = async (userId, name) => {
+//   const client = sessions.get(userId.toString());
+//   if (!client || !client.info) {
+//      throw new Error(`Sessão ${userId} não pronta.`);
+//   }
+//   // Creates label and returns the Label object
+//   return await client.createLabel(name);
+// };
 
 const updateLabel = async (userId, labelId, name, hexColor) => {
   const client = sessions.get(userId.toString());
@@ -371,8 +373,10 @@ const setChatLabels = async (userId, chatId, labelIds) => {
    if (!client || !client.info) throw new Error(`Sessão ${userId} não pronta.`);
 
    const chat = await client.getChatById(chatId);
+
+   // Use the method confirmed to exist in Chat.js
    if (chat && typeof chat.changeLabels === 'function') {
-       await chat.changeLabels(labelIds);
+       return await chat.changeLabels(labelIds);
    } else {
        console.warn(`⚠️ Chat ${chatId} não suporta changeLabels ou não encontrado.`);
    }
@@ -426,7 +430,7 @@ module.exports = {
   sendImage,
   closeAllSessions,
   getLabels,
-  createLabel,
+ // createLabel,
   updateLabel,
   deleteLabel,
   setChatLabels,

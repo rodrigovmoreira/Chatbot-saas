@@ -87,6 +87,7 @@ export const businessAPI = {
   getTags: () => api.get('/api/contacts/tags'),
   updateContact: (id, data) => api.put(`/api/contacts/${id}`, data),
   importContacts: (formData) => api.post('/api/contacts/import', formData),
+  syncContacts: () => api.post('/api/contacts/sync'), // <--- FIXED: Correct sync endpoint
 };
 
 export const dashboardAPI = {
@@ -97,6 +98,8 @@ export const dashboardAPI = {
 export const tagAPI = {
   getAll: () => api.get('/api/tags'),
   create: (data) => api.post('/api/tags', data), // { name, color }
+  update: (id, data) => api.put(`/api/tags/${id}`, data), // { name, color }
+  delete: (id) => api.delete(`/api/tags/${id}`),
   sync: () => api.post('/api/tags/sync')
 };
 

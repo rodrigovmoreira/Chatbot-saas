@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { Box, HStack, Icon, Text, Badge, useColorModeValue } from '@chakra-ui/react';
+import { Box, HStack, Icon, Text, Badge, useColorModeValue, Avatar } from '@chakra-ui/react';
 import { FaWhatsapp, FaGlobe } from 'react-icons/fa';
 
 const getTagStyle = (tag, tagColors) => {
@@ -23,7 +23,7 @@ const ContactItem = ({ contact, isSelected, onClick, tagColors }) => {
 
   return (
     <Box
-      p={4}
+      p={3}
       bg={isSelected ? 'brand.50' : cardBg}
       borderBottom="1px solid"
       borderColor={gray50Bg}
@@ -33,26 +33,45 @@ const ContactItem = ({ contact, isSelected, onClick, tagColors }) => {
       _hover={{ bg: 'gray.100' }}
       onClick={() => onClick(contact)}
     >
-      <HStack justify="space-between" mb={1}>
-        <HStack>
-           {contact.channel === 'whatsapp'
-             ? <Icon as={FaWhatsapp} color="green.500" />
-             : <Icon as={FaGlobe} color="blue.500" />
-           }
-           <Text fontWeight="bold" fontSize="sm" noOfLines={1}>{contact.name || contact.phone}</Text>
-        </HStack>
-        {contact.lastInteraction && (
-            <Text fontSize="xs" color="gray.500">{formatTime(contact.lastInteraction)}</Text>
-        )}
+      <HStack align="start" spacing={3}>
+         <Avatar
+            size="md"
+            name={contact.name || contact.phone}
+            src={contact.profilePicUrl}
+         />
+
+         <Box flex="1">
+            <HStack justify="space-between" mb={0}>
+                <Text fontWeight="bold" fontSize="sm" noOfLines={1} maxW="70%">
+                    {contact.name || contact.phone}
+                </Text>
+                {contact.lastInteraction && (
+                    <Text fontSize="xs" color="gray.500">{formatTime(contact.lastInteraction)}</Text>
+                )}
+            </HStack>
+
+            <HStack spacing={1} mb={1}>
+                 {contact.channel === 'whatsapp'
+                   ? <Icon as={FaWhatsapp} color="green.500" boxSize={3} />
+                   : <Icon as={FaGlobe} color="blue.500" boxSize={3} />
+                 }
+                 <Text fontSize="xs" color="gray.500">{contact.phone}</Text>
+            </HStack>
+
+            {contact.tags && contact.tags.length > 0 && (
+                <HStack mt={1} spacing={1} overflow="hidden">
+                    {contact.tags.slice(0, 3).map(tag => (
+                        <Badge key={tag} fontSize="xx-small" {...getTagStyle(tag, tagColors)} borderRadius="full" px={1.5}>
+                            {tag}
+                        </Badge>
+                    ))}
+                    {contact.tags.length > 3 && (
+                        <Text fontSize="xx-small" color="gray.500">+{contact.tags.length - 3}</Text>
+                    )}
+                </HStack>
+            )}
+         </Box>
       </HStack>
-      {contact.tags && contact.tags.length > 0 && (
-          <HStack mt={1} spacing={1}>
-              {contact.tags.slice(0, 2).map(tag => (
-                  <Badge key={tag} fontSize="xx-small" {...getTagStyle(tag, tagColors)}>{tag}</Badge>
-              ))}
-              {contact.tags.length > 2 && <Text fontSize="xx-small">+{contact.tags.length - 2}</Text>}
-          </HStack>
-      )}
     </Box>
   );
 };

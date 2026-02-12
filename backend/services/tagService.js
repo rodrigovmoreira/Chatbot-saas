@@ -65,56 +65,48 @@ const syncWithWhatsapp = async (businessId) => {
         }
         const userId = config.userId;
 
-        // 2. Fetch Labels from WhatsApp
-        const waLabels = await wwebjsService.getLabels(userId);
-
-        const stats = { created: 0, updated: 0, synced: waLabels.length };
-
-        // 3. Update/Create Tags based on WA Labels
-        for (const label of waLabels) {
-            // Label structure: { id, name, hexColor }
-            const { id: whatsappId, name, hexColor } = label;
-
-            // Try to find by whatsappId first
-            let tag = await Tag.findOne({ businessId, whatsappId });
-
-            if (tag) {
-                // Update if changed
-                if (tag.name !== name || tag.color !== hexColor) {
-                    tag.name = name;
-                    tag.color = hexColor;
-                    await tag.save();
-                    stats.updated++;
-                }
-            } else {
-                // Try to find by name (legacy migration linkage)
-                 const escapedName = escapeRegExp(name);
-                 tag = await Tag.findOne({
-                    businessId,
-                    name: { $regex: new RegExp(`^${escapedName}$`, 'i') }
-                 });
-
-                 if (tag) {
-                     // Link legacy tag to WhatsApp ID
-                     tag.whatsappId = whatsappId;
-                     tag.name = name; // Enforce WA name case
-                     tag.color = hexColor; // Enforce WA color
-                     await tag.save();
-                     stats.updated++;
-                 } else {
-                     // Create new
-                     await Tag.create({
-                         businessId,
-                         whatsappId,
-                         name,
-                         color: hexColor || '#A0AEC0'
-                     });
-                     stats.created++;
-                 }
-            }
+        // 2. Fetch Labels from WhatsApp (Safe Fail)
+        let waLabels = [];
+        try {
+            waLabels = await wwebjsService.getLabels(userId);
+        } catch (e) {
+            console.warn("WA Labels unavailable, skipping fetch.");
+            return { warning: "WhatsApp offline", synced: 0 };
         }
 
-        return stats;
+        if (!waLabels) waLabels = [];
+
+        // 3. MERGE STRATEGY (Update/Create only)
+        for (const label of waLabels) {
+            // Check if label.hexColor exists, if not use label.color, if not default
+            const finalColor = label.hexColor || label.color || '#A0AEC0';
+
+            // Upsert: Update if exists, Create if new
+            await Tag.findOneAndUpdate(
+                { businessId, whatsappId: label.id }, // Try matching by ID first
+                {
+                    name: label.name,
+                    color: finalColor,
+                    whatsappId: label.id
+                },
+                { upsert: true, new: true, setDefaultsOnInsert: true }
+            );
+        }
+
+        // 4. NAME MATCHING (Link Legacy Tags)
+        // If we have a local tag named "Lead" and WA has "Lead", link them.
+        for (const label of waLabels) {
+             const finalColor = label.hexColor || label.color || '#A0AEC0';
+             await Tag.findOneAndUpdate(
+                { businessId, name: label.name, whatsappId: null },
+                { whatsappId: label.id, color: finalColor }
+             );
+        }
+
+        // 🛡️ CRITICAL: We DO NOT run deleteMany().
+        // Local tags used in Funnels are preserved even if they don't exist on WA.
+
+        return { synced: waLabels.length };
 
     } catch (error) {
         console.error('Error syncing tags with WhatsApp:', error);
@@ -126,43 +118,58 @@ const createTag = async (businessId, tagData) => {
     try {
         const { name, color } = tagData;
 
-        // 1. Create on WhatsApp
+        // 1. Create on WhatsApp (Safe Fail)
         const config = await BusinessConfig.findById(businessId);
         if (!config || !config.userId) throw new Error('Business Config not found');
 
-        // Note: wwebjs createLabel typically only takes name.
-        const waLabel = await wwebjsService.createLabel(config.userId, name);
+        let waLabel = null;
+        let whatsappId = null;
+        let finalColor = color || '#A0AEC0';
 
-        if (!waLabel || !waLabel.id) {
-            throw new Error('Failed to create label on WhatsApp');
-        }
-
-        // If we want to set color immediately and it differs from default:
-        if (color && waLabel.hexColor !== color) {
-            try {
-               // Update color on WA
-               const updatedLabel = await wwebjsService.updateLabel(config.userId, waLabel.id, name, color);
-               if(updatedLabel) waLabel.hexColor = updatedLabel.hexColor || color;
-            } catch (e) {
-                console.warn('Failed to update color on WA after creation', e);
+        try {
+            // Check if service function exists
+            if (typeof wwebjsService.createLabel === 'function') {
+                waLabel = await wwebjsService.createLabel(config.userId, name);
+            } else {
+                 // Fallback if service wrapper is missing method (e.g. mock or old version)
+                const client = wwebjsService.getClientSession(config.userId);
+                if (client && typeof client.createLabel === 'function') {
+                     waLabel = await client.createLabel(name);
+                }
             }
+
+            if (waLabel && waLabel.id) {
+                whatsappId = waLabel.id;
+                // Update color on WA if needed
+                if (color && waLabel.hexColor !== color) {
+                     try {
+                        if (typeof wwebjsService.updateLabel === 'function') {
+                             const updated = await wwebjsService.updateLabel(config.userId, whatsappId, name, color);
+                             if(updated) finalColor = updated.hexColor || color;
+                        }
+                     } catch (e) { console.warn('Failed to update color on WA:', e.message); }
+                } else if (waLabel.hexColor) {
+                    finalColor = waLabel.hexColor;
+                }
+            }
+        } catch (error) {
+             console.warn(`⚠️ WA Label creation skipped: ${error.message}. Creating in CRM only.`);
         }
 
-        // 2. Create in Mongo
-        // Check for existing tag with same name to avoid duplicates (should have been synced, but race condition check)
+        // 2. Create in Mongo (Always proceed)
         const escapedName = escapeRegExp(name);
         let tag = await Tag.findOne({ businessId, name: { $regex: new RegExp(`^${escapedName}$`, 'i') } });
 
         if (tag) {
-            tag.whatsappId = waLabel.id;
-            tag.color = waLabel.hexColor || color;
+            if (whatsappId) tag.whatsappId = whatsappId;
+            tag.color = finalColor;
             await tag.save();
         } else {
             tag = await Tag.create({
                 businessId,
-                name: waLabel.name,
-                whatsappId: waLabel.id,
-                color: waLabel.hexColor || color || '#A0AEC0'
+                name: waLabel ? waLabel.name : name, // Use WA name if available, else requested name
+                whatsappId,
+                color: finalColor
             });
         }
 
