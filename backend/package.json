@@ -8,6 +8,9 @@
     "dev": "nodemon server.js",
     "test": "jest"
   },
+    "overrides": {
+    "p-retry": "4.6.2"
+  },
   "dependencies": {
     "@google/genai": "^1.30.0",
     "bcryptjs": "^2.4.3",
