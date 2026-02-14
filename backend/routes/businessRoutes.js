@@ -89,7 +89,7 @@ router.put('/config', authenticateToken, async (req, res) => {
       }
     }
 
-    //console.log('📦 [PUT Config] Incoming Body:', req.body);
+    console.log('📦 [PUT Config] Incoming Body:', req.body);
 
     const updatePayload = {
       ...req.body,
