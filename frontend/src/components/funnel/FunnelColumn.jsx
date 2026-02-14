@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Droppable } from '@hello-pangea/dnd';
-import { Box, Text, Flex, Badge, useColorModeValue, IconButton, HStack, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, ModalFooter, Textarea, Button, useDisclosure } from '@chakra-ui/react';
-import { FaBrain } from 'react-icons/fa';
+import { Box, Text, Flex, Badge, useColorModeValue, IconButton, 
+HStack, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, 
+ModalBody, ModalFooter, Textarea, Button, useDisclosure } from '@chakra-ui/react';
+import { GiBrain } from "react-icons/gi";
 import FunnelCard from './FunnelCard';
 
 const FunnelColumn = ({ step, contacts, droppableId, onUpdateStep }) => {
@@ -58,8 +60,8 @@ const FunnelColumn = ({ step, contacts, droppableId, onUpdateStep }) => {
                 </Text>
                 {/* BRAIN BUTTON */}
                 <IconButton
-                    size="xs"
-                    icon={<FaBrain />}
+                    size="lg"
+                    icon={<GiBrain />}
                     aria-label="Configurar IA da Etapa"
                     colorScheme={step.prompt ? "purple" : "gray"}
                     variant="ghost"
