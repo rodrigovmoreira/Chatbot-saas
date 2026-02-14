@@ -1,5 +1,6 @@
 const Tag = require('../models/Tag');
 const BusinessConfig = require('../models/BusinessConfig');
+const Contact = require('../models/Contact');
 const tagService = require('../services/tagService');
 
 // Helper to get Business ID
@@ -87,19 +88,47 @@ const updateTag = async (req, res) => {
     }
 };
 
-// 5. Delete Tag (New/Delegated)
+// 5. Delete Tag (With Protection)
 const deleteTag = async (req, res) => {
     try {
         const { id } = req.params;
+        const { userId } = req.user;
 
-        const businessId = await getBusinessId(req.user.userId);
-        if (!businessId) return res.status(404).json({ message: 'Business not found' });
+        const config = await BusinessConfig.findOne({ userId });
+        if (!config) return res.status(404).json({ message: 'Business not found' });
 
-        await tagService.deleteTag(businessId, id);
-        res.json({ message: 'Tag deleted successfully' });
+        // 1. Check if Tag Exists
+        const tag = await Tag.findOne({ _id: id, businessId: config._id });
+        if (!tag) return res.status(404).json({ message: 'Tag não encontrada.' });
+
+        // 2. PROTECTION: Check if it's a Funnel Step
+        const isFunnelStep = config.funnelSteps.some(step => step.tag === tag.name);
+        if (isFunnelStep) {
+            return res.status(400).json({
+                message: '⛔ PROIBIDO: Esta tag é uma etapa ativa do Funil de Vendas. Remova-a do funil antes de excluir.'
+            });
+        }
+
+        // 3. PROTECTION: Check Contact Usage
+        // We look for contacts that have this tag name in their tags array
+        const contactCount = await Contact.countDocuments({
+            businessId: config._id,
+            tags: tag.name
+        });
+
+        if (contactCount > 0) {
+            return res.status(400).json({
+                message: `⛔ PROIBIDO: Existem ${contactCount} contatos com esta tag. Remova a tag dos contatos primeiro.`
+            });
+        }
+
+        // 4. Safe to Delete
+        await tagService.deleteTag(config._id, id);
+        res.json({ message: 'Tag excluída com sucesso.' });
+
     } catch (error) {
         console.error('Error deleting tag:', error);
-        res.status(500).json({ message: 'Error deleting tag', error: error.message });
+        res.status(500).json({ message: 'Erro interno ao excluir tag.', error: error.message });
     }
 };
 

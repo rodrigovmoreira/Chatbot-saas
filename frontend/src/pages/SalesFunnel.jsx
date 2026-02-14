@@ -71,6 +71,20 @@ const SalesFunnel = () => {
     }
   };
 
+  const handleUpdateStep = async (tag, updates) => {
+    // 1. Update Local State
+    const newSteps = funnelSteps.map(step =>
+        step.tag === tag ? { ...step, ...updates } : step
+    );
+
+    // 2. Save to Backend
+    try {
+        await handleSaveConfig(newSteps);
+    } catch (error) {
+        toast({ title: 'Erro ao salvar prompt', status: 'error' });
+    }
+  };
+
   if (funnelSteps.length === 0) {
     return (
       <Box p={8} bg="white" borderRadius="lg" boxShadow="sm" minH="500px">
@@ -119,6 +133,7 @@ const SalesFunnel = () => {
             <FunnelBoard
                 columns={funnelSteps}
                 contacts={contacts}
+                onUpdateStep={handleUpdateStep}
             />
         )}
       </Box>

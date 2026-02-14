@@ -5,7 +5,7 @@ import FunnelColumn from './FunnelColumn';
 import { businessAPI } from '../../services/api';
 import { groupContacts } from '../../utils/funnelUtils';
 
-const FunnelBoard = ({ columns, contacts }) => {
+const FunnelBoard = ({ columns, contacts, onUpdateStep }) => {
   const [boardData, setBoardData] = useState({});
   const toast = useToast();
 
@@ -105,6 +105,7 @@ const FunnelBoard = ({ columns, contacts }) => {
               droppableId={step.tag}
               step={step}
               contacts={boardData[step.tag] || []}
+              onUpdateStep={onUpdateStep}
             />
         ))}
       </Flex>

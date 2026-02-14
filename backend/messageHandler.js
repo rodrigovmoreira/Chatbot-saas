@@ -7,10 +7,10 @@ const wwebjsService = require('./services/wwebjsService');
 const BusinessConfig = require('./models/BusinessConfig');
 const Contact = require('./models/Contact'); // Import Contact model
 const aiTools = require('./services/aiTools');
-const { callDeepSeek, buildSystemPrompt } = require('./services/aiService');
+const { callDeepSeek, buildSystemPrompt, getFunnelStagePrompt, formatHistoryText } = require('./services/aiService');
 const { fromZonedTime, format } = require('date-fns-tz');
 
-const MAX_HISTORY = 10;
+const MAX_HISTORY = 15; // Increased history fetch
 
 // === CONTROLE DE PAUSA (ATENDIMENTO HUMANO) ===
 const humanPauseMap = new Map();
@@ -60,22 +60,6 @@ const stripThinking = (text) => {
     clean = clean.replace(/<\/thinking>/gi, '');
 
     return clean.trim();
-};
-
-// History Cleaner (Prevents immediate repetition)
-const cleanMessageHistory = (history) => {
-    if (!history || history.length === 0) return [];
-    const uniqueHistory = [];
-    let lastContent = null;
-    for (let i = 0; i < history.length; i++) {
-        const msg = history[i];
-        if (!msg.content || msg.content.trim() === "") continue;
-        // Ignore if AI repeats exact same message consecutively
-        if (msg.role === 'assistant' && msg.content === lastContent) continue;
-        uniqueHistory.push(msg);
-        lastContent = msg.content;
-    }
-    return uniqueHistory;
 };
 
 function checkRateLimit(key) {
@@ -383,13 +367,26 @@ Cliente: ${userMessage}`;
             }
         }
 
-        // B. System Prompt
+        // B. System Prompt (Identity + Brain)
         const { instagram, website, portfolio } = businessConfig.socialMedia || {};
-
         const basePrompt = await buildSystemPrompt(activeBusinessId);
+
+        // C. Funnel Stage Injection
+        const contactTags = getTagNames(contact ? contact.tags : []);
+        const funnelSteps = businessConfig.funnelSteps || [];
+        const stageContext = getFunnelStagePrompt(funnelSteps, contactTags);
+
+        // D. History Formatting (Text Block Strategy)
+        const rawDbHistory = await getLastMessages(from, MAX_HISTORY, activeBusinessId, channel);
+        const historyText = formatHistoryText(rawDbHistory, businessConfig.botName);
 
         const systemInstruction = `
 ${basePrompt}
+
+${stageContext}
+
+${historyText}
+
 --- CONTEXTO TÉCNICO ---
 Data/Hora: ${contextDateTime}
 ${catalogContext}
@@ -405,26 +402,10 @@ Links: Insta=${instagram || 'N/A'}, Site=${website || 'N/A'}
 - Ações: Use JSON puro ({"action": "..."}).
 `;
 
-        // C. Montagem do Histórico
-        const rawDbHistory = await getLastMessages(from, MAX_HISTORY, activeBusinessId, channel);
-
-        // 🔥 APLICA O FAXINEIRO AQUI 🔥
-        const cleanDbHistory = cleanMessageHistory(rawDbHistory);
-
         const aiMessages = [
-            { role: "system", content: systemInstruction }
+            { role: "system", content: systemInstruction },
+            { role: "user", content: userMessage }
         ];
-
-        cleanDbHistory.reverse().forEach(m => {
-            if (m.content && m.content.trim()) {
-                aiMessages.push({
-                    role: m.role === 'user' ? 'user' : 'assistant',
-                    content: m.content
-                });
-            }
-        });
-
-        aiMessages.push({ role: "user", content: userMessage });
 
         let finalResponseText = "";
 

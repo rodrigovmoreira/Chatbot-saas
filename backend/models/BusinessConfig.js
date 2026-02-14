@@ -98,7 +98,8 @@ const businessConfigSchema = new mongoose.Schema({
     tag: { type: String, required: true },
     label: { type: String, required: true },
     order: { type: Number, required: true },
-    color: { type: String }
+    color: { type: String },
+    prompt: { type: String } // <--- ADICIONADO: Instruções de IA para esta etapa
   }],
 
   // === ADICIONADO: ENGINE DE NOTIFICAÇÕES (Fase 2) ===
