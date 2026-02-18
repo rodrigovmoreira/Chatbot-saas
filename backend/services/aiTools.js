@@ -1,18 +1,28 @@
 const Appointment = require('../models/Appointment');
 const BusinessConfig = require('../models/BusinessConfig');
-const { toZonedTime, fromZonedTime } = require('date-fns-tz');
+const { toZonedTime } = require('date-fns-tz');
+
+// Helper para converter "HH:mm" em minutos totais (ex: "09:30" -> 570)
+const getMinutes = (timeStr) => {
+    const [h, m] = timeStr.split(':').map(Number);
+    return h * 60 + (m || 0);
+};
 
 // 1. FERRAMENTA: Verificar Disponibilidade
-// Verifica se um horário específico está livre
 const checkAvailability = async (userId, start, end) => {
     try {
         const startTime = new Date(start);
         const endTime = new Date(end);
         const now = new Date();
 
-        // 0. Verifica Antecedência Mínima (Buffer)
+        // Validação básica de datas inválidas
+        if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+             return { available: false, reason: "Data inválida." };
+        }
+
         const config = await BusinessConfig.findOne({ userId });
 
+        // 0. Verifica Antecedência Mínima (Buffer)
         if (config) {
             const bufferMinutes = config.minSchedulingNoticeMinutes || 60;
             const minStart = new Date(now.getTime() + bufferMinutes * 60000);
@@ -25,32 +35,33 @@ const checkAvailability = async (userId, start, end) => {
             }
         }
 
-        // 1. Verifica horário de funcionamento (COM TIMEZONE)
-        if (config && config.operatingHours) {
+        // 1. Verifica horário de funcionamento (COM MINUTOS E TIMEZONE)
+        if (config && config.operatingHours && config.operatingHours.active) {
             const timeZone = config.timezone || config.operatingHours.timezone || 'America/Sao_Paulo';
-
-            // Converte o startTime (que é UTC no objeto Date, mas queremos saber a hora LOCAL do negócio)
-            const zonedStart = toZonedTime(startTime, timeZone);
-
-            const openHour = parseInt(config.operatingHours.opening.split(':')[0]);
-            const closeHour = parseInt(config.operatingHours.closing.split(':')[0]);
             
-            const reqHour = zonedStart.getHours();
+            // Converte para o horário local da empresa
+            const zonedStart = toZonedTime(startTime, timeZone);
+            const zonedEnd = toZonedTime(endTime, timeZone);
 
-            // Validação simples de hora cheia. Para minutos, seria necessário mais detalhe.
-            if (reqHour < openHour || reqHour >= closeHour) {
-                return { available: false, reason: "Fora do horário de funcionamento." };
+            const startMinutes = zonedStart.getHours() * 60 + zonedStart.getMinutes();
+            const endMinutes = zonedEnd.getHours() * 60 + zonedEnd.getMinutes(); // Aproximado para checagem simples do dia
+
+            const openMinutes = getMinutes(config.operatingHours.opening);
+            const closeMinutes = getMinutes(config.operatingHours.closing);
+
+            // Verifica se está fora do horário (considerando apenas o horário de início por enquanto)
+            if (startMinutes < openMinutes || startMinutes >= closeMinutes) {
+                return { available: false, reason: `Fechado. Horário: ${config.operatingHours.opening} às ${config.operatingHours.closing}.` };
             }
         }
 
-        // 2. Verifica conflitos na agenda
+        // 2. Verifica conflitos na agenda (LÓGICA BLINDADA)
+        // Conflito existe se: (StartA < EndB) E (EndA > StartB)
         const conflito = await Appointment.findOne({
             userId,
             status: { $in: ['scheduled', 'confirmed'] },
-            $or: [
-                { start: { $lt: endTime, $gte: startTime } },
-                { end: { $gt: startTime, $lte: endTime } }
-            ]
+            start: { $lt: endTime },
+            end: { $gt: startTime }
         });
 
         if (conflito) {
@@ -58,27 +69,28 @@ const checkAvailability = async (userId, start, end) => {
         }
 
         return { available: true };
+
     } catch (error) {
         console.error("Erro ao checar disponibilidade:", error);
-        return { available: false, reason: "Erro interno." };
+        return { available: false, reason: "Erro interno no calendário." };
     }
 };
 
 // 2. FERRAMENTA: Criar Agendamento (Usado pela IA)
 const createAppointmentByAI = async (userId, data) => {
     try {
-        // data deve conter: { clientName, clientPhone, start, end, title }
-        
-        // start e end já devem chegar aqui como objetos Date (UTC) ou strings ISO corretas
-
-        // Dupla checagem de disponibilidade
         const check = await checkAvailability(userId, data.start, data.end);
-        if (!check.available) return { success: false, message: check.reason };
+        if (!check.available) return { success: false, error: check.reason };
 
+        // Cria o agendamento
         const newAppt = await Appointment.create({
             userId,
-            ...data,
-            type: 'servico', // Padrão
+            clientName: data.clientName,
+            clientPhone: data.clientPhone,
+            start: new Date(data.start),
+            end: new Date(data.end),
+            title: data.title || "Agendamento via IA",
+            type: 'servico',
             status: 'scheduled'
         });
 
@@ -88,55 +100,64 @@ const createAppointmentByAI = async (userId, data) => {
     }
 };
 
-// 3. FERRAMENTA: Listar Horários Livres (Sugestão Inteligente)
-// Retorna lista de horários livres no dia solicitado
+// 3. FERRAMENTA: Listar Horários Livres (Dinâmico)
 const getFreeSlots = async (userId, dateStr) => {
-    // Implementação simplificada: Verifica hora em hora das 09:00 as 18:00
-    // No futuro, pegar do BusinessConfig
-    const slots = [];
-    const baseDate = new Date(dateStr); // Data que o cliente quer (ex: "2023-10-25")
-    
-    // Simulação: Horário comercial 9h as 18h
-    for (let hour = 9; hour < 18; hour++) {
-        const slotStart = new Date(baseDate);
-        slotStart.setHours(hour, 0, 0, 0);
-        
-        const slotEnd = new Date(baseDate);
-        slotEnd.setHours(hour + 1, 0, 0, 0);
+    try {
+        const config = await BusinessConfig.findOne({ userId });
+        if (!config || !config.operatingHours) return [];
 
-        const check = await checkAvailability(userId, slotStart, slotEnd);
-        if (check.available) {
-            slots.push(`${hour}:00`);
+        const slots = [];
+        const baseDate = new Date(dateStr);
+        const timeZone = config.timezone || 'America/Sao_Paulo';
+
+        const openMinutes = getMinutes(config.operatingHours.opening);
+        const closeMinutes = getMinutes(config.operatingHours.closing);
+        
+        // Intervalo de 60 min (pode ser parametrizável depois)
+        const duration = 60; 
+
+        // Itera minuto a minuto (pulo de hora em hora)
+        for (let time = openMinutes; time < closeMinutes; time += duration) {
+            const hour = Math.floor(time / 60);
+            const minute = time % 60;
+
+            const slotStart = new Date(baseDate);
+            slotStart.setHours(hour, minute, 0, 0);
+
+            const slotEnd = new Date(slotStart.getTime() + duration * 60000);
+
+            const check = await checkAvailability(userId, slotStart, slotEnd);
+            
+            if (check.available) {
+                // Formata HH:mm
+                const hh = hour.toString().padStart(2, '0');
+                const mm = minute.toString().padStart(2, '0');
+                slots.push(`${hh}:${mm}`);
+            }
         }
+        return slots;
+
+    } catch (error) {
+        console.error("Erro getFreeSlots:", error);
+        return [];
     }
-    return slots;
 };
 
-// 4. FERRAMENTA: Buscar Produtos (Novo - Changelog 3)
+// 4. FERRAMENTA: Buscar Produtos (Mantido igual, funciona bem)
 const searchProducts = async (userId, keywords = []) => {
     try {
         const config = await BusinessConfig.findOne({ userId });
         if (!config || !config.products) return [];
 
-        // Normaliza keywords para lowercase e trim
         const searchTerms = keywords.map(k => k.trim().toLowerCase()).filter(k => k.length > 0);
-
         if (searchTerms.length === 0) return [];
 
-        // Filtra os produtos com Fuzzy Match (parcial)
         const results = config.products.filter(p => {
             const productName = p.name.trim().toLowerCase();
             const productTags = (p.tags || []).map(t => t.trim().toLowerCase());
-
-            // Verifica se algum termo de busca está contido no nome OU nas tags
-            return searchTerms.some(term => {
-                const inName = productName.includes(term);
-                const inTags = productTags.some(tag => tag.includes(term));
-                return inName || inTags;
-            });
+            return searchTerms.some(term => productName.includes(term) || productTags.some(tag => tag.includes(term)));
         });
 
-        // Retorna formato simplificado
         return results.map(p => ({
             name: p.name,
             price: p.price,
@@ -144,7 +165,7 @@ const searchProducts = async (userId, keywords = []) => {
             imageUrls: p.imageUrls || []
         }));
     } catch (error) {
-        console.error("Erro ao buscar produtos:", error);
+        console.error("Erro searchProducts:", error);
         return [];
     }
 };

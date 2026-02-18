@@ -160,36 +160,36 @@ async function processBufferedMessages(uniqueKey) {
 
         // 3. Audience Filter
         if (shouldProcessMedia) {
-             const aiMode = businessConfig.aiResponseMode || 'all';
-             let audienceBlocked = false;
+            const aiMode = businessConfig.aiResponseMode || 'all';
+            let audienceBlocked = false;
 
-             if (aiMode === 'new_contacts') {
-                 if (contact) {
+            if (aiMode === 'new_contacts') {
+                if (contact) {
                     const hasPriorHistory = contact.totalMessages > 0;
                     const isOld = (Date.now() - new Date(contact.createdAt).getTime()) > 24 * 60 * 60 * 1000;
                     if (hasPriorHistory || isOld) audienceBlocked = true;
-                 }
-                 // If !contact, it's new.
-             } else {
-                 const contactTags = getTagNames(contact ? contact.tags : []);
-                 const whitelist = getTagNames(businessConfig.aiWhitelistTags || []);
-                 const blacklist = getTagNames(businessConfig.aiBlacklistTags || []);
+                }
+                // If !contact, it's new.
+            } else {
+                const contactTags = getTagNames(contact ? contact.tags : []);
+                const whitelist = getTagNames(businessConfig.aiWhitelistTags || []);
+                const blacklist = getTagNames(businessConfig.aiBlacklistTags || []);
 
-                 if (aiMode === 'whitelist') {
-                     const hasTag = contactTags.some(t => whitelist.includes(t));
-                     if (!hasTag) audienceBlocked = true;
-                 } else if (aiMode === 'blacklist') {
-                     if (blacklist.length > 0) {
-                         const hasBadTag = contactTags.some(t => blacklist.includes(t));
-                         if (hasBadTag) audienceBlocked = true;
-                     }
-                 }
-             }
+                if (aiMode === 'whitelist') {
+                    const hasTag = contactTags.some(t => whitelist.includes(t));
+                    if (!hasTag) audienceBlocked = true;
+                } else if (aiMode === 'blacklist') {
+                    if (blacklist.length > 0) {
+                        const hasBadTag = contactTags.some(t => blacklist.includes(t));
+                        if (hasBadTag) audienceBlocked = true;
+                    }
+                }
+            }
 
-             if (audienceBlocked) {
-                 shouldProcessMedia = false;
-                 blockReason = 'audience';
-             }
+            if (audienceBlocked) {
+                shouldProcessMedia = false;
+                blockReason = 'audience';
+            }
         }
 
         // 4. Operating Hours
@@ -231,9 +231,9 @@ async function processBufferedMessages(uniqueKey) {
                     content = "[Áudio recebido]";
                 }
             } else if (msg.type !== 'text') {
-                 // Outros tipos de mídia
-                 const mediaDesc = `[Mídia: ${msg.type}]`;
-                 content = content ? `${content}\n${mediaDesc}` : mediaDesc;
+                // Outros tipos de mídia
+                const mediaDesc = `[Mídia: ${msg.type}]`;
+                content = content ? `${content}\n${mediaDesc}` : mediaDesc;
             }
 
             if (content) finalMessages.push(content);
@@ -380,10 +380,33 @@ Cliente: ${userMessage}`;
         const rawDbHistory = await getLastMessages(from, MAX_HISTORY, activeBusinessId, channel);
         const historyText = formatHistoryText(rawDbHistory, businessConfig.botName);
 
+        const toolsInstruction = `
+--- FERRAMENTAS DISPONÍVEIS (Use JSON para agir) ---
+Você tem acesso a funções do sistema. Para usá-las, responda APENAS com o JSON correspondente.
+
+1. **VERIFICAR DISPONIBILIDADE (Agenda)**
+   - Use quando o cliente perguntar horários ou quiser agendar.
+   - JSON: {"action": "check", "start": "YYYY-MM-DD HH:mm", "end": "YYYY-MM-DD HH:mm"}
+   - Obs: Se o cliente não der data, use a data de hoje/amanhã no contexto.
+
+2. **AGENDAR (Confirmar Reserva)**
+   - Use APENAS quando o cliente confirmar explicitamente um horário LIVRE.
+   - JSON: {"action": "book", "clientName": "Nome", "start": "YYYY-MM-DD HH:mm", "title": "Serviço"}
+
+3. **BUSCAR NO CATÁLOGO**
+   - Use quando o cliente perguntar preço, foto ou detalhes de algo que vendemos.
+   - JSON: {"action": "search_catalog", "keywords": ["termo1", "termo2"]}
+   - NUNCA invente preços. Busque no catálogo primeiro.
+
+Se não precisar de ferramentas, responda com texto normal seguindo o Tom de Voz.
+`;
+
         const systemInstruction = `
 ${basePrompt}
 
 ${stageContext}
+
+${toolsInstruction}
 
 ${historyText}
 
@@ -409,10 +432,10 @@ Links: Insta=${instagram || 'N/A'}, Site=${website || 'N/A'}
 
         let finalResponseText = "";
 
-       try {
+        try {
             // 1. Chamada inicial à IA
             const rawResponseText = await callDeepSeek(aiMessages);
-            
+
             const thoughtMatch = rawResponseText.match(/<thinking>([\s\S]*?)<\/thinking>/i);
             if (thoughtMatch) console.log(`🧠 [IA PENSOU]: ${thoughtMatch[1].substring(0, 100)}...`);
 
@@ -452,8 +475,8 @@ Links: Insta=${instagram || 'N/A'}, Site=${website || 'N/A'}
                             start: startZoned,
                             end: endZoned
                         });
-                        toolResult = booking.success 
-                            ? `SUCESSO: Agendamento salvo (ID: ${booking.data._id}). Pode confirmar.` 
+                        toolResult = booking.success
+                            ? `SUCESSO: Agendamento salvo (ID: ${booking.data._id}). Pode confirmar.`
                             : `ERRO CRÍTICO: Falhou. Motivo: ${booking.error}. Peça desculpas.`;
                     }
 
@@ -465,7 +488,7 @@ Links: Insta=${instagram || 'N/A'}, Site=${website || 'N/A'}
                                 if (count >= 5) break;
                                 const caption = `${p.name} - R$ ${p.price}\n${p.description || ''}`;
                                 if (p.imageUrls && p.imageUrls.length > 0) {
-                                    if (channel === 'web') { /* Logica web */ } 
+                                    if (channel === 'web') { /* Logica web */ }
                                     else {
                                         await wwebjsService.sendImage(businessConfig.userId, from, p.imageUrls[0], caption);
                                         for (let i = 1; i < p.imageUrls.length; i++) {
@@ -488,10 +511,10 @@ Links: Insta=${instagram || 'N/A'}, Site=${website || 'N/A'}
                     aiMessages.push({ role: "user", content: `[SISTEMA]: Resultado da ação: ${toolResult}. Agora responda ao cliente.` });
 
                     const rawFinalResponse = await callDeepSeek(aiMessages);
-                    
+
                     // 🛡️ TRAVA DE SEGURANÇA 2: Limpar pensamento TAMBÉM na resposta pós-ação
                     finalResponseText = stripThinking(rawFinalResponse);
-                    
+
                     if (!finalResponseText || finalResponseText.trim() === "") {
                         finalResponseText = "Certo, verifiquei aqui.";
                     }
@@ -512,9 +535,9 @@ Links: Insta=${instagram || 'N/A'}, Site=${website || 'N/A'}
 
         // 🛡️ TRAVA DE SEGURANÇA 3: Verificação Final Global
         if (!finalResponseText || finalResponseText.trim() === "") {
-             console.error("❌ Erro: Mensagem final vazia detectada. Abortando para evitar crash no banco.");
-             if (resolve) resolve({ success: false });
-             return;
+            console.error("❌ Erro: Mensagem final vazia detectada. Abortando para evitar crash no banco.");
+            if (resolve) resolve({ success: false });
+            return;
         }
 
         if (channel !== 'web') {
