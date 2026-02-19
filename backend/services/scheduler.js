@@ -2,8 +2,10 @@ const cron = require('node-cron');
 const BusinessConfig = require('../models/BusinessConfig');
 const Contact = require('../models/Contact');
 const Appointment = require('../models/Appointment');
+const { saveMessage, getLastMessages } = require('./message');
 const { saveMessage } = require('./message');
 const { sendUnifiedMessage } = require('./responseService');
+const { callDeepSeek } = require('./aiService');
 
 // === HELPER: Calcular Data Alvo ===
 function calculateTriggerTime(appointment, rule) {
@@ -163,14 +165,60 @@ async function processConfigBatch(configs) {
                 }
 
                 if (minutesSinceLastMsg >= nextStep.delayMinutes) {
+
+                    let messageToSend = nextStep.message;
+
+                    // 🧠 SE O USUÁRIO MARCOU "USAR IA" NA TELA DE INTELIGÊNCIA:
+                    if (nextStep.useAI) {
+                        try {
+                            // 1. Busca as últimas 6 mensagens para a IA saber em que pé parou a conversa
+                            const history = await getLastMessages(contact.phone, 6, config._id, contact.channel || 'whatsapp');
+                            let historyText = "";
+                            if (history && history.length > 0) {
+                                history.reverse().forEach(msg => {
+                                    const roleName = msg.role === 'user' ? 'Cliente' : 'Assistente';
+                                    historyText += `${roleName}: "${msg.content.replace(/\n/g, ' ')}"\n`;
+                                });
+                            }
+
+                            // 2. Monta a ordem para a IA
+                            const prompt = `
+Você é o assistente virtual da empresa. O cliente parou de responder há algum tempo.
+HISTÓRICO RECENTE DA CONVERSA:
+${historyText || "(Sem histórico recente)"}
+
+INSTRUÇÃO PARA RECUPERAR O CLIENTE:
+"${nextStep.message}"
+
+SUA TAREFA:
+Baseado no histórico, escreva UMA ÚNICA MENSAGEM curta e natural para enviar ao cliente agora, seguindo a instrução acima. 
+Seja humano, evite parecer um robô. NÃO USE ASTERISCOS (**) NEM MARKDOWN.
+`;
+                            // 3. Chama o DeepSeek
+                            const aiResponse = await callDeepSeek([{ role: "system", content: prompt }]);
+
+                            // Limpeza simples de tags HTML/Markdown caso a IA viaje
+                            let cleanResponse = aiResponse.replace(/<[^>]*>?/gm, '').replace(/\*\*/g, '').trim();
+
+                            if (cleanResponse) {
+                                messageToSend = cleanResponse;
+                            }
+                        } catch (aiError) {
+                            console.error(`💥 Erro na IA do Follow-up (Contact ${contact.phone}):`, aiError.message);
+                            // Se a IA cair, ele não envia a instrução crua, envia uma genérica de fallback
+                            messageToSend = "Olá! Tudo bem? Passando para saber se ainda tem interesse ou se posso te ajudar com mais alguma dúvida.";
+                        }
+                    }
+
+                    // 🚀 DISPARO DA MENSAGEM
                     await sendUnifiedMessage(
                         contact.phone,
-                        nextStep.message,
+                        messageToSend, // Mensagem Gerada ou Fixa
                         config.whatsappProvider,
                         config.userId
                     );
 
-                    await saveMessage(contact.phone, 'bot', nextStep.message, 'text', null, config._id);
+                    await saveMessage(contact.phone, 'bot', messageToSend, 'text', null, config._id);
 
                     contact.followUpStage = nextStepIndex + 1;
                     contact.lastResponseTime = now;
@@ -206,10 +254,10 @@ async function processSchedulerTick() {
 }
 
 function startScheduler() {
-  // Roda a cada minuto
-  cron.schedule('* * * * *', () => {
-      processSchedulerTick();
-  });
+    // Roda a cada minuto
+    cron.schedule('* * * * *', () => {
+        processSchedulerTick();
+    });
 }
 
 module.exports = { startScheduler, processSchedulerTick };
