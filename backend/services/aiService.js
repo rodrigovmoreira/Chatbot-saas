@@ -23,32 +23,33 @@ async function buildSystemPrompt(businessId) {
         const botName = config.botName || "Assistente";
         const businessName = config.businessName || "Empresa";
         
-        // 1. TOM DE VOZ (Aceita qualquer string)
+        // TOM DE VOZ
         const toneInstruction = config.toneOfVoice || config.tone || "Natural, brasileiro e prestativo.";
 
-        // 2. IDENTIDADE MESTRA
+        // IDENTIDADE MESTRA + DIRETRIZES DE HUMANIZAÇÃO (Sem usar símbolos no prompt)
         let prompt = `
 --- IDENTIDADE ---
 Nome: ${botName}
 Empresa: ${businessName}
 Tom de Voz: ${toneInstruction}
 
---- DIRETRIZES DE HUMANIZAÇÃO (ANTI-ROBÔ) ---
-1. **PROIBIDO MARKDOWN:** NUNCA use negrito (**texto**), itálico, ou headers (##). O WhatsApp Web não renderiza isso bem.
-2. **PROIBIDO LISTAS:** NUNCA use hífens (-) ou asteriscos (*) para listar. Escreva em parágrafos fluidos ou use quebras de linha.
-3. **PROIBIDO REPETIR SAUDAÇÃO:** Se o histórico mostra que já nos falamos hoje, NÃO diga "Olá" de novo. Vá direto ao assunto.
-4. **NATURALIDADE:** Use linguagem natural de chat. Use espaçamento duplo entre parágrafos para facilitar a leitura.
+--- REGRAS ESTRITAS DE FORMATACAO (ANTI-ROBO) ---
+Atencao: Voce esta operando em um chat de WhatsApp. Siga estas regras obrigatoriamente:
+1. ZERO FORMATACAO: Nao utilize formatacao em negrito, italico, sublinhado ou titulos em nenhuma hipotese. Produza apenas texto puro.
+2. ZERO LISTAS COM SIMBOLOS: Nao utilize asteriscos, hifens ou marcadores para criar listas. Se precisar listar, escreva em texto corrido, paragrafos fluidos ou use numeros simples.
+3. NATURALIDADE: Escreva como um humano em um chat. Use quebras de linha duplas para separar ideias e facilitar a leitura.
+4. CONTINUIDADE: Verifique o historico. Nao repita saudacoes (como "Ola!", "Tudo bem?") se voces ja se falaram na conversa recente.
 `;
 
         if (config.products && config.products.length > 0) {
-            prompt += `\n--- CATÁLOGO RÁPIDO (Referência Interna) ---\n`;
+            prompt += `\n--- CATALOGO RAPIDO (Referencia Interna) ---\n`;
             config.products.forEach(p => {
-                prompt += `Item: ${p.name} | Preço: R$ ${p.price}\n`;
+                prompt += `Item: ${p.name} | Preco: R$ ${p.price}\n`;
             });
         }
 
-        // 3. CÉREBRO (Regras do Negócio)
-        prompt += `\n--- REGRAS DO NEGÓCIO (CÉREBRO) ---\n`;
+        // CÉREBRO (Regras do Negócio)
+        prompt += `\n--- REGRAS DO NEGOCIO (CEREBRO) ---\n`;
         prompt += config.customInstructions || config.prompts?.chatSystem || "";
 
         return prompt;
@@ -114,13 +115,8 @@ async function callDeepSeek(messages) {
         const apiUrl = process.env.DEEPSEEK_API_URL || "https://api.deepseek.com/chat/completions";
         const model = process.env.DEEPSEEK_MODEL || "deepseek-chat";
 
+        // Limpa span/loop infinito
         let finalMessages = sanitizeContext(messages);
-
-        // System message de segurança (sem forçar tom robótico)
-        finalMessages.push({
-            role: 'system',
-            content: '[SYSTEM: Output plain text only. No Markdown. No bold (**). No lists (-).]'
-        });
 
         const response = await axios.post(
             apiUrl,

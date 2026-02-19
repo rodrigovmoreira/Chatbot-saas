@@ -134,12 +134,39 @@ async function processBufferedMessages(uniqueKey) {
         }
         if (!businessConfig.prompts) businessConfig.prompts = { chatSystem: "...", visionSystem: "..." };
 
-        // 0. VERIFICAÇÃO DE HANDOVER (ATENDIMENTO HUMANO)
+        // 0. BUSCA DO CONTATO E LÓGICA DE BOAS-VINDAS / NOME
         let contactQuery = { businessId: activeBusinessId };
         if (channel === 'web') contactQuery.sessionId = from;
         else contactQuery.phone = from;
 
-        const contact = await Contact.findOne(contactQuery);
+        let contact = await Contact.findOne(contactQuery);
+
+        const isNewContact = !contact || contact.totalMessages === 0;
+        const currentName = contact?.name || name || "Cliente";
+        const isUnknownName = !contact?.name || contact.name === 'Cliente' || contact.name === from;
+
+        let welcomeContext = "";
+
+        if (isNewContact) {
+            welcomeContext = `
+--- CONTEXTO: PRIMEIRO CONTATO ---
+Este é um cliente NOVO.
+1. Apresente-se brevemente de forma humana e amigável.
+2. Pergunte qual o nome do cliente para que você possa anotá-lo.
+`;
+        } else if (isUnknownName && (!contact || contact.totalMessages < 5)) {
+            welcomeContext = `
+--- CONTEXTO: IDENTIFICAÇÃO ---
+Ainda não sabemos o nome deste cliente.
+Em um momento oportuno, pergunte o nome dele(a).
+`;
+        } else {
+            welcomeContext = `
+--- CONTEXTO: CLIENTE CONHECIDO ---
+Nome do Cliente: ${currentName}.
+Você pode chamá-lo(a) pelo nome esporadicamente para gerar conexão.
+`;
+        }
 
         // --- LAZY PROCESSING LOGIC ---
         // Determines if we should process media or keep it generic
@@ -150,6 +177,10 @@ async function processBufferedMessages(uniqueKey) {
         if (contact && contact.isHandover) {
             shouldProcessMedia = false;
             blockReason = 'handover';
+            // 🛑 TRAVA DE SEGURANÇA: Desativa a cobrança automática se o humano assumiu
+            if (contact.followUpActive) {
+                await Contact.updateOne({ _id: contact._id }, { $set: { followUpActive: false } });
+            }
         }
 
         // 2. Global Disabled
@@ -339,6 +370,7 @@ Cliente: ${userMessage}`;
         // Force timezone in formatting using date-fns-tz or Intl
         const formattedDateTime = new Intl.DateTimeFormat('pt-BR', {
             timeZone,
+            weekday: 'long',
             year: 'numeric',
             month: '2-digit',
             day: '2-digit',
@@ -363,7 +395,7 @@ Cliente: ${userMessage}`;
             const uniqueTags = Array.from(allTags).join(', ');
 
             if (uniqueTags) {
-                catalogContext = `CONTEXT: You have a database of products related to: [${uniqueTags}]. DO NOT guess prices. If the user asks about a product, you MUST use the search_catalog tool to find it.`;
+                catalogContext = `CONTEXT: You have a database of products/services related to: [${uniqueTags}]. DO NOT guess prices or durations. If the user asks about a service, you MUST use the search_catalog tool to find its exact price and duration.`;
             }
         }
 
@@ -381,33 +413,32 @@ Cliente: ${userMessage}`;
         const historyText = formatHistoryText(rawDbHistory, businessConfig.botName);
 
         const toolsInstruction = `
---- FERRAMENTAS DISPONÍVEIS (Use JSON para agir) ---
-Você tem acesso a funções do sistema. Para usá-las, responda APENAS com o JSON correspondente.
+--- FERRAMENTAS DISPONÍVEIS (Responda APENAS JSON) ---
+Se precisar usar uma ferramenta, envie SOMENTE o bloco JSON correspondente.
 
-1. **VERIFICAR DISPONIBILIDADE (Agenda)**
-   - Use quando o cliente perguntar horários ou quiser agendar.
+1. **SALVAR NOME DO CLIENTE**
+   - Use ASSIM QUE o cliente disser o nome dele.
+   - JSON: {"action": "update_name", "name": "Nome Identificado"}
+
+2. **VERIFICAR AGENDA**
+   - Calcule o "end" somando a duração do serviço (durationMinutes) ao "start".
    - JSON: {"action": "check", "start": "YYYY-MM-DD HH:mm", "end": "YYYY-MM-DD HH:mm"}
-   - Obs: Se o cliente não der data, use a data de hoje/amanhã no contexto.
 
-2. **AGENDAR (Confirmar Reserva)**
-   - Use APENAS quando o cliente confirmar explicitamente um horário LIVRE.
-   - JSON: {"action": "book", "clientName": "Nome", "start": "YYYY-MM-DD HH:mm", "title": "Serviço"}
+3. **AGENDAR (Apenas com confirmação)**
+   - O campo "end" DEVE respeitar a duração exata do serviço.
+   - JSON: {"action": "book", "clientName": "${currentName}", "start": "YYYY-MM-DD HH:mm", "end": "YYYY-MM-DD HH:mm", "title": "Nome do Serviço"}
 
-3. **BUSCAR NO CATÁLOGO**
-   - Use quando o cliente perguntar preço, foto ou detalhes de algo que vendemos.
-   - JSON: {"action": "search_catalog", "keywords": ["termo1", "termo2"]}
-   - NUNCA invente preços. Busque no catálogo primeiro.
+4. **CATÁLOGO**
+   - JSON: {"action": "search_catalog", "keywords": ["termo1"]}
 
-Se não precisar de ferramentas, responda com texto normal seguindo o Tom de Voz.
+Se for apenas conversar, responda texto normal.
 `;
 
         const systemInstruction = `
 ${basePrompt}
-
+${welcomeContext}
 ${stageContext}
-
 ${toolsInstruction}
-
 ${historyText}
 
 --- CONTEXTO TÉCNICO ---
@@ -431,6 +462,11 @@ Links: Insta=${instagram || 'N/A'}, Site=${website || 'N/A'}
         ];
 
         let finalResponseText = "";
+
+        // 🔥 FEEDBACK VISUAL 1: Mostra "Digitando..." enquanto a IA processa a resposta
+        if (channel !== 'web') {
+            wwebjsService.sendStateTyping(activeBusinessId, from).catch(() => { });
+        }
 
         try {
             // 1. Chamada inicial à IA
@@ -458,6 +494,21 @@ Links: Insta=${instagram || 'N/A'}, Site=${website || 'N/A'}
                     let toolResult = "";
 
                     // --- LÓGICA DE FERRAMENTAS ---
+                    if (command.action === 'update_name') {
+                        if (command.name) {
+                            // Atualização BLINDADA (usa upsert para não dar erro se o contato não existir no banco ainda)
+                            await Contact.findOneAndUpdate(
+                                contactQuery,
+                                { $set: { name: command.name } },
+                                { upsert: true }
+                            );
+                            toolResult = `SUCESSO: Nome salvo como "${command.name}". Responda chamando a pessoa pelo nome recém descoberto.`;
+                            console.log(`👤 Nome atualizado via IA para: ${command.name}`);
+                        } else {
+                            toolResult = "Erro ao salvar nome.";
+                        }
+                    }
+
                     if (command.action === 'check') {
                         const startZoned = fromZonedTime(command.start, timeZone);
                         let endZoned = command.end ? fromZonedTime(command.end, timeZone) : new Date(startZoned.getTime() + 60 * 60000);
@@ -541,6 +592,9 @@ Links: Insta=${instagram || 'N/A'}, Site=${website || 'N/A'}
         }
 
         if (channel !== 'web') {
+            // 🔥 FEEDBACK VISUAL 2: Reforça o "Digitando..." para o tempo de delay artificial
+            wwebjsService.sendStateTyping(activeBusinessId, from).catch(() => { });
+
             const delay = Math.floor(Math.random() * (HUMAN_DELAY_MAX - HUMAN_DELAY_MIN + 1)) + HUMAN_DELAY_MIN;
             await sleep(delay);
             await sendUnifiedMessage(from, finalResponseText, provider, businessConfig.userId);
@@ -549,6 +603,20 @@ Links: Insta=${instagram || 'N/A'}, Site=${website || 'N/A'}
         }
 
         await saveMessage(from, 'bot', finalResponseText, 'text', null, activeBusinessId, channel);
+
+        // ⏱️ DAR CORDA NO RELÓGIO: Ativa/reseta o monitoramento de inatividade (Follow-up)
+        if (contact && !contact.isHandover) {
+            await Contact.updateOne(
+                { _id: contact._id },
+                {
+                    $set: {
+                        followUpActive: true,
+                        followUpStage: 0, // Volta para o passo 1
+                        lastResponseTime: new Date() // O cronômetro começa AGORA
+                    }
+                }
+            );
+        }
 
     } catch (error) {
         console.error('💥 Erro Buffer Process:', error);

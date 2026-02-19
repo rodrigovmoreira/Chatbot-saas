@@ -28,14 +28,14 @@ const startSession = async (userIdRaw) => {
 
   // 1. BLINDAGEM CONTRA DUPLICIDADE
   if (sessions.has(userId)) {
-      console.log(`🛡️ Sessão ${userId} já está online. Ignorando start duplicado.`);
-      return sessions.get(userId);
+    console.log(`🛡️ Sessão ${userId} já está online. Ignorando start duplicado.`);
+    return sessions.get(userId);
   }
 
   // 2. BLINDAGEM CONTRA RACE CONDITION
   if (statuses.get(userId) === 'initializing') {
-      console.log(`🛡️ Sessão ${userId} já está inicializando. Chamada duplicada ignorada.`);
-      return;
+    console.log(`🛡️ Sessão ${userId} já está inicializando. Chamada duplicada ignorada.`);
+    return;
   }
 
   // 3. A TRAVA DE SEGURANÇA
@@ -171,9 +171,9 @@ const startSession = async (userIdRaw) => {
     // 2. Block Status Updates (status@broadcast)
     // 3. Block Channels/Newsletters (@newsletter)
     const isInvalidSource =
-        msg.from.includes('@g.us') ||
-        msg.from === 'status@broadcast' ||
-        msg.from.includes('@newsletter');
+      msg.from.includes('@g.us') ||
+      msg.from === 'status@broadcast' ||
+      msg.from.includes('@newsletter');
 
     // 4. Block Technical/Community IDs (Length Check)
     // Standard phone numbers (even international) are rarely > 15 digits.
@@ -182,8 +182,8 @@ const startSession = async (userIdRaw) => {
     const isTooLong = numericPart.length > 15;
 
     if (isInvalidSource || isTooLong) {
-        // console.log(`🚫 Iron Gate: Blocked message from ${msg.from}`);
-        return; // STOP execution immediately.
+      // console.log(`🚫 Iron Gate: Blocked message from ${msg.from}`);
+      return; // STOP execution immediately.
     }
 
     if (msg.type === 'e2e_notification' || msg.type === 'notification_template') return;
@@ -282,6 +282,28 @@ const sendImage = async (userId, to, imageUrl, caption) => {
     return false;
   }
 
+  // 5. FUNÇÃO DE ESTADO "DIGITANDO..." (UX / Humanização)
+  const sendStateTyping = async (userId, to) => {
+    const client = sessions.get(userId.toString());
+
+    if (!client || !client.info) {
+      return false;
+    }
+
+    try {
+      let formattedNumber = to.replace(/\D/g, '');
+      if (!formattedNumber.includes('@c.us')) formattedNumber = `${formattedNumber}@c.us`;
+
+      const chat = await client.getChatById(formattedNumber);
+      // Dispara o status "digitando..." (o WWebJS mantém isso por alguns segundos ou até enviar mensagem)
+      await chat.sendStateTyping();
+      return true;
+    } catch (error) {
+      console.error(`💥 Erro ao enviar status 'digitando' (User ${userId}):`, error.message);
+      return false;
+    }
+  };
+
   try {
     // Formata número
     let formattedNumber = to.replace(/\D/g, '');
@@ -337,7 +359,7 @@ const updateLabel = async (userId, labelId, name, hexColor) => {
   const label = labels.find(l => l.id === labelId);
 
   if (!label) {
-     throw new Error(`Label ${labelId} não encontrada.`);
+    throw new Error(`Label ${labelId} não encontrada.`);
   }
 
   // Update properties
@@ -346,10 +368,10 @@ const updateLabel = async (userId, labelId, name, hexColor) => {
 
   // Persist changes if method exists (Standard WWebJS Label)
   if (typeof label.save === 'function') {
-      await label.save();
+    await label.save();
   } else {
-      console.warn(`⚠️ Label.save() não disponível para User ${userId}. Tentando fallback de edição...`);
-      // Fallback logic if needed, but assuming standard support per request
+    console.warn(`⚠️ Label.save() não disponível para User ${userId}. Tentando fallback de edição...`);
+    // Fallback logic if needed, but assuming standard support per request
   }
   return label;
 };
@@ -362,37 +384,37 @@ const deleteLabel = async (userId, labelId) => {
   const label = labels.find(l => l.id === labelId);
 
   if (label && typeof label.delete === 'function') {
-      await label.delete();
+    await label.delete();
   } else {
-      throw new Error(`Label ${labelId} não encontrada ou não deletável.`);
+    throw new Error(`Label ${labelId} não encontrada ou não deletável.`);
   }
 };
 
 const setChatLabels = async (userId, chatId, labelIds) => {
-   const client = sessions.get(userId.toString());
-   if (!client || !client.info) throw new Error(`Sessão ${userId} não pronta.`);
+  const client = sessions.get(userId.toString());
+  if (!client || !client.info) throw new Error(`Sessão ${userId} não pronta.`);
 
-   const chat = await client.getChatById(chatId);
+  const chat = await client.getChatById(chatId);
 
-   // Use the method confirmed to exist in Chat.js
-   if (chat && typeof chat.changeLabels === 'function') {
-       return await chat.changeLabels(labelIds);
-   } else {
-       console.warn(`⚠️ Chat ${chatId} não suporta changeLabels ou não encontrado.`);
-   }
+  // Use the method confirmed to exist in Chat.js
+  if (chat && typeof chat.changeLabels === 'function') {
+    return await chat.changeLabels(labelIds);
+  } else {
+    console.warn(`⚠️ Chat ${chatId} não suporta changeLabels ou não encontrado.`);
+  }
 };
 
 const getChatLabels = async (userId, chatId) => {
-   const client = sessions.get(userId.toString());
-   if (!client || !client.info) throw new Error(`Sessão ${userId} não pronta.`);
+  const client = sessions.get(userId.toString());
+  if (!client || !client.info) throw new Error(`Sessão ${userId} não pronta.`);
 
-   const chat = await client.getChatById(chatId);
-   if (chat && typeof chat.getLabels === 'function') {
-       return await chat.getLabels();
-   } else {
-       console.warn(`⚠️ Chat ${chatId} não suporta getLabels ou não encontrado.`);
-       return [];
-   }
+  const chat = await client.getChatById(chatId);
+  if (chat && typeof chat.getLabels === 'function') {
+    return await chat.getLabels();
+  } else {
+    console.warn(`⚠️ Chat ${chatId} não suporta getLabels ou não encontrado.`);
+    return [];
+  }
 };
 
 const closeAllSessions = async () => {
@@ -428,9 +450,10 @@ module.exports = {
   getClientSession,
   sendWWebJSMessage,
   sendImage,
+  sendStateTyping,
   closeAllSessions,
   getLabels,
- // createLabel,
+  // createLabel,
   updateLabel,
   deleteLabel,
   setChatLabels,

@@ -161,6 +161,7 @@ const searchProducts = async (userId, keywords = []) => {
         return results.map(p => ({
             name: p.name,
             price: p.price,
+            durationMinutes: p.durationMinutes || 60,
             description: p.description,
             imageUrls: p.imageUrls || []
         }));
