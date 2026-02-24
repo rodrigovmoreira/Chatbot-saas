@@ -282,28 +282,6 @@ const sendImage = async (userId, to, imageUrl, caption) => {
     return false;
   }
 
-  // 5. FUNÇÃO DE ESTADO "DIGITANDO..." (UX / Humanização)
-  const sendStateTyping = async (userId, to) => {
-    const client = sessions.get(userId.toString());
-
-    if (!client || !client.info) {
-      return false;
-    }
-
-    try {
-      let formattedNumber = to.replace(/\D/g, '');
-      if (!formattedNumber.includes('@c.us')) formattedNumber = `${formattedNumber}@c.us`;
-
-      const chat = await client.getChatById(formattedNumber);
-      // Dispara o status "digitando..." (o WWebJS mantém isso por alguns segundos ou até enviar mensagem)
-      await chat.sendStateTyping();
-      return true;
-    } catch (error) {
-      console.error(`💥 Erro ao enviar status 'digitando' (User ${userId}):`, error.message);
-      return false;
-    }
-  };
-
   try {
     // Formata número
     let formattedNumber = to.replace(/\D/g, '');
@@ -319,6 +297,29 @@ const sendImage = async (userId, to, imageUrl, caption) => {
 
   } catch (error) {
     console.error(`💥 Erro ao enviar imagem (User ${userId}):`, error.message);
+    return false;
+  }
+}; // <--- AQUI É O FIM DA FUNÇÃO DE IMAGEM
+
+
+// 5. FUNÇÃO DE ESTADO "DIGITANDO..." (UX / Humanização)
+const sendStateTyping = async (userId, to) => {
+  const client = sessions.get(userId.toString());
+
+  if (!client || !client.info) {
+    return false;
+  }
+
+  try {
+    let formattedNumber = to.replace(/\D/g, '');
+    if (!formattedNumber.includes('@c.us')) formattedNumber = `${formattedNumber}@c.us`;
+
+    const chat = await client.getChatById(formattedNumber);
+    // Dispara o status "digitando..." (o WWebJS mantém isso por alguns segundos ou até enviar mensagem)
+    await chat.sendStateTyping();
+    return true;
+  } catch (error) {
+    console.error(`💥 Erro ao enviar status 'digitando' (User ${userId}):`, error.message);
     return false;
   }
 };

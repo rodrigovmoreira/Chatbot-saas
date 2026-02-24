@@ -3,7 +3,6 @@ const BusinessConfig = require('../models/BusinessConfig');
 const Contact = require('../models/Contact');
 const Appointment = require('../models/Appointment');
 const { saveMessage, getLastMessages } = require('./message');
-const { saveMessage } = require('./message');
 const { sendUnifiedMessage } = require('./responseService');
 const { callDeepSeek } = require('./aiService');
 
