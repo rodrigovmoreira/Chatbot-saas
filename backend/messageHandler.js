@@ -19,7 +19,7 @@ const HUMAN_PAUSE_TIME = 30 * 60 * 1000;
 // === CONTROLE DE PROTEÇÃO (ANTI-LOOP) ===
 const rateLimitMap = new Map();
 const RATE_LIMIT_WINDOW = 60 * 1000;
-const MAX_MSGS_PER_WINDOW = 5;
+const MAX_MSGS_PER_WINDOW = 10;
 const COOLDOWN_TIME = 10 * 60 * 1000;
 const HUMAN_DELAY_MIN = 5000;
 const HUMAN_DELAY_MAX = 15000;
@@ -59,6 +59,14 @@ const stripThinking = (text) => {
     // 4. Remove tags de fechamento órfãs
     clean = clean.replace(/<\/thinking>/gi, '');
 
+    return clean.trim();
+};
+
+// Filtro de Segurança: Remove qualquer objeto JSON do texto final
+const stripJsonBlocks = (text) => {
+    if (!text) return "";
+    let clean = text.replace(/```json[\s\S]*?```/gi, ''); // Tira blocos markdown
+    clean = clean.replace(/\{[\s\S]*?"action"[\s\S]*?\}/gi, ''); // Tira o JSON solto
     return clean.trim();
 };
 
@@ -415,6 +423,9 @@ Cliente: ${userMessage}`;
         const toolsInstruction = `
 --- FERRAMENTAS DISPONÍVEIS (Responda APENAS JSON) ---
 Se precisar usar uma ferramenta, envie SOMENTE o bloco JSON correspondente.
+1. Escolha APENAS UMA ferramenta por vez. NUNCA envie dois blocos JSON.
+2. Se decidir usar uma ferramenta, envie SOMENTE o JSON puro. NUNCA misture texto humano com JSON na mesma resposta.
+3. Se não for usar ferramenta, responda apenas com texto normal.
 
 1. **SALVAR NOME DO CLIENTE**
    - Use ASSIM QUE o cliente disser o nome dele.
@@ -584,6 +595,9 @@ Links: Insta=${instagram || 'N/A'}, Site=${website || 'N/A'}
             return;
         }
 
+        // Corta qualquer JSON que a IA tentou vazar
+        finalResponseText = stripJsonBlocks(finalResponseText);
+
         // 🛡️ TRAVA DE SEGURANÇA 3: Verificação Final Global
         if (!finalResponseText || finalResponseText.trim() === "") {
             console.error("❌ Erro: Mensagem final vazia detectada. Abortando para evitar crash no banco.");
@@ -658,6 +672,7 @@ async function handleIncomingMessage(normalizedMsg, activeBusinessId) {
 
     // 2. RATE LIMIT
     if (!checkRateLimit(uniqueKey)) {
+        console.warn(`🚨 ANTI-SPAM ATIVADO: Mensagem ignorada! O contato [${uniqueKey}] excedeu o limite e está no gancho de 10 minutos.`);
         return { error: "Rate limit exceeded" };
     }
 

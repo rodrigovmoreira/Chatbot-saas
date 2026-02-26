@@ -435,4 +435,36 @@ router.post('/delete-image', authenticateToken, async (req, res) => {
   }
 });
 
+// ROTA DE INJEÇÃO DE TESTES (APENAS PARA DESENVOLVIMENTO)
+router.post('/test/webhook', async (req, res) => {
+    // Trava de segurança: só permite injetar testes se estiver rodando localmente
+    if (process.env.NODE_ENV === 'production') {
+        return res.status(403).json({ error: "Proibido em produção" });
+    }
+
+    try {
+        const { from, body, type, businessId } = req.body;
+        
+        // Importa o orquestrador que acabamos de refatorar
+        const { handleIncomingMessage } = require('../messageHandler');
+
+        // Finge ser uma mensagem chegando do WWebJS
+        const fakeMessage = {
+            from: from,
+            body: body,
+            type: type || 'text',
+            provider: 'test_script',
+            channel: 'whatsapp' // Finge que veio do zap
+        };
+
+        // Dispara o cérebro do robô
+        await handleIncomingMessage(fakeMessage, businessId);
+
+        res.status(200).json({ status: "Mensagem injetada com sucesso no buffer!" });
+    } catch (error) {
+        console.error("Erro no webhook de teste:", error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 module.exports = router;
