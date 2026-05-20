@@ -12,16 +12,7 @@ const mockSocketInstance = {
 // We mock io directly
 jest.mock('socket.io-client', () => {
   return {
-    io: jest.fn().mockReturnValue({
-      on: jest.fn((event, callback) => {
-        if (event === 'connect') {
-          // Guardar a callback para a podermos invocar
-          mockSocketInstance.on.connectCallback = callback;
-        }
-      }),
-      emit: jest.fn(),
-      disconnect: jest.fn(),
-    })
+    io: jest.fn()
   };
 });
 
@@ -55,7 +46,6 @@ describe('AppContext', () => {
     mockSocketInstance.on.mockClear();
     mockSocketInstance.emit.mockClear();
     mockSocketInstance.disconnect.mockClear();
-    mockSocketInstance.on.connectCallback = undefined;
   });
 
   it('deve carregar os dados iniciais do utilizador a partir do localStorage', async () => {
